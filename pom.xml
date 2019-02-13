@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.walmartlabs.concord</groupId>
+        <artifactId>parent</artifactId>
+        <version>1.7.2</version>
+    </parent>
+
+    <groupId>com.walmartlabs.concord.plugins</groupId>
+    <artifactId>concord-plugins-parent</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+
+    <packaging>pom</packaging>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>team</id>
+            <name>Concord Development Team</name>
+            <roles>
+                <role>Project Lead</role>
+            </roles>
+            <timezone>-5</timezone>
+        </developer>
+    </developers>
+
+    <modules>
+        <module>tasks/git</module>
+        <module>tasks/jira</module>
+        <module>tasks/ldap</module>
+    </modules>
+
+    <properties>
+        <scm.connection>scm:git:https://github.com/walmartlabs/concord-plugins.git</scm.connection>
+        <concord.version>1.7.2</concord.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.walmartlabs.concord</groupId>
+                <artifactId>concord-sdk</artifactId>
+                <version>${concord.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.walmartlabs.concord</groupId>
+                <artifactId>concord-common</artifactId>
+                <version>${concord.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-release-plugin</artifactId>
+                    <version>2.5.3</version>
+                    <configuration>
+                        <indentSize>4</indentSize>
+                        <tagNameFormat>@{project.version}</tagNameFormat>
+                        <localCheckout>true</localCheckout>
+                        <autoVersionSubmodules>true</autoVersionSubmodules>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>license-maven-plugin</artifactId>
+                    <version>1.14</version>
+                    <executions>
+                        <execution>
+                            <id>first</id>
+                            <goals>
+                                <goal>update-file-header</goal>
+                            </goals>
+                            <phase>process-sources</phase>
+                        </execution>
+                    </executions>
+                    <configuration>
+                        <verbose>false</verbose>
+                        <licenseName>apache_v2</licenseName>
+                        <organizationName>Walmart Inc.</organizationName>
+                        <projectName>Concord</projectName>
+                        <inceptionYear>2017</inceptionYear>
+                        <processStartTag>*****</processStartTag>
+                        <sectionDelimiter>-----</sectionDelimiter>
+                        <processEndTag>=====</processEndTag>
+                        <roots>
+                            <root>src/main/java</root>
+                            <root>src/test/java</root>
+                        </roots>
+                        <extraExtensions>
+                            <tsx>java</tsx>
+                        </extraExtensions>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+
+    <scm>
+        <developerConnection>${scm.connection}</developerConnection>
+        <tag>HEAD</tag>
+    </scm>
+</project>
