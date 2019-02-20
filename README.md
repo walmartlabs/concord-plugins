@@ -1,5 +1,7 @@
 # Concord Plugins
 
+![](https://img.shields.io/maven-central/v/com.walmartlabs.concord.plugins/concord-plugins-parent.svg)
+
 A collection of plugins for [Concord](https://concord.walmartlabs.com).
 
 - [git](./tasks/git) - GIT and GitHub plugins;
