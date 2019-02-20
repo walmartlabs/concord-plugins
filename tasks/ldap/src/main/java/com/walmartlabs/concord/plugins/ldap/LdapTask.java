@@ -24,13 +24,10 @@ import com.walmartlabs.concord.sdk.Context;
 import com.walmartlabs.concord.sdk.ContextUtils;
 import com.walmartlabs.concord.sdk.InjectVariable;
 import com.walmartlabs.concord.sdk.Task;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Named;
-import java.util.*;
-
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
@@ -39,6 +36,12 @@ import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
 import javax.naming.ldap.InitialLdapContext;
 import javax.naming.ldap.LdapContext;
+import java.util.HashMap;
+import java.util.Hashtable;
+import java.util.Map;
+import java.util.Objects;
+
+import static com.walmartlabs.concord.sdk.ContextUtils.assertString;
 
 /**
  * Created by ppendha on 6/18/18.
@@ -48,29 +51,29 @@ public class LdapTask implements Task {
 
     private static final Logger log = LoggerFactory.getLogger(LdapTask.class);
 
-    public static final String ACTION_KEY = "action";
+    private static final String ACTION_KEY = "action";
 
     // in params
-    public static final String LDAP_AD_SERVER = "ldapAdServer";
-    public static final String LDAP_BIND_USER_DN = "bindUserDn";
-    public static final String LDAP_BIND_PASSWORD = "bindPassword";
-    public static final String LDAP_SEARCH_BASE = "searchBase";
-    public static final String LDAP_USER = "user";
-    public static final String LDAP_GROUP = "group";
-    public static final String LDAP_SECURITY_ENABLED = "securityEnabled";
-    public static final String LDAP_SEARCH_FILTER = "searchFilter";
-    public static final String LDAP_DN = "dn";
+    private static final String LDAP_AD_SERVER = "ldapAdServer";
+    private static final String LDAP_BIND_USER_DN = "bindUserDn";
+    private static final String LDAP_BIND_PASSWORD = "bindPassword";
+    private static final String LDAP_SEARCH_BASE = "searchBase";
+    private static final String LDAP_USER = "user";
+    private static final String LDAP_GROUP = "group";
+    private static final String LDAP_SECURITY_ENABLED = "securityEnabled";
+    private static final String LDAP_SEARCH_FILTER = "searchFilter";
+    private static final String LDAP_DN = "dn";
 
     // out params
-    public static final String LDAP_OUT = "out";
-    public static final String LDAP_DEFAULT_OUT = "ldapResult";
+    private static final String LDAP_OUT = "out";
+    private static final String LDAP_DEFAULT_OUT = "ldapResult";
 
 
     @InjectVariable("ldapParams")
     private Map<String, Object> defaults;
 
     @Override
-    public void execute(Context ctx) throws Exception {
+    public void execute(Context ctx) {
         Action action = getAction(ctx);
 
         switch (action) {
@@ -99,13 +102,12 @@ public class LdapTask implements Task {
         }
     }
 
-    @SuppressWarnings("unchecked")
     public SearchResult searchByDn(Context ctx, String dn) {
         if (dn == null) {
-            dn = ContextUtils.assertString(ctx, LDAP_DN);
+            dn = assertString(ctx, LDAP_DN);
         }
 
-        Boolean success = false;
+        boolean success = false;
         SearchResult result = null;
 
         try {
@@ -127,11 +129,10 @@ public class LdapTask implements Task {
         }
     }
 
-    @SuppressWarnings("unchecked")
     public SearchResult getUser(Context ctx) {
-        String user = ContextUtils.assertString(ctx, LDAP_USER);
+        String user = assertString(ctx, LDAP_USER);
 
-        Boolean success = false;
+        boolean success = false;
         SearchResult result = null;
 
         try {
@@ -159,12 +160,11 @@ public class LdapTask implements Task {
         }
     }
 
-    @SuppressWarnings("unchecked")
     public SearchResult getGroup(Context ctx) {
-        String group = ContextUtils.assertString(ctx, LDAP_GROUP);
-        Boolean securityEnabled = ContextUtils.assertVariable(ctx, LDAP_SECURITY_ENABLED, Boolean.class);
+        String group = assertString(ctx, LDAP_GROUP);
+        boolean securityEnabled = ContextUtils.assertVariable(ctx, LDAP_SECURITY_ENABLED, Boolean.class);
 
-        Boolean success = false;
+        boolean success = false;
         SearchResult result = null;
 
         try {
@@ -175,9 +175,9 @@ public class LdapTask implements Task {
             NamingEnumeration<SearchResult> results = search(ctx, searchFilter);
 
             while (results.hasMoreElements()) {
-                result = (SearchResult) results.nextElement();
+                result = results.nextElement();
                 String dn = getAttrValue(result, "distinguishedName");
-                if (dn.toLowerCase().contains("ou=security") == securityEnabled) {
+                if (dn != null && dn.toLowerCase().contains("ou=security") == securityEnabled) {
                     success = true;
                     break;
                 }
@@ -190,10 +190,9 @@ public class LdapTask implements Task {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    public Boolean isMemberOf(Context ctx) {
-        Boolean success = false;
-        Boolean result = false;
+    public boolean isMemberOf(Context ctx) {
+        boolean success = false;
+        boolean result = false;
         
         try {
             SearchResult user = getUser(ctx);
@@ -214,24 +213,26 @@ public class LdapTask implements Task {
         }
     }
 
-    private Boolean isMemberOf(Context ctx, String userDn, String groupDn) {
+    private boolean isMemberOf(Context ctx, String userDn, String groupDn) {
         SearchResult result = searchByDn(ctx, groupDn);
-        if (result != null) {
-            NamingEnumeration<String> members = getAttrValues(result, "member");
-            if (members != null) {
-                while (members.hasMoreElements()) {
-                    String member = (String) members.nextElement();
-                    if (Objects.equals(userDn, member) || isMemberOf(ctx, userDn, member)) {
-                        return true;
-                    }
-                }    
+        if (result == null) {
+            return false;
+        }
+
+        NamingEnumeration<String> members = getAttrValues(result, "member");
+        if (members != null) {
+            while (members.hasMoreElements()) {
+                String member = members.nextElement();
+                if (Objects.equals(userDn, member) || isMemberOf(ctx, userDn, member)) {
+                    return true;
+                }
             }
         }
         return false;
     }
 
     private NamingEnumeration<SearchResult> search(Context ctx, String searchFilter) {
-        String searchBase = ContextUtils.assertString(ctx, LDAP_SEARCH_BASE);
+        String searchBase = assertString(ctx, LDAP_SEARCH_BASE);
         LdapContext connection = null;
         try {
             connection = establishConnection(ctx);
@@ -239,8 +240,7 @@ public class LdapTask implements Task {
             searchControls.setSearchScope(SearchControls.SUBTREE_SCOPE);
 
             // create SearchRequest
-            NamingEnumeration<SearchResult> result = connection.search(searchBase, searchFilter, searchControls);
-            return result;
+            return connection.search(searchBase, searchFilter, searchControls);
         } catch (Exception e) {
             throw new IllegalArgumentException("Error occurred while searching " + e);
         } finally {
@@ -284,6 +284,7 @@ public class LdapTask implements Task {
         return null;
     }
 
+    @SuppressWarnings("unchecked")
     private static NamingEnumeration<String> getAttrValues(SearchResult result, String id) {
         if (result != null) {
             Attributes attributes = result.getAttributes();
@@ -338,21 +339,7 @@ public class LdapTask implements Task {
     }
 
     private static Action getAction(Context ctx) {
-        return Action.valueOf(ContextUtils.assertString(ctx, ACTION_KEY).trim().toUpperCase());
-    }
-
-    private static Long getLong(Map<String, Object> defaults, Context ctx, String k, Long defaultValue) {
-        Object v = getValue(defaults, ctx, k, defaultValue);
-
-        if (v instanceof Integer) {
-            v = ((Integer) v).longValue();
-        }
-
-        if (!(v instanceof Long)) {
-            throw new IllegalArgumentException("'" + k + "': expected a number, got " + v);
-        }
-
-        return (Long) v;
+        return Action.valueOf(assertString(ctx, ACTION_KEY).trim().toUpperCase());
     }
 
     private static String getString(Map<String, Object> defaults, Context ctx, String k, String defaultValue) {

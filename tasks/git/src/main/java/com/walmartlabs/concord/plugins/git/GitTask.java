@@ -46,33 +46,35 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import static com.walmartlabs.concord.plugins.git.Utils.*;
+import static com.walmartlabs.concord.plugins.git.Utils.getBoolean;
+import static com.walmartlabs.concord.sdk.ContextUtils.assertString;
+import static com.walmartlabs.concord.sdk.ContextUtils.getString;
 
 @Named("git")
 public class GitTask implements Task {
 
     private static final Logger log = LoggerFactory.getLogger(GitTask.class);
 
-    public static final String ACTION_KEY = "action";
-    public static final String GIT_AUTH_KEY = "auth";
-    public static final String GIT_BASE_BRANCH = "baseBranch";
-    public static final String GIT_BASIC_KEY = "basic";
-    public static final String GIT_COMMIT_MSG = "commitMessage";
-    public static final String GIT_COMMITTER_EMAIL = "commitEmail";
-    public static final String GIT_COMMITTER_USERNAME = "commitUsername";
-    public static final String GIT_DESTINATION_BRANCH = "destinationBranch";
-    public static final String GIT_KEY_PATH = "keyPath";
-    public static final String GIT_NEW_BRANCH_NAME = "newBranch";
-    public static final String GIT_PASSWORD = "password";
-    public static final String GIT_PRIVATE_KEY = "privateKey";
-    public static final String GIT_PUSH_CHANGES_TO_ORIGIN = "pushChanges";
-    public static final String GIT_PUSH_NEW_BRANCH_TO_ORIGIN = "pushBranch";
-    public static final String GIT_SOURCE_BRANCH = "sourceBranch";
-    public static final String GIT_TOKEN = "token";
-    public static final String GIT_URL = "url";
-    public static final String GIT_USER_NAME = "username";
-    public static final String GIT_WORKING_DIR = "workingDir";
-    public static final String REFS_REMOTES = "refs/remotes/origin/";
+    private static final String ACTION_KEY = "action";
+    private static final String GIT_AUTH_KEY = "auth";
+    private static final String GIT_BASE_BRANCH = "baseBranch";
+    private static final String GIT_BASIC_KEY = "basic";
+    private static final String GIT_COMMIT_MSG = "commitMessage";
+    private static final String GIT_COMMITTER_EMAIL = "commitEmail";
+    private static final String GIT_COMMITTER_USERNAME = "commitUsername";
+    private static final String GIT_DESTINATION_BRANCH = "destinationBranch";
+    private static final String GIT_KEY_PATH = "keyPath";
+    private static final String GIT_NEW_BRANCH_NAME = "newBranch";
+    private static final String GIT_PASSWORD = "password";
+    private static final String GIT_PRIVATE_KEY = "privateKey";
+    private static final String GIT_PUSH_CHANGES_TO_ORIGIN = "pushChanges";
+    private static final String GIT_PUSH_NEW_BRANCH_TO_ORIGIN = "pushBranch";
+    private static final String GIT_SOURCE_BRANCH = "sourceBranch";
+    private static final String GIT_TOKEN = "token";
+    private static final String GIT_URL = "url";
+    private static final String GIT_USER_NAME = "username";
+    private static final String GIT_WORKING_DIR = "workingDir";
+    private static final String REFS_REMOTES = "refs/remotes/origin/";
 
     private static final String OUT_KEY = "out";
     private static final String IGNORE_ERRORS_KEY = "ignoreErrors";
@@ -130,13 +132,9 @@ public class GitTask implements Task {
             cloneRepo(uri, baseBranch, dstDir, transportCallback);
             setOutVariable(ctx, true, ResultStatus.SUCCESS, "");
         } catch (Exception e) {
-            IOUtils.deleteRecursively(dstDir);
             String error = "Error while cloning the repository.\n" + e.getMessage();
-            if (!isIgnoreErrors(ctx)) {
-                throw new IllegalArgumentException(error, e);
-            }
 
-            setOutVariable(ctx, false, ResultStatus.FAILURE, error);
+            handleError(error, e, ctx, dstDir);
         } finally {
             cleanUp(transportCfg.get(GIT_KEY_PATH));
         }
@@ -290,12 +288,7 @@ public class GitTask implements Task {
             setOutVariable(ctx, true, ResultStatus.SUCCESS, "");
         } catch (Exception e) {
             String error = "Error while cloning the repository.\n" + e.getMessage();
-            IOUtils.deleteRecursively(dstDir);
-            if (!isIgnoreErrors(ctx)) {
-                throw new IllegalArgumentException(error, e);
-            }
-
-            setOutVariable(ctx, false, ResultStatus.FAILURE, error);
+            handleError(error, e, ctx, dstDir);
         } finally {
             cleanUp(transportCfg.get(GIT_KEY_PATH));
         }
@@ -362,13 +355,7 @@ public class GitTask implements Task {
             }
         } catch (Exception e) {
             String error = "Error while cloning a repository\n" + e.getMessage();
-            IOUtils.deleteRecursively(dstDir);
-
-            if (!isIgnoreErrors(ctx)) {
-                throw new IllegalArgumentException(error, e);
-            }
-
-            setOutVariable(ctx, false, ResultStatus.FAILURE, error);
+            handleError(error, e, ctx, dstDir);
         } finally {
             cleanUp(transportCfg.get(GIT_KEY_PATH));
         }
@@ -562,15 +549,25 @@ public class GitTask implements Task {
         throw new IllegalArgumentException("'" + ACTION_KEY + "' must be a string");
     }
 
-    private boolean isIgnoreErrors(Context ctx) {
-        if (ctx.getVariable(IGNORE_ERRORS_KEY) != null) {
-            return (boolean) ctx.getVariable(IGNORE_ERRORS_KEY);
-        }
-
-        return false;
+    private static boolean isIgnoreErrors(Context ctx) {
+        return getBoolean(ctx, IGNORE_ERRORS_KEY, false);
     }
 
-    private void setOutVariable(Context ctx, boolean ok, ResultStatus resultStatus, String error) {
+    private static void handleError(String error, Exception e, Context ctx, Path dstDir) {
+        try {
+            IOUtils.deleteRecursively(dstDir);
+        } catch (Exception ex) {
+            log.info("cleanup -> error: " + ex.getMessage());
+        }
+
+        if (!isIgnoreErrors(ctx)) {
+            throw new IllegalArgumentException(error, e);
+        }
+
+        setOutVariable(ctx, false, ResultStatus.FAILURE, error);
+    }
+
+    private static void setOutVariable(Context ctx, boolean ok, ResultStatus resultStatus, String error) {
         String key = (String) ctx.getVariable(OUT_KEY);
         if (key == null) {
             key = DEFAULT_OUT_VAR_KEY;

@@ -21,22 +21,11 @@ package com.walmartlabs.concord.plugins.git;
  */
 
 import com.walmartlabs.concord.sdk.Context;
+import com.walmartlabs.concord.sdk.ContextUtils;
 
 import java.util.Map;
 
 public final class Utils {
-
-    public static String getString(Context ctx, String k, String defaultValue) {
-        Object v = ctx.getVariable(k);
-        if (v == null) {
-            return defaultValue;
-        }
-
-        if (!(v instanceof String)) {
-            throw new IllegalArgumentException("Expected a '" + k + "' string, got " + v);
-        }
-        return (String) v;
-    }
 
     public static boolean getBoolean(Context ctx, String k, boolean fallback) {
         Object v = ctx.getVariable(k);
@@ -56,24 +45,8 @@ public final class Utils {
         return (Boolean) v;
     }
 
-    public static String assertString(Context ctx, String k) {
-        String s = getString(ctx, k, null);
-        if (s == null) {
-            throw new IllegalArgumentException("Mandatory parameter '" + k + "' is required");
-        }
-        return s;
-    }
-
     public static String getUrl(Map<String, Object> defaults, Context ctx, String k) {
-        String v = getString(ctx, k, (defaults != null ? defaults.get(k).toString() : null));
-        if (v == null) {
-            throw new IllegalArgumentException("Mandatory parameter '" + k + "' is required");
-        }
-        return v;
-    }
-
-    public static int getInt(Context ctx, String k) {
-        Integer v = (Integer) ctx.getVariable(k);
+        String v = ContextUtils.getString(ctx, k, (defaults != null ? defaults.get(k).toString() : null));
         if (v == null) {
             throw new IllegalArgumentException("Mandatory parameter '" + k + "' is required");
         }

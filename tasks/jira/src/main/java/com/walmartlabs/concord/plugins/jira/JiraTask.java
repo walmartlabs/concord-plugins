@@ -20,9 +20,6 @@ package com.walmartlabs.concord.plugins.jira;
  * =====
  */
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.squareup.okhttp.*;
 import com.walmartlabs.concord.common.ConfigurationUtils;
 import com.walmartlabs.concord.sdk.Context;
 import com.walmartlabs.concord.sdk.ContextUtils;
@@ -34,7 +31,8 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Named;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
+
+import static com.walmartlabs.concord.sdk.ContextUtils.*;
 
 /**
  * Created by ppendha on 6/18/18.
@@ -44,34 +42,27 @@ public class JiraTask implements Task {
 
     private static final Logger log = LoggerFactory.getLogger(JiraTask.class);
 
-    public static final String ACTION_KEY = "action";
-    public static final String CLIENT_CONNECTTIMEOUT = "connectTimeout";
-    public static final String CLIENT_READTIMEOUT = "readTimeout";
-    public static final String CLIENT_WRITETIMEOUT = "writeTimeout";
-    public static final String JIRA_ASSIGNEE = "assignee";
-    public static final String JIRA_COMMENT = "comment";
-    public static final String JIRA_COMPONENTID = "componentId";
-    public static final String JIRA_COMPONENTNAME = "componentName";
-    public static final String JIRA_CUSTOM_FIELDS_ATTR = "customFieldsTypeFieldAttr";
-    public static final String JIRA_CUSTOM_FIELDS_KV = "customFieldsTypeKv";
-    public static final String JIRA_DESCRIPTION = "description";
-    public static final String JIRA_ISSUE_COMPONENTS = "components";
-    public static final String JIRA_ISSUE_ID = "issueId";
-    public static final String JIRA_ISSUE_KEY = "issueKey";
-    public static final String JIRA_ISSUE_LABELS = "labels";
-    public static final String JIRA_ISSUE_PRIORITY = "priority";
-    public static final String JIRA_ISSUE_TYPE = "issueType";
-    public static final String JIRA_PROJECT_KEY = "projectKey";
-    public static final String JIRA_PWD = "password";
-    public static final String JIRA_REQUESTOR_UID = "requestorUid";
-    public static final String JIRA_SUMMARY = "summary";
-    public static final String JIRA_TRANSITION_COMMENT = "transitionComment";
-    public static final String JIRA_TRANSITION_ID = "transitionId";
-    public static final String JIRA_UID = "userId";
-    public static final String JIRA_URL = "apiUrl";
-
-    private static final OkHttpClient client = new OkHttpClient();
-    private static final Gson gson = new GsonBuilder().create();
+    private static final String ACTION_KEY = "action";
+    private static final String JIRA_ASSIGNEE = "assignee";
+    private static final String JIRA_COMMENT = "comment";
+    private static final String JIRA_COMPONENTID = "componentId";
+    private static final String JIRA_COMPONENTNAME = "componentName";
+    private static final String JIRA_CUSTOM_FIELDS_ATTR = "customFieldsTypeFieldAttr";
+    private static final String JIRA_CUSTOM_FIELDS_KV = "customFieldsTypeKv";
+    private static final String JIRA_DESCRIPTION = "description";
+    private static final String JIRA_ISSUE_COMPONENTS = "components";
+    private static final String JIRA_ISSUE_ID = "issueId";
+    private static final String JIRA_ISSUE_KEY = "issueKey";
+    private static final String JIRA_ISSUE_LABELS = "labels";
+    private static final String JIRA_ISSUE_PRIORITY = "priority";
+    private static final String JIRA_ISSUE_TYPE = "issueType";
+    private static final String JIRA_PARENT_ISSUE_KEY = "parentIssueKey";
+    private static final String JIRA_PROJECT_KEY = "projectKey";
+    private static final String JIRA_REQUESTOR_UID = "requestorUid";
+    private static final String JIRA_SUMMARY = "summary";
+    private static final String JIRA_TRANSITION_COMMENT = "transitionComment";
+    private static final String JIRA_TRANSITION_ID = "transitionId";
+    private static final String JIRA_URL = "apiUrl";
 
     @InjectVariable("jiraParams")
     private Map<String, Object> defaults;
@@ -79,7 +70,6 @@ public class JiraTask implements Task {
     @Override
     public void execute(Context ctx) throws Exception {
         Action action = getAction(ctx);
-        String jiraUri = getString(defaults, ctx, JIRA_URL, null);
 
         // add all defaults to ctx if not already present.  Useful to avoid having to set userId, password, projectKey, etc for each individual task call
         if (defaults != null) {
@@ -90,6 +80,8 @@ public class JiraTask implements Task {
                 }
             });
         }
+
+        String jiraUri = assertString(ctx, JIRA_URL);
 
         log.info("Using Jira Url {}", jiraUri);
 
@@ -129,26 +121,28 @@ public class JiraTask implements Task {
                 updateIssue(ctx, jiraUri);
                 break;
             }
+            case CREATESUBTASK: {
+                log.info("Starting 'CreateSubTask' Action");
+                createSubTask(ctx, jiraUri);
+                break;
+            }
             default:
                 throw new IllegalArgumentException("Unsupported action type: " + action);
         }
     }
 
-    @SuppressWarnings("unchecked")
     public String createIssue(Context ctx, String url) {
-        String uid = ContextUtils.assertString(ctx, JIRA_UID);
-        String pwd = ContextUtils.assertString(ctx, JIRA_PWD);
-        String projectKey = ContextUtils.assertString(ctx, JIRA_PROJECT_KEY);
-        String summary = ContextUtils.assertString(ctx, JIRA_SUMMARY);
-        String description = ContextUtils.assertString(ctx, JIRA_DESCRIPTION);
-        String requestorUid = ContextUtils.assertString(ctx, JIRA_REQUESTOR_UID);
-        String issueType = ContextUtils.assertString(ctx, JIRA_ISSUE_TYPE);
-        String issuePriority = ContextUtils.getString(ctx, JIRA_ISSUE_PRIORITY, null);
-        Map<String, Object> assignee = ContextUtils.getMap(ctx, JIRA_ASSIGNEE, null);
-        List<String> labels = ContextUtils.getList(ctx, JIRA_ISSUE_LABELS, null);
-        List<String> components = ContextUtils.getList(ctx, JIRA_ISSUE_COMPONENTS, null);
-        Map<String, String> customFieldsTypeKv = ContextUtils.getMap(ctx, JIRA_CUSTOM_FIELDS_KV, null);
-        Map<String, String> customFieldsTypeAtt = ContextUtils.getMap(ctx, JIRA_CUSTOM_FIELDS_ATTR, null);
+        String projectKey = assertString(ctx, JIRA_PROJECT_KEY);
+        String summary = assertString(ctx, JIRA_SUMMARY);
+        String description = assertString(ctx, JIRA_DESCRIPTION);
+        String requestorUid = assertString(ctx, JIRA_REQUESTOR_UID);
+        String issueType = assertString(ctx, JIRA_ISSUE_TYPE);
+        String issuePriority = getString(ctx, JIRA_ISSUE_PRIORITY, null);
+        Map<String, Object> assignee = getMap(ctx, JIRA_ASSIGNEE, null);
+        List<String> labels = getList(ctx, JIRA_ISSUE_LABELS, null);
+        List<String> components = getList(ctx, JIRA_ISSUE_COMPONENTS, null);
+        Map<String, String> customFieldsTypeKv = getMap(ctx, JIRA_CUSTOM_FIELDS_KV, null);
+        Map<String, Object> customFieldsTypeAtt = getMap(ctx, JIRA_CUSTOM_FIELDS_ATTR, null);
 
         String issueId;
 
@@ -181,58 +175,28 @@ public class JiraTask implements Task {
 
             if (customFieldsTypeKv != null && !customFieldsTypeKv.isEmpty()) {
                 for (Map.Entry<String, String> e : customFieldsTypeKv.entrySet()) {
-                    String k = e.getKey();
-                    Object v = e.getValue();
-                    objMain.put(k, String.valueOf(v));
+                    objMain.put(e.getKey(), String.valueOf(e.getValue()));
                 }
             }
 
             if (customFieldsTypeAtt != null && !customFieldsTypeAtt.isEmpty()) {
-                for (Map.Entry<String, String> e : customFieldsTypeAtt.entrySet()) {
-                    String k = e.getKey();
-                    Object v = e.getValue();
-                    objMain.put(k, v);
+                for (Map.Entry<String, Object> e : customFieldsTypeAtt.entrySet()) {
+                    objMain.put(e.getKey(), e.getValue());
                 }
             }
             Map<String, Object> objFields = Collections.singletonMap("fields", objMain);
-            String data = gson.toJson(objFields);
 
-            url = url + "issue/";
             log.info("Creating new issue in '{}'...", projectKey);
 
-            try {
-                //set client timeouts
-                setClientTimeoutParams(ctx);
+            Map<String, Object> results = new JiraClient(ctx)
+                    .url(url + "issue/")
+                    .successCode(201)
+                    .post(objFields);
 
-                RequestBody body = RequestBody.create(
-                        MediaType.parse("application/json; charset=utf-8"), data);
-                Request request = new Request.Builder()
-                        .url(url)
-                        .addHeader("Authorization", Credentials.basic(uid, pwd))
-                        .post(body)
-                        .build();
-
-
-                Call call = client.newCall(request);
-                Response response = call.execute();
-                int statusCode = response.code();
-                try (ResponseBody responseBody = response.body()) {
-                    String results = null;
-                    if (responseBody != null) {
-                        results = responseBody.string();
-                    }
-
-                    assertResponseCode(statusCode, results, 201);
-
-                    Map<String, Object> objresults = gson.fromJson(results, Map.class);
-                    issueId = objresults.get("key").toString();
-                    issueId = issueId.replaceAll("\"", "");
-                    ctx.setVariable(JIRA_ISSUE_ID, issueId);
-                    log.info("Issue #{} created in Project# '{}'", ctx.getVariable(JIRA_ISSUE_ID), projectKey);
-                }
-            } catch (IOException e) {
-                throw new IllegalArgumentException("Failed to create an issue:", e);
-            }
+            issueId = results.get("key").toString();
+            issueId = issueId.replaceAll("\"", "");
+            ctx.setVariable(JIRA_ISSUE_ID, issueId);
+            log.info("Issue #{} created in Project# '{}'", ctx.getVariable(JIRA_ISSUE_ID), projectKey);
         } catch (Exception e) {
             throw new IllegalArgumentException("Error occurred while creating an issue", e);
         }
@@ -240,138 +204,77 @@ public class JiraTask implements Task {
         return issueId;
     }
 
-    @SuppressWarnings("unchecked")
+    public void createSubTask(Context ctx, String url) {
+        String parentKey = assertString(ctx, JIRA_PARENT_ISSUE_KEY);
+        Map<String, Object> customFieldsTypeAtt = new HashMap<>(getMap(ctx, JIRA_CUSTOM_FIELDS_ATTR, Collections.emptyMap()));
+        customFieldsTypeAtt.put("parent", Collections.singletonMap("key", parentKey));
+        ctx.setVariable(JIRA_CUSTOM_FIELDS_ATTR, customFieldsTypeAtt);
+        ctx.setVariable(JIRA_ISSUE_TYPE, "Sub-task");
+
+        createIssue(ctx, url);
+    }
+
     public void createComponent(Context ctx, String url) {
-        String uid = ContextUtils.assertString(ctx, JIRA_UID);
-        String pwd = ContextUtils.assertString(ctx, JIRA_PWD);
-        String projectKey = ContextUtils.assertString(ctx, JIRA_PROJECT_KEY);
-        String componentName = ContextUtils.assertString(ctx, JIRA_COMPONENTNAME);
+        String projectKey = assertString(ctx, JIRA_PROJECT_KEY);
+        String componentName = assertString(ctx, JIRA_COMPONENTNAME);
 
         try {
-            //Build JSON data
             Map<String, Object> m = new HashMap<>();
             m.put("name", componentName);
             m.put("project", projectKey);
 
-            String data = gson.toJson(m);
-            url = url + "component/";
+            Map<String, Object> results = new JiraClient(ctx)
+                    .url(url + "component/")
+                    .successCode(201)
+                    .post(m);
 
-            //set client timeouts
-            setClientTimeoutParams(ctx);
-
-            RequestBody body = RequestBody.create(
-                    MediaType.parse("application/json; charset=utf-8"), data);
-            Request request = new Request.Builder()
-                    .url(url)
-                    .addHeader("Authorization", Credentials.basic(uid, pwd))
-                    .post(body)
-                    .build();
-
-
-            Call call = client.newCall(request);
-            Response response = call.execute();
-            int statusCode = response.code();
-            try (ResponseBody responseBody = response.body()) {
-                String results = null;
-                if (responseBody != null) {
-                    results = responseBody.string();
-                }
-
-
-                assertResponseCode(statusCode, results, 201);
-
-                Map<String, Object> objresults = gson.fromJson(results, Map.class);
-                String componentId = objresults.get("id").toString();
-                componentId = componentId.replaceAll("\"", "");
-                log.info("Component '{}' created successfully and its Id is '{}'", componentName, componentId);
-            }
+            String componentId = results.get("id").toString();
+            componentId = componentId.replaceAll("\"", "");
+            log.info("Component '{}' created successfully and its Id is '{}'", componentName, componentId);
         } catch (Exception e) {
             throw new IllegalArgumentException("Exception occurred while creating a component", e);
         }
     }
 
-    public void deleteComponent(Context ctx, String url) throws Exception {
-        String uid = ContextUtils.assertString(ctx, JIRA_UID);
-        String pwd = ContextUtils.assertString(ctx, JIRA_PWD);
-        Integer componentId = ContextUtils.assertInt(ctx, JIRA_COMPONENTID);
-        url = url + "component/" + componentId;
+    public void deleteComponent(Context ctx, String url) {
+        int componentId = assertInt(ctx, JIRA_COMPONENTID);
 
         try {
-            //set client timeouts
-            setClientTimeoutParams(ctx);
-            Request request = new Request.Builder()
-                    .url(url)
-                    .addHeader("Authorization", Credentials.basic(uid, pwd))
-                    .delete().build();
+            new JiraClient(ctx)
+                    .url(url + "component/" + componentId)
+                    .successCode(204)
+                    .delete();
 
-            Call call = client.newCall(request);
-            Response response = call.execute();
-            int statusCode = response.code();
-            try (ResponseBody responseBody = response.body()) {
-                String results = null;
-                if (responseBody != null) {
-                    results = responseBody.string();
-                }
-
-                assertResponseCode(statusCode, results, 204);
-
-                log.info("Component# '{}' removed successfully.", componentId);
-            }
+            log.info("Component# '{}' removed successfully.", componentId);
         } catch (IOException e) {
             throw new IllegalArgumentException("Exception occurred while deleting a component", e);
         }
     }
 
-    public void addComment(Context ctx, String url) throws Exception {
-        String uid = ContextUtils.assertString(ctx, JIRA_UID);
-        String pwd = ContextUtils.assertString(ctx, JIRA_PWD);
-        String issueKey = ContextUtils.assertString(ctx, JIRA_ISSUE_KEY);
-        String comment = ContextUtils.assertString(ctx, JIRA_COMMENT);
+    public void addComment(Context ctx, String url) {
+        String issueKey = assertString(ctx, JIRA_ISSUE_KEY);
+        String comment = assertString(ctx, JIRA_COMMENT);
 
         try {
-            //Build JSON data
             Map<String, Object> m = Collections.singletonMap("body", comment);
-            String data = gson.toJson(m);
 
-            url = url + "issue/" + issueKey + "/comment";
+            new JiraClient(ctx)
+                    .url(url + "issue/" + issueKey + "/comment")
+                    .successCode(201)
+                    .post(m);
 
-            //set client timeouts
-            setClientTimeoutParams(ctx);
-
-            RequestBody body = RequestBody.create(
-                    MediaType.parse("application/json; charset=utf-8"), data);
-            Request request = new Request.Builder()
-                    .url(url)
-                    .addHeader("Authorization", Credentials.basic(uid, pwd))
-                    .post(body)
-                    .build();
-
-            Call call = client.newCall(request);
-            Response response = call.execute();
-            int statusCode = response.code();
-            try (ResponseBody responseBody = response.body()) {
-                String results = null;
-                if (responseBody != null) {
-                    results = responseBody.string();
-                }
-
-                assertResponseCode(statusCode, results, 201);
-
-                log.info("Comment '{}' added to Issue #{}", comment, issueKey);
-            }
+            log.info("Comment '{}' added to Issue #{}", comment, issueKey);
         } catch (Exception e) {
             throw new IllegalArgumentException("Error occurred while adding a comment", e);
         }
     }
 
-    public void transition(Context ctx, String url) throws Exception {
-        String uid = ContextUtils.assertString(ctx, JIRA_UID);
-        String pwd = ContextUtils.assertString(ctx, JIRA_PWD);
-        String issueKey = ContextUtils.assertString(ctx, JIRA_ISSUE_KEY);
-        String transitionId = Integer.toString(ContextUtils.getInt(ctx, JIRA_TRANSITION_ID, -1));
-        String transitionComment = ContextUtils.assertString(ctx, JIRA_TRANSITION_COMMENT);
-        Map<String, String> transitionFieldsTypeKv = ContextUtils.getMap(ctx, JIRA_CUSTOM_FIELDS_KV, null);
-        Map<String, String> transitionFieldsTypeAtt = ContextUtils.getMap(ctx, JIRA_CUSTOM_FIELDS_ATTR, null);
+    public void transition(Context ctx, String url) {
+        String issueKey = assertString(ctx, JIRA_ISSUE_KEY);
+        String transitionId = Integer.toString(getInt(ctx, JIRA_TRANSITION_ID, -1));
+        String transitionComment = assertString(ctx, JIRA_TRANSITION_COMMENT);
+        Map<String, String> transitionFieldsTypeKv = getMap(ctx, JIRA_CUSTOM_FIELDS_KV, null);
+        Map<String, String> transitionFieldsTypeAtt = getMap(ctx, JIRA_CUSTOM_FIELDS_ATTR, null);
 
         try {
             //Build JSON data
@@ -387,202 +290,66 @@ public class JiraTask implements Task {
             Map<String, Object> objMain = new HashMap<>();
             if (transitionFieldsTypeKv != null && !transitionFieldsTypeKv.isEmpty()) {
                 for (Map.Entry<String, String> e : transitionFieldsTypeKv.entrySet()) {
-                    String k = e.getKey();
-                    Object v = e.getValue();
-                    objMain.put(k, String.valueOf(v));
+                    objMain.put(e.getKey(), String.valueOf(e.getValue()));
                 }
             }
 
             if (transitionFieldsTypeAtt != null && !transitionFieldsTypeAtt.isEmpty()) {
                 for (Map.Entry<String, String> e : transitionFieldsTypeAtt.entrySet()) {
-                    String k = e.getKey();
-                    Object v = e.getValue();
-                    objMain.put(k, v);
+                    objMain.put(e.getKey(), e.getValue());
                 }
             }
 
             Map<String, Object> objFields = Collections.singletonMap("fields", objMain);
             objupdate = ConfigurationUtils.deepMerge(objFields, ConfigurationUtils.deepMerge(objTransition, objupdate));
-            String data = gson.toJson(objupdate);
-            url = url + "issue/" + issueKey + "/transitions";
 
-            //set client timeouts
-            setClientTimeoutParams(ctx);
+            new JiraClient(ctx)
+                    .url(url + "issue/" + issueKey + "/transitions")
+                    .successCode(204)
+                    .post(objupdate);
 
-            RequestBody body = RequestBody.create(
-                    MediaType.parse("application/json; charset=utf-8"), data);
-            Request request = new Request.Builder()
-                    .url(url)
-                    .addHeader("Authorization", Credentials.basic(uid, pwd))
-                    .post(body)
-                    .build();
-
-            Call call = client.newCall(request);
-            Response response = call.execute();
-            int statusCode = response.code();
-            try (ResponseBody responseBody = response.body()) {
-                String results = null;
-                if (responseBody != null) {
-                    results = responseBody.string();
-                }
-
-                assertResponseCode(statusCode, results, 204);
-
-                log.info("Transition is successful on Issue #{} to transitionId #{}", issueKey, transitionId);
-            }
+            log.info("Transition is successful on Issue #{} to transitionId #{}", issueKey, transitionId);
         } catch (IOException e) {
             throw new IllegalArgumentException("Error occurred while doing a transition", e);
         }
     }
 
-    public void deleteIssue(Context ctx, String url) throws Exception {
-        String uid = ContextUtils.assertString(ctx, JIRA_UID);
-        String pwd = ContextUtils.assertString(ctx, JIRA_PWD);
-        String issueKey = ContextUtils.assertString(ctx, JIRA_ISSUE_KEY);
-
-        url = url + "issue/" + issueKey;
+    public void deleteIssue(Context ctx, String url) {
+        String issueKey = assertString(ctx, JIRA_ISSUE_KEY);
 
         try {
-            //set client timeouts
-            setClientTimeoutParams(ctx);
+            new JiraClient(ctx)
+                    .url(url + "issue/" + issueKey)
+                    .successCode(204)
+                    .delete();
 
-            Request request = new Request.Builder()
-                    .url(url)
-                    .addHeader("Authorization", Credentials.basic(uid, pwd))
-                    .delete().build();
-
-            Call call = client.newCall(request);
-            Response response = call.execute();
-            int statusCode = response.code();
-            try (ResponseBody responseBody = response.body()) {
-                String results = null;
-                if (responseBody != null) {
-                    results = responseBody.string();
-                }
-
-                assertResponseCode(statusCode, results, 204);
-
-                log.info("Issue #{} deleted successfully.", issueKey);
-            }
+            log.info("Issue #{} deleted successfully.", issueKey);
         } catch (IOException e) {
             throw new IllegalArgumentException("Error occurred while deleting an issue", e);
         }
     }
 
     public void updateIssue(Context ctx, String url) {
-        String uid = ContextUtils.assertString(ctx, JIRA_UID);
-        String pwd = ContextUtils.assertString(ctx, JIRA_PWD);
-        String issueKey = ContextUtils.assertString(ctx, JIRA_ISSUE_KEY);
+        String issueKey = assertString(ctx, JIRA_ISSUE_KEY);
         Map<String, Object> fields = ContextUtils.assertMap(ctx, "fields");
 
-        log.info("Updating {} fields for issue #{} as {} user", fields, issueKey, uid);
+        log.info("Updating {} fields for issue #{}", fields, issueKey);
 
-        url = url + "issue/" + issueKey;
-
-        //set client timeouts
-        setClientTimeoutParams(ctx);
-
-        RequestBody body = RequestBody.create(
-                MediaType.parse("application/json; charset=utf-8"),
-                gson.toJson(Collections.singletonMap("fields", fields)));
-
-        Request request = new Request.Builder()
-                .url(url)
-                .addHeader("Authorization", Credentials.basic(uid, pwd))
-                .put(body)
-                .build();
-
-        Call call = client.newCall(request);
         try {
-            Response response = call.execute();
-            try (ResponseBody responseBody = response.body()) {
-                String results = null;
-                if (responseBody != null) {
-                    results = responseBody.string();
-                }
+            new JiraClient(ctx)
+                    .url(url + "issue/" + issueKey)
+                    .successCode(204)
+                    .put(Collections.singletonMap("fields", fields));
 
-                assertResponseCode(response.code(), results, 204);
-
-                log.info("Issue #{} updated successfully.", issueKey);
-            }
+            log.info("Issue #{} updated successfully.", issueKey);
         } catch (IOException e) {
             log.error("Error updating an issue: {}", e.getMessage());
             throw new RuntimeException("Error occurred while updating an issue", e);
         }
     }
 
-    private static void assertResponseCode(int code, String result, int successCode) {
-        if (code == successCode) {
-            return;
-        }
-
-        if (code == 400) {
-            throw new RuntimeException("input is invalid (e.g. missing required fields, invalid values). Here are the full error details: " + result);
-        } else if (code == 401) {
-            throw new RuntimeException("User is not authenticated. Here are the full error details: " + result);
-        } else if (code == 403) {
-            throw new RuntimeException("User does not have permission to perform request. Here are the full error details: " + result);
-        } else if (code == 404) {
-            throw new RuntimeException("Issue does not exist. Here are the full error details: " + result);
-        } else if (code == 500) {
-            throw new RuntimeException("Internal Server Error. Here are the full error details" + result);
-        } else {
-            throw new RuntimeException("Error: " + result);
-        }
-    }
-
     private static Action getAction(Context ctx) {
-        return Action.valueOf(ContextUtils.assertString(ctx, ACTION_KEY).trim().toUpperCase());
-    }
-
-    private void setClientTimeoutParams(Context ctx) {
-        long connectTimeout = getLong(defaults, ctx, CLIENT_CONNECTTIMEOUT, 30L);
-        long readTimeout = getLong(defaults, ctx, CLIENT_READTIMEOUT, 30L);
-        Long writeTimeout = getLong(defaults, ctx, CLIENT_WRITETIMEOUT, 30L);
-
-        client.setConnectTimeout(connectTimeout, TimeUnit.SECONDS);
-        client.setReadTimeout(readTimeout, TimeUnit.SECONDS);
-        client.setWriteTimeout(writeTimeout, TimeUnit.SECONDS);
-    }
-
-    private static Long getLong(Map<String, Object> defaults, Context ctx, String k, Long defaultValue) {
-        Object v = getValue(defaults, ctx, k, defaultValue);
-
-        if (v instanceof Integer) {
-            v = ((Integer) v).longValue();
-        }
-
-        if (!(v instanceof Long)) {
-            throw new IllegalArgumentException("'" + k + "': expected a number, got " + v);
-        }
-
-        return (Long) v;
-    }
-
-    private static String getString(Map<String, Object> defaults, Context ctx, String k, String defaultValue) {
-        Object v = getValue(defaults, ctx, k, defaultValue);
-        if (!(v instanceof String)) {
-            throw new IllegalArgumentException("'" + k + "': expected a string value, got " + v);
-        }
-        return (String) v;
-    }
-
-    private static Object getValue(Map<String, Object> defaults, Context ctx, String k, Object defaultValue) {
-        Object v = ctx.getVariable(k);
-
-        if (v == null && defaults != null) {
-            v = defaults.get(k);
-        }
-
-        if (v == null) {
-            v = defaultValue;
-        }
-
-        if (v == null) {
-            throw new IllegalArgumentException("Mandatory parameter '" + k + "' is required");
-        }
-
-        return v;
+        return Action.valueOf(assertString(ctx, ACTION_KEY).trim().toUpperCase());
     }
 
     private enum Action {
@@ -592,6 +359,7 @@ public class JiraTask implements Task {
         DELETECOMPONENT,
         DELETEISSUE,
         TRANSITION,
-        UPDATEISSUE
+        UPDATEISSUE,
+        CREATESUBTASK
     }
 }

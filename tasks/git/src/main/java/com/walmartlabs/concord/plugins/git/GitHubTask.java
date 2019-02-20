@@ -37,7 +37,8 @@ import javax.inject.Named;
 import java.io.IOException;
 import java.util.*;
 
-import static com.walmartlabs.concord.plugins.git.Utils.*;
+import static com.walmartlabs.concord.plugins.git.Utils.getUrl;
+import static com.walmartlabs.concord.sdk.ContextUtils.*;
 
 /**
  * Created by ppendha on 5/22/18.
@@ -47,26 +48,26 @@ public class GitHubTask implements Task {
 
     private static final Logger log = LoggerFactory.getLogger(GitHubTask.class);
 
-    public static final String API_URL_KEY = "apiUrl";
-    public static final String ACTION_KEY = "action";
-    public static final String GITHUB_ACCESSTOKEN = "accessToken";
-    public static final String GITHUB_ORGNAME = "org";
-    public static final String GITHUB_REPONAME = "repo";
-    public static final String GITHUB_PRTITLE = "prTitle";
-    public static final String GITHUB_PRBODY = "prBody";
-    public static final String GITHUB_PRCOMMENT = "prComment";
-    public static final String GITHUB_PRBASE = "prDestinationBranch";
-    public static final String GITHUB_PRHEAD = "prSourceBranch";
-    public static final String GITHUB_PRID = "prId";
-    public static final String GITHUB_TAGVERSION = "tagVersion";
-    public static final String GITHUB_TAGMESSAGE = "tagMessage";
-    public static final String GITHUB_TAGGERUID = "tagAuthorName";
-    public static final String GITHUB_TAGGEREMAIL = "tagAuthorEmail";
-    public static final String GITHUB_COMMIT_SHA = "commitSHA";
-    public static final String GITHUB_TAG_REFS = "refs/tags/";
-    public static final String GITHUB_MERGEHEAD = "head";
-    public static final String GITHUB_MERGEBASE = "base";
-    public static final String GITHUB_MERGECOMMITMSG = "commitMessage";
+    private static final String API_URL_KEY = "apiUrl";
+    private static final String ACTION_KEY = "action";
+    private static final String GITHUB_ACCESSTOKEN = "accessToken";
+    private static final String GITHUB_ORGNAME = "org";
+    private static final String GITHUB_REPONAME = "repo";
+    private static final String GITHUB_PRTITLE = "prTitle";
+    private static final String GITHUB_PRBODY = "prBody";
+    private static final String GITHUB_PRCOMMENT = "prComment";
+    private static final String GITHUB_PRBASE = "prDestinationBranch";
+    private static final String GITHUB_PRHEAD = "prSourceBranch";
+    private static final String GITHUB_PRID = "prId";
+    private static final String GITHUB_TAGVERSION = "tagVersion";
+    private static final String GITHUB_TAGMESSAGE = "tagMessage";
+    private static final String GITHUB_TAGGERUID = "tagAuthorName";
+    private static final String GITHUB_TAGGEREMAIL = "tagAuthorEmail";
+    private static final String GITHUB_COMMIT_SHA = "commitSHA";
+    private static final String GITHUB_TAG_REFS = "refs/tags/";
+    private static final String GITHUB_MERGEHEAD = "head";
+    private static final String GITHUB_MERGEBASE = "base";
+    private static final String GITHUB_MERGECOMMITMSG = "commitMessage";
 
     private static final String STATUS_CHECK_STATE = "state";
     private static final String STATUS_CHECK_TARGET_URL = "targetUrl";
@@ -161,7 +162,7 @@ public class GitHubTask implements Task {
         String gitHubOrgName = assertString(ctx, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(ctx, GITHUB_REPONAME);
         String gitHubPRComment = assertString(ctx, GITHUB_PRCOMMENT);
-        Integer gitHubPRID = getInt(ctx, GITHUB_PRID);
+        int gitHubPRID = assertInt(ctx, GITHUB_PRID);
 
         GitHubClient client = GitHubClient.createClient(gitHubUri);
         client.setOAuth2Token(gitHubAccessToken);
@@ -184,7 +185,7 @@ public class GitHubTask implements Task {
         String gitHubAccessToken = assertString(ctx, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(ctx, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(ctx, GITHUB_REPONAME);
-        Integer gitHubPRID = getInt(ctx, GITHUB_PRID);
+        int gitHubPRID = assertInt(ctx, GITHUB_PRID);
 
         GitHubClient client = GitHubClient.createClient(gitHubUri);
         client.setOAuth2Token(gitHubAccessToken);
@@ -204,7 +205,7 @@ public class GitHubTask implements Task {
         String gitHubAccessToken = assertString(ctx, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(ctx, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(ctx, GITHUB_REPONAME);
-        Integer gitHubPRID = getInt(ctx, GITHUB_PRID);
+        int gitHubPRID = assertInt(ctx, GITHUB_PRID);
 
         GitHubClient client = GitHubClient.createClient(gitHubUri);
         client.setOAuth2Token(gitHubAccessToken);
