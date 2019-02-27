@@ -1,0 +1,39 @@
+configuration:
+  dependencies:
+    - mvn://com.walmartlabs.concord.plugins:terraform-task:1.2.0
+
+flows:
+  default:
+    # run `terraform plan` in the process' working directory
+    - task: terraform
+      in:
+        action: plan
+        extraVars:
+          aws_access_key: "AWS access key" # replace with the real values
+          aws_secret_key: "AWS secret key" # or use Concord Secrets, `decryptString` etc
+
+    - if: ${!result.hasChanges}
+      then:
+        - log: "No changes planned, stopping..."
+        - exit
+
+    # show the approval form
+    - form: approvalForm
+      fields:
+        - plan: { type: "string", readonly: true, value: "${result.output}" }
+        - approved: { type: "boolean" }
+      values:
+        processId: "${txId}"
+      yield: true
+
+    # stop the process if the plan wasn't approved
+    - if: ${!approvalForm.approved}
+      then:
+        - throw: "The plan was not approved"
+
+    # run `terraform apply` using the generated plan
+    - task: terraform
+      in:
+        action: apply
+        dirOrPlan: "${result.planPath}"
+        # when using a previously created plan file, no need to pass `extraVars` again

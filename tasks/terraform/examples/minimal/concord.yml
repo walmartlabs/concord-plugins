@@ -1,0 +1,12 @@
+configuration:
+  dependencies:
+    - mvn://com.walmartlabs.concord.plugins:terraform-task:1.2.0
+
+flows:
+  default:
+    - task: terraform
+      in:
+        action: apply
+        extraVars:
+          aws_access_key: "AWS access key" # replace with the real values
+          aws_secret_key: "AWS secret key" # or use Concord Secrets, `decryptString` etc
