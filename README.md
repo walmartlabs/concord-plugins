@@ -6,7 +6,8 @@ A collection of plugins for [Concord](https://concord.walmartlabs.com).
 
 - [git](./tasks/git) - GIT and GitHub plugins;
 - [jira](./tasks/jira) - a plugin to work with JIRA tickets;
-- [ldap](./tasks/ldap) - LDAP query plugin.
+- [ldap](./tasks/ldap) - LDAP query plugin;
+- [terraform](./tasks/terraform) - [Terraform](https://www.terraform.io/) plugin.
 
 ## Contributors
 

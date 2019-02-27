@@ -46,10 +46,15 @@ public class Terraform {
     private final Path binary;
     private final ExecutorService executor;
 
+    /**
+     * @param workDir the process' working directory. Used to store temporary files
+     * @param debug enable/disable additional debug output
+     * @throws Exception
+     */
     public Terraform(Path workDir, boolean debug) throws Exception {
         this.workDir = workDir;
         this.debug = debug;
-        this.binary = init();
+        this.binary = init(workDir, debug);
         this.executor = Executors.newCachedThreadPool();
     }
 
@@ -80,21 +85,30 @@ public class Terraform {
         return new Result(code, stdout.get(), stderr.get());
     }
 
-    private static Path init() throws Exception {
-        Path dstDir = IOUtils.createTempDir("tf");
+    private static Path init(Path workDir, boolean debug) throws Exception {
+        Path dstDir = workDir.resolve(".tf");
         if (!Files.exists(dstDir)) {
             Files.createDirectories(dstDir);
         }
 
-        URL zipFile = TerraformTask.class.getResource("terraform.zip");
-        Path tmp = dstDir.resolve("terraform.zip");
-        try (InputStream in = zipFile.openStream()) {
-            Files.copy(in, tmp, StandardCopyOption.REPLACE_EXISTING);
+        Path binaryDst = dstDir.resolve("terraform");
+        if (Files.exists(binaryDst)) {
+            if (debug) {
+                log.info("init -> using the existing binary {}", workDir.relativize(binaryDst));
+            }
+            return binaryDst;
         }
 
-        IOUtils.unzip(tmp, dstDir, true);
+        if (debug) {
+            log.info("init -> extracting the binary into {}", workDir.relativize(dstDir));
+        }
 
-        return dstDir.resolve("terraform");
+        URL zipFile = TerraformTask.class.getResource("terraform.zip");
+        try (InputStream in = zipFile.openStream()) {
+            IOUtils.unzip(in, dstDir);
+        }
+
+        return binaryDst;
     }
 
     private static void log(String prefix, String s) {
