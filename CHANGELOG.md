@@ -1,5 +1,13 @@
 # Change log
 
+## [Unreleased]
+
+### Added
+
+- new plugin: `tasks/terraform`.
+
+
+
 ## [1.1.0] - 2019-02-20
 
 ### Added

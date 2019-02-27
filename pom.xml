@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.walmartlabs.concord</groupId>
         <artifactId>parent</artifactId>
-        <version>1.7.2</version>
+        <version>1.9.0</version>
     </parent>
 
     <groupId>com.walmartlabs.concord.plugins</groupId>
@@ -38,11 +38,12 @@
         <module>tasks/git</module>
         <module>tasks/jira</module>
         <module>tasks/ldap</module>
+        <module>tasks/terraform</module>
     </modules>
 
     <properties>
         <scm.connection>scm:git:https://github.com/walmartlabs/concord-plugins.git</scm.connection>
-        <concord.version>1.7.2</concord.version>
+        <concord.version>1.9.0</concord.version>
     </properties>
 
     <dependencyManagement>
