@@ -1,0 +1,20 @@
+configuration:
+  dependencies:
+    - mvn://com.walmartlabs.concord.plugins:terraform-task:1.2.0
+
+flows:
+  default:
+    - task: terraform
+      in:
+        action: plan
+        extraVars:
+          subscription_id: "azure subsciption id" # replace with the real values
+          tenant_id: "azure tenant id" # or use Concord Secrets, `decryptString` etc
+          client_id: "azure client id" # replace with the real values
+          client_secret: "azure client secret" # or use Concord Secrets, `decryptString` etc
+    
+    - task: terraform
+      in:
+        action: apply
+        dirOrPlan: "${result.planPath}"
+        # when using a previously created plan file, no need to pass `extraVars` again      
