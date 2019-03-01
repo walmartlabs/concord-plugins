@@ -1,5 +1,14 @@
 # Change log
 
+## [Unreleased]
+
+### Changed
+
+- terraform: `dirOrPlan` parameter now correctly used to run
+`terraform init`.
+
+
+
 ## [1.2.0] - 2019-02-27
 
 ### Added

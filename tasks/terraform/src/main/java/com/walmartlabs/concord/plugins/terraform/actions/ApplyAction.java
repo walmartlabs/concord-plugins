@@ -25,7 +25,6 @@ import com.walmartlabs.concord.plugins.terraform.Constants;
 import com.walmartlabs.concord.plugins.terraform.Terraform;
 import com.walmartlabs.concord.plugins.terraform.backend.Backend;
 import com.walmartlabs.concord.plugins.terraform.commands.ApplyCommand;
-import com.walmartlabs.concord.plugins.terraform.commands.InitCommand;
 import com.walmartlabs.concord.sdk.Context;
 import com.walmartlabs.concord.sdk.MapUtils;
 
@@ -63,14 +62,10 @@ public class ApplyAction extends Action {
 
     public ApplyResult exec(Terraform terraform, Backend backend) throws Exception {
         try {
-            Path dirOrPlanAbsolute = getAbsolute(workDir, dirOrPlan);
-
-            backend.init(ctx, workDir);
-            new InitCommand(workDir, env).exec(terraform);
-
-            Terraform.Result r;
+            Path dirOrPlanAbsolute = init(ctx, workDir, dirOrPlan, env, terraform, backend);
 
             // TF accepts either a directory or a path to the previously created plan file
+            Terraform.Result r;
             if (Files.isDirectory(dirOrPlanAbsolute)) {
                 // running without a previously created plan file
                 Path varsFile = createVarFile(objectMapper, extraVars);

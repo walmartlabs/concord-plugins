@@ -9,9 +9,9 @@ package com.walmartlabs.concord.plugins.terraform;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -52,6 +52,9 @@ public class TerraformTaskTest {
     public void test() throws Exception {
         Path workDir = IOUtils.createTempDir("test");
 
+//        Path dstDir = workDir.resolve("myDir");
+//        Files.createDirectories(dstDir);
+
         Path testFile = Paths.get(System.getenv("TF_TEST_FILE"));
         Files.copy(testFile, workDir.resolve(testFile.getFileName()));
 
@@ -77,6 +80,7 @@ public class TerraformTaskTest {
         args.put(com.walmartlabs.concord.sdk.Constants.Context.WORK_DIR_KEY, workDir.toAbsolutePath().toString());
         args.put(Constants.ACTION_KEY, TerraformTask.Action.PLAN.name());
         args.put(Constants.DEBUG_KEY, true);
+//        args.put(Constants.DIR_OR_PLAN_KEY, workDir.relativize(dstDir).toString());
 
         Map<String, Object> extraVars = new HashMap<>();
         extraVars.put("aws_access_key", System.getenv("AWS_ACCESS_KEY"));

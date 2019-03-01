@@ -30,7 +30,8 @@
                 {{else}}
 
                 <!-- multipart/form-data is required for uploading files -->
-                <form class="ui form {{#if errors}}error{{/if}}" method="post" enctype="multipart/form-data" action="{{submitUrl}}">
+                <form class="ui form {{#if errors}}error{{/if}}" method="post" enctype="multipart/form-data"
+                      action="{{submitUrl}}">
 
                     {{#if errors}}
                     <div class="ui error message">

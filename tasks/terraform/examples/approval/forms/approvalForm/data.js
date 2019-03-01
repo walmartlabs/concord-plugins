@@ -1,19 +1,19 @@
 data = {
-    "submitUrl" : "/api/service/custom_form/6cf435f0-b85c-42ea-a454-1ac308aff8c3/9fe117b3-5dec-4de2-afe7-1765a0e4e305/continue",
-    "success" : false,
-    "definitions" : {
-        "plan" : {
-            "type" : "string",
-            "cardinality" : "ONE_OR_NONE"
+    "submitUrl": "/api/service/custom_form/6cf435f0-b85c-42ea-a454-1ac308aff8c3/9fe117b3-5dec-4de2-afe7-1765a0e4e305/continue",
+    "success": false,
+    "definitions": {
+        "plan": {
+            "type": "string",
+            "cardinality": "ONE_OR_NONE"
         },
-        "approved" : {
-            "type" : "boolean",
-            "cardinality" : "ONE_AND_ONLY_ONE"
+        "approved": {
+            "type": "boolean",
+            "cardinality": "ONE_AND_ONLY_ONE"
         }
     },
-    "values" : {
+    "values": {
         "processId": "6cf435f0-b85c-42ea-a454-1ac308aff8c3",
-        "plan" : "terraform: Refreshing Terraform state in-memory prior to plan...\n" +
+        "plan": "terraform: Refreshing Terraform state in-memory prior to plan...\n" +
             "terraform: The refreshed state will be used to calculate this plan, but will not be\n" +
             "terraform: persisted to local or remote state storage.\n" +
             "terraform: \n" +

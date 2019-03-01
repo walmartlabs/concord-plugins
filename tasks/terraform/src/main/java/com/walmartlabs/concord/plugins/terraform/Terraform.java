@@ -30,7 +30,6 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -48,7 +47,7 @@ public class Terraform {
 
     /**
      * @param workDir the process' working directory. Used to store temporary files
-     * @param debug enable/disable additional debug output
+     * @param debug   enable/disable additional debug output
      * @throws Exception
      */
     public Terraform(Path workDir, boolean debug) throws Exception {
@@ -86,7 +85,7 @@ public class Terraform {
     }
 
     private static Path init(Path workDir, boolean debug) throws Exception {
-        Path dstDir = workDir.resolve(".tf");
+        Path dstDir = workDir.resolve(".terraform");
         if (!Files.exists(dstDir)) {
             Files.createDirectories(dstDir);
         }

@@ -25,7 +25,6 @@ import com.walmartlabs.concord.plugins.terraform.Constants;
 import com.walmartlabs.concord.plugins.terraform.Terraform;
 import com.walmartlabs.concord.plugins.terraform.Terraform.Result;
 import com.walmartlabs.concord.plugins.terraform.backend.Backend;
-import com.walmartlabs.concord.plugins.terraform.commands.InitCommand;
 import com.walmartlabs.concord.plugins.terraform.commands.PlanCommand;
 import com.walmartlabs.concord.sdk.Context;
 import com.walmartlabs.concord.sdk.MapUtils;
@@ -34,6 +33,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.UUID;
 
 import static com.walmartlabs.concord.plugins.terraform.Utils.getPath;
 
@@ -65,17 +65,12 @@ public class PlanAction extends Action {
 
     public PlanResult exec(Terraform terraform, Backend backend) throws Exception {
         try {
-            // absolute path to a TF dir or a plan file
-            Path dirOrPlanAbsolute = getAbsolute(workDir, dirOrPlan);
-
-            backend.init(ctx, workDir);
-            new InitCommand(workDir, env).exec(terraform);
+            Path dirOrPlanAbsolute = init(ctx, workDir, dirOrPlan, env, terraform, backend);
 
             Path varsFile = createVarFile(objectMapper, extraVars);
-            Path outFile = createOutFile(workDir);
+            Path outFile = getOutFile(workDir);
 
             Result r = new PlanCommand(debug, dirOrPlanAbsolute, varsFile, outFile, env).exec(terraform);
-
             switch (r.getCode()) {
                 case 0: {
                     return PlanResult.noChanges(r.getStdout(), workDir.relativize(outFile).toString());
@@ -98,7 +93,7 @@ public class PlanAction extends Action {
         }
     }
 
-    private static Path createOutFile(Path workDir) throws IOException {
+    private static Path getOutFile(Path workDir) throws IOException {
         // store the plan files as process attachments
         // otherwise they will be lost if the process suspends
         // TODO store in a regular directory when the process workdir saving is implemented
@@ -109,6 +104,6 @@ public class PlanAction extends Action {
             Files.createDirectories(dst);
         }
 
-        return Files.createTempFile(dst, "tf", ".plan");
+        return dst.resolve("tf" + UUID.randomUUID() + ".plan");
     }
 }

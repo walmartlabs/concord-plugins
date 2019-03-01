@@ -12,7 +12,7 @@ flows:
           tenant_id: "azure tenant id" # or use Concord Secrets, `decryptString` etc
           client_id: "azure client id" # replace with the real values
           client_secret: "azure client secret" # or use Concord Secrets, `decryptString` etc
-    
+
     - task: terraform
       in:
         action: apply
