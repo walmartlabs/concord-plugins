@@ -21,8 +21,8 @@ package com.walmartlabs.concord.plugins.terraform.actions;
  */
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.walmartlabs.concord.common.IOUtils;
 import com.walmartlabs.concord.plugins.terraform.Terraform;
+import com.walmartlabs.concord.plugins.terraform.Utils;
 import com.walmartlabs.concord.plugins.terraform.backend.Backend;
 import com.walmartlabs.concord.plugins.terraform.commands.InitCommand;
 import com.walmartlabs.concord.sdk.Context;
@@ -36,20 +36,12 @@ import java.util.Map;
 
 public abstract class Action {
 
-    protected static Path getAbsolute(Path workDir, Path p) {
-        if (p.isAbsolute()) {
-            return p;
-        }
-
-        return workDir.resolve(p);
-    }
-
-    protected static Path createVarFile(ObjectMapper objectMapper, Map<String, Object> m) throws IOException {
+    protected static Path createVarsFile(Path dir, ObjectMapper objectMapper, Map<String, Object> m) throws IOException {
         if (m == null || m.isEmpty()) {
             return null;
         }
 
-        Path p = IOUtils.createTempFile("vars", ".json");
+        Path p = Files.createTempFile(dir, ".vars", ".json");
         try (OutputStream out = Files.newOutputStream(p, StandardOpenOption.TRUNCATE_EXISTING)) {
             objectMapper.writeValue(out, m);
         }
@@ -57,17 +49,18 @@ public abstract class Action {
         return p;
     }
 
-    protected static Path init(Context ctx, Path workDir, Path dirOrPlan, Map<String, String> env, Terraform terraform, Backend backend) throws Exception {
-        backend.init(ctx, workDir);
-
-        Path dirOrPlanAbsolute = getAbsolute(workDir, dirOrPlan);
-
-        Path initDir = workDir;
-        if (Files.isDirectory(dirOrPlanAbsolute)) {
-            initDir = dirOrPlanAbsolute;
+    protected static void init(Context ctx, Path workDir, Path dirOrPlan, Map<String, String> env, Terraform terraform, Backend backend) throws Exception {
+        Path tfDir = Utils.getAbsolute(workDir, dirOrPlan);
+        if (Files.isRegularFile(tfDir)) {
+            // when using a previously created plan file, run TF in the process' root directory
+            tfDir = workDir;
         }
-        new InitCommand(initDir, env).exec(terraform);
 
-        return dirOrPlanAbsolute;
+        backend.init(ctx, tfDir);
+
+        Terraform.Result r = new InitCommand(workDir, tfDir, env).exec(terraform);
+        if (r.getCode() != 0) {
+            throw new RuntimeException("Initialization finished with code " + r.getCode() + ": " + r.getStderr());
+        }
     }
 }

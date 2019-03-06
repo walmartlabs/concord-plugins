@@ -37,7 +37,7 @@ public class DummyBackend implements Backend {
     }
 
     @Override
-    public void init(Context ctx, Path planDir) {
+    public void init(Context ctx, Path tfDir) {
         // do nothing
     }
 }

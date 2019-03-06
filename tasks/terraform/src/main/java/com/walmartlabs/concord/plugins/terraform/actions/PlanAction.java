@@ -23,7 +23,6 @@ package com.walmartlabs.concord.plugins.terraform.actions;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.walmartlabs.concord.plugins.terraform.Constants;
 import com.walmartlabs.concord.plugins.terraform.Terraform;
-import com.walmartlabs.concord.plugins.terraform.Terraform.Result;
 import com.walmartlabs.concord.plugins.terraform.backend.Backend;
 import com.walmartlabs.concord.plugins.terraform.commands.PlanCommand;
 import com.walmartlabs.concord.sdk.Context;
@@ -56,6 +55,10 @@ public class PlanAction extends Action {
         this.debug = MapUtils.get(cfg, Constants.DEBUG_KEY, false, Boolean.class);
 
         this.workDir = getPath(cfg, com.walmartlabs.concord.sdk.Constants.Context.WORK_DIR_KEY, null);
+        if (!workDir.isAbsolute()) {
+            throw new IllegalArgumentException("'workDir' must be an absolute path, got: " + workDir);
+        }
+
         this.dirOrPlan = getPath(cfg, Constants.DIR_OR_PLAN_KEY, workDir);
 
         this.extraVars = MapUtils.get(cfg, Constants.EXTRA_VARS_KEY, null, Map.class);
@@ -65,12 +68,12 @@ public class PlanAction extends Action {
 
     public PlanResult exec(Terraform terraform, Backend backend) throws Exception {
         try {
-            Path dirOrPlanAbsolute = init(ctx, workDir, dirOrPlan, env, terraform, backend);
+            init(ctx, workDir, dirOrPlan, env, terraform, backend);
 
-            Path varsFile = createVarFile(objectMapper, extraVars);
+            Path varsFile = createVarsFile(workDir, objectMapper, extraVars);
             Path outFile = getOutFile(workDir);
 
-            Result r = new PlanCommand(debug, dirOrPlanAbsolute, varsFile, outFile, env).exec(terraform);
+            Terraform.Result r = new PlanCommand(debug, workDir, workDir.resolve(dirOrPlan), varsFile, outFile, env).exec(terraform);
             switch (r.getCode()) {
                 case 0: {
                     return PlanResult.noChanges(r.getStdout(), workDir.relativize(outFile).toString());
@@ -96,7 +99,7 @@ public class PlanAction extends Action {
     private static Path getOutFile(Path workDir) throws IOException {
         // store the plan files as process attachments
         // otherwise they will be lost if the process suspends
-        // TODO store in a regular directory when the process workdir saving is implemented
+        // TODO store in a regular directory when the process workDir persistence is implemented
         Path attachmentsDir = workDir.resolve(com.walmartlabs.concord.sdk.Constants.Files.JOB_ATTACHMENTS_DIR_NAME);
 
         Path dst = attachmentsDir.resolve("terraform");

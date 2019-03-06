@@ -45,18 +45,19 @@ public class TerraformTaskTest {
 
     @Rule
     public WireMockRule wireMockRule = new WireMockRule(WireMockConfiguration.wireMockConfig()
-            .dynamicPort());
+            .port(12345));
 
     @Test
     @SuppressWarnings("unchecked")
     public void test() throws Exception {
         Path workDir = IOUtils.createTempDir("test");
 
-//        Path dstDir = workDir.resolve("myDir");
-//        Files.createDirectories(dstDir);
+        Path dstDir = workDir.resolve("myDir");
+        Files.createDirectories(dstDir);
+//        Path dstDir = workDir;
 
         Path testFile = Paths.get(System.getenv("TF_TEST_FILE"));
-        Files.copy(testFile, workDir.resolve(testFile.getFileName()));
+        Files.copy(testFile, dstDir.resolve(testFile.getFileName()));
 
         // ---
 
@@ -80,7 +81,7 @@ public class TerraformTaskTest {
         args.put(com.walmartlabs.concord.sdk.Constants.Context.WORK_DIR_KEY, workDir.toAbsolutePath().toString());
         args.put(Constants.ACTION_KEY, TerraformTask.Action.PLAN.name());
         args.put(Constants.DEBUG_KEY, true);
-//        args.put(Constants.DIR_OR_PLAN_KEY, workDir.relativize(dstDir).toString());
+        args.put(Constants.DIR_OR_PLAN_KEY, workDir.relativize(dstDir).toString());
 
         Map<String, Object> extraVars = new HashMap<>();
         extraVars.put("aws_access_key", System.getenv("AWS_ACCESS_KEY"));

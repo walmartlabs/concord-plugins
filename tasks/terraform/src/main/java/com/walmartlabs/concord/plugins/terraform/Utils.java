@@ -37,6 +37,14 @@ public final class Utils {
         return Paths.get(v);
     }
 
+    public static Path getAbsolute(Path workDir, Path p) {
+        if (p.isAbsolute()) {
+            return p;
+        }
+
+        return workDir.resolve(p);
+    }
+
     private Utils() {
     }
 }

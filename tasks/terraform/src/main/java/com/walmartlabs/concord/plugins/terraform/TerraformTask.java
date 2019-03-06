@@ -74,7 +74,7 @@ public class TerraformTask implements Task {
         Terraform terraform = new Terraform(workDir, debug);
 
         if (debug) {
-            terraform.exec("version", "version");
+            terraform.exec(workDir, "version", "version");
         }
 
         Backend backend = getBackend(cfg);

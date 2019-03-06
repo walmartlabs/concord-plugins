@@ -61,7 +61,7 @@ public class ConcordBackend implements Backend {
     }
 
     @Override
-    public void init(Context ctx, Path planDir) throws Exception {
+    public void init(Context ctx, Path tfDir) throws Exception {
         String stateId = getStateId(ctx);
         if (debug) {
             log.info("init -> using state ID: {}", stateId);
@@ -81,7 +81,7 @@ public class ConcordBackend implements Backend {
                 Collections.singletonMap("backend",
                         Collections.singletonMap("http", params)));
 
-        Path p = planDir.resolve("concord_override.tf.json");
+        Path p = tfDir.resolve("concord_override.tf.json");
         try (OutputStream out = Files.newOutputStream(p, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
             objectMapper.writeValue(out, cfg);
         }

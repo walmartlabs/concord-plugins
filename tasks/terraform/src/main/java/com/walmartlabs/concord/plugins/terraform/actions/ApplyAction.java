@@ -53,6 +53,10 @@ public class ApplyAction extends Action {
         this.debug = MapUtils.get(cfg, Constants.DEBUG_KEY, false, Boolean.class);
 
         this.workDir = getPath(cfg, com.walmartlabs.concord.sdk.Constants.Context.WORK_DIR_KEY, null);
+        if (!workDir.isAbsolute()) {
+            throw new IllegalArgumentException("'workDir' must be an absolute path, got: " + workDir);
+        }
+
         this.dirOrPlan = getPath(cfg, Constants.DIR_OR_PLAN_KEY, workDir);
 
         this.extraVars = MapUtils.get(cfg, Constants.EXTRA_VARS_KEY, null, Map.class);
@@ -62,18 +66,17 @@ public class ApplyAction extends Action {
 
     public ApplyResult exec(Terraform terraform, Backend backend) throws Exception {
         try {
-            Path dirOrPlanAbsolute = init(ctx, workDir, dirOrPlan, env, terraform, backend);
+            init(ctx, workDir, dirOrPlan, env, terraform, backend);
 
-            // TF accepts either a directory or a path to the previously created plan file
-            Terraform.Result r;
+            Path dirOrPlanAbsolute = workDir.resolve(dirOrPlan);
+
+            Path varsFile = null;
             if (Files.isDirectory(dirOrPlanAbsolute)) {
                 // running without a previously created plan file
-                Path varsFile = createVarFile(objectMapper, extraVars);
-                r = new ApplyCommand(debug, dirOrPlanAbsolute, varsFile, env).exec(terraform);
-            } else {
-                // using a previously created plan file
-                r = new ApplyCommand(debug, dirOrPlanAbsolute, null, env).exec(terraform);
+                varsFile = createVarsFile(workDir, objectMapper, extraVars);
             }
+
+            Terraform.Result r = new ApplyCommand(debug, workDir, dirOrPlanAbsolute, varsFile, env).exec(terraform);
 
             if (r.getCode() != 0) {
                 throw new RuntimeException("Process finished with code " + r.getCode() + ": " + r.getStderr());

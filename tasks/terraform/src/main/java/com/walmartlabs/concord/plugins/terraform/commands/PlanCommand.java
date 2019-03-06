@@ -35,14 +35,25 @@ public class PlanCommand {
     private static final Logger log = LoggerFactory.getLogger(PlanCommand.class);
 
     private final boolean debug;
+    private final Path pwd;
     private final Path dirOrPlan;
     private final Path varFile;
     private final Path outFile;
     private final Map<String, String> env;
 
-    public PlanCommand(boolean debug, Path dirOrPlan, Path varFile, Path outFile, Map<String, String> env) {
+    public PlanCommand(boolean debug, Path pwd, Path dirOrPlan, Path varFile, Path outFile, Map<String, String> env) {
         this.debug = debug;
+
+        this.pwd = pwd;
+        if (!pwd.isAbsolute()) {
+            throw new IllegalArgumentException("'pwd' must be an absolute path, got: " + pwd);
+        }
+
+        if (!dirOrPlan.isAbsolute()) {
+            throw new IllegalArgumentException("'dirOrPlan' must be an absolute path, got: " + dirOrPlan);
+        }
         this.dirOrPlan = dirOrPlan;
+
         this.varFile = varFile;
         this.outFile = outFile;
         this.env = env;
@@ -68,9 +79,8 @@ public class PlanCommand {
             args.add("-out=" + outFile.toAbsolutePath().toString());
         }
 
-        log.info("exec -> using directory or plan: {}", dirOrPlan);
-        args.add(dirOrPlan.toAbsolutePath().toString());
+        args.add(dirOrPlan.toString());
 
-        return terraform.exec("\u001b[32mplan\u001b[0m", env, args);
+        return terraform.exec(pwd, "\u001b[32mplan\u001b[0m", env, args);
     }
 }

@@ -1,5 +1,14 @@
 # Change log
 
+## [Unreleased]
+
+### Changed
+
+- terraform: fix the backend configuration when using a non-default
+working directory.
+
+
+
 ## [1.2.1] - 2019-02-28
 
 ### Changed

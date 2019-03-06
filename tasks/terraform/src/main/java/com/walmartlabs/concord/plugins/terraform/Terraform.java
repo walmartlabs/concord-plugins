@@ -40,7 +40,6 @@ public class Terraform {
 
     private static final Logger log = LoggerFactory.getLogger(Terraform.class);
 
-    private final Path workDir;
     private final boolean debug;
     private final Path binary;
     private final ExecutorService executor;
@@ -51,27 +50,26 @@ public class Terraform {
      * @throws Exception
      */
     public Terraform(Path workDir, boolean debug) throws Exception {
-        this.workDir = workDir;
         this.debug = debug;
         this.binary = init(workDir, debug);
         this.executor = Executors.newCachedThreadPool();
     }
 
-    public Result exec(String logPrefix, String... args) throws Exception {
-        return exec(logPrefix, Collections.emptyMap(), Arrays.asList(args));
+    public Result exec(Path pwd, String logPrefix, String... args) throws Exception {
+        return exec(pwd, logPrefix, Collections.emptyMap(), Arrays.asList(args));
     }
 
-    public Result exec(String logPrefix, Map<String, String> env, List<String> args) throws Exception {
+    public Result exec(Path pwd, String logPrefix, Map<String, String> env, List<String> args) throws Exception {
         List<String> cmd = new ArrayList<>();
         cmd.add(binary.toAbsolutePath().toString());
         cmd.addAll(args);
 
         if (debug) {
-            log.info("exec -> {} in {}", String.join(" ", cmd), workDir);
+            log.info("exec -> {} in {}", String.join(" ", cmd), pwd);
         }
 
         ProcessBuilder pb = new ProcessBuilder(cmd)
-                .directory(workDir.toFile());
+                .directory(pwd.toFile());
 
         pb.environment().putAll(env);
 

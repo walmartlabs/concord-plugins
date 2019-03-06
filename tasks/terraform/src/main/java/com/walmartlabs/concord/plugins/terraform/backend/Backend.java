@@ -30,5 +30,10 @@ public interface Backend {
 
     void unlock(Context ctx) throws Exception;
 
-    void init(Context ctx, Path planDir) throws Exception;
+    /**
+     * @param ctx   the process' context
+     * @param tfDir a directory with Terraform files
+     * @throws Exception
+     */
+    void init(Context ctx, Path tfDir) throws Exception;
 }

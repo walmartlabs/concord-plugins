@@ -35,13 +35,25 @@ public class ApplyCommand {
     private static final Logger log = LoggerFactory.getLogger(ApplyCommand.class);
 
     private final boolean debug;
+    private final Path pwd;
     private final Path dirOrPlan;
     private final Path varFile;
     private final Map<String, String> env;
 
-    public ApplyCommand(boolean debug, Path dirOrPlan, Path varFile, Map<String, String> env) {
+    public ApplyCommand(boolean debug, Path pwd, Path dirOrPlan, Path varFile, Map<String, String> env) {
         this.debug = debug;
+
+        if (!pwd.isAbsolute()) {
+            throw new IllegalArgumentException("'pwd' must be an absolute path, got: " + pwd);
+        }
+        this.pwd = pwd;
+
+        if (!dirOrPlan.isAbsolute()) {
+            throw new IllegalArgumentException("'dirOrPlan' must be an absolute path, got: " + dirOrPlan);
+        }
         this.dirOrPlan = dirOrPlan;
+
+
         this.varFile = varFile;
         this.env = env;
     }
@@ -59,9 +71,8 @@ public class ApplyCommand {
             args.add("-var-file=" + varFile.toAbsolutePath().toString());
         }
 
-        log.info("exec -> using directory or plan: {}", dirOrPlan);
-        args.add(dirOrPlan.toAbsolutePath().toString());
+        args.add(dirOrPlan.toString());
 
-        return terraform.exec("\u001b[35mapply\u001b[0m", env, args);
+        return terraform.exec(pwd, "\u001b[35mapply\u001b[0m", env, args);
     }
 }

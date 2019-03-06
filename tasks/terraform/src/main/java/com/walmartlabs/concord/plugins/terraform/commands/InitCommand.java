@@ -22,8 +22,6 @@ package com.walmartlabs.concord.plugins.terraform.commands;
 
 import com.walmartlabs.concord.plugins.terraform.Terraform;
 import com.walmartlabs.concord.plugins.terraform.Terraform.Result;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -32,13 +30,21 @@ import java.util.Map;
 
 public class InitCommand {
 
-    private static final Logger log = LoggerFactory.getLogger(InitCommand.class);
-
+    private final Path pwd;
     private final Path dir;
     private final Map<String, String> env;
 
-    public InitCommand(Path dir, Map<String, String> env) {
+    public InitCommand(Path pwd, Path dir, Map<String, String> env) {
+        if (!pwd.isAbsolute()) {
+            throw new IllegalArgumentException("'pwd' must be an absolute path, got: " + pwd);
+        }
+        this.pwd = pwd;
+
+        if (!dir.isAbsolute()) {
+            throw new IllegalArgumentException("'dir' must be an absolute path, got: " + dir);
+        }
         this.dir = dir;
+
         this.env = env;
     }
 
@@ -46,10 +52,8 @@ public class InitCommand {
         List<String> args = new ArrayList<>();
         args.add("init");
         args.add("-input=false");
+        args.add(dir.toString());
 
-        log.info("exec -> using directory: {}", dir);
-        args.add(dir.toAbsolutePath().toString());
-
-        return terraform.exec("\u001b[36minit\u001b[0m", env, args);
+        return terraform.exec(pwd, "\u001b[36minit\u001b[0m", env, args);
     }
 }
