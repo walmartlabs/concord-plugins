@@ -42,15 +42,18 @@ public class Terraform {
 
     private final boolean debug;
     private final Path binary;
+    private final Map<String, String> baseEnv;
     private final ExecutorService executor;
 
     /**
      * @param workDir the process' working directory. Used to store temporary files
      * @param debug   enable/disable additional debug output
+     * @param baseEnv
      * @throws Exception
      */
-    public Terraform(Path workDir, boolean debug) throws Exception {
+    public Terraform(Path workDir, boolean debug, Map<String, String> baseEnv) throws Exception {
         this.debug = debug;
+        this.baseEnv = baseEnv;
         this.binary = init(workDir, debug);
         this.executor = Executors.newCachedThreadPool();
     }
@@ -71,7 +74,14 @@ public class Terraform {
         ProcessBuilder pb = new ProcessBuilder(cmd)
                 .directory(pwd.toFile());
 
-        pb.environment().putAll(env);
+        Map<String, String> combinedEnv = new HashMap<>(baseEnv);
+        combinedEnv.putAll(env);
+
+        if (debug) {
+            log.info("exec -> using env: {}", combinedEnv);
+        }
+
+        pb.environment().putAll(combinedEnv);
 
         Process p = pb.start();
 
@@ -101,6 +111,10 @@ public class Terraform {
         }
 
         URL zipFile = TerraformTask.class.getResource("terraform.zip");
+        if (zipFile == null) {
+            throw new IllegalStateException("Can't find the Terraform's archive file. Make sure the JAR is built correctly");
+        }
+
         try (InputStream in = zipFile.openStream()) {
             IOUtils.unzip(in, dstDir);
         }

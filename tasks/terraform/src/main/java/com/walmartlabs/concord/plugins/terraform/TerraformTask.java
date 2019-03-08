@@ -49,19 +49,23 @@ public class TerraformTask implements Task {
 
     private final LockService lockService;
     private final ObjectStorage objectStorage;
+    private final SecretService secretService;
     private final ObjectMapper objectMapper;
 
     @InjectVariable("terraformParams")
     private Map<String, Object> defaults;
 
     @Inject
-    public TerraformTask(LockService lockService, ObjectStorage objectStorage) {
+    public TerraformTask(LockService lockService, ObjectStorage objectStorage, SecretService secretService) {
         this.lockService = lockService;
         this.objectStorage = objectStorage;
+        this.secretService = secretService;
         this.objectMapper = new ObjectMapper();
     }
 
     public void execute(Context ctx) throws Exception {
+        String instanceId = (String) ctx.getVariable(com.walmartlabs.concord.sdk.Constants.Context.TX_ID_KEY);
+
         Map<String, Object> cfg = createCfg(ctx);
         Map<String, String> env = getEnv(cfg);
 
@@ -71,14 +75,17 @@ public class TerraformTask implements Task {
         }
 
         boolean debug = MapUtils.get(cfg, Constants.DEBUG_KEY, false, Boolean.class);
-        Terraform terraform = new Terraform(workDir, debug);
 
+        Action action = getAction(cfg);
+        Backend backend = getBackend(cfg);
+
+        GitSshWrapper gitSshWrapper = GitSshWrapper.createFrom(secretService, ctx, instanceId, workDir, cfg, debug);
+        Map<String, String> baseEnv = gitSshWrapper.updateEnv(workDir, new HashMap<>());
+
+        Terraform terraform = new Terraform(workDir, debug, baseEnv);
         if (debug) {
             terraform.exec(workDir, "version", "version");
         }
-
-        Backend backend = getBackend(cfg);
-        Action action = getAction(cfg);
 
         try {
             backend.lock(ctx);
@@ -101,6 +108,7 @@ public class TerraformTask implements Task {
             }
         } finally {
             backend.unlock(ctx);
+            gitSshWrapper.cleanup();
         }
     }
 

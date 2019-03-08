@@ -32,6 +32,7 @@ import org.junit.Test;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -62,17 +63,10 @@ public class TerraformTaskTest {
         // ---
 
         LockService lockService = mock(LockService.class);
+        ObjectStorage objectStorage = createObjectStorage(wireMockRule);
+        SecretService secretService = createSecretService(workDir);
 
-        String osAddress = "http://localhost:" + wireMockRule.port() + "/test";
-        wireMockRule.stubFor(WireMock.get("/test").willReturn(WireMock.aResponse().withStatus(404)));
-        wireMockRule.stubFor(WireMock.post("/test").willReturn(WireMock.aResponse().withStatus(200)));
-
-        ObjectStorage objectStorage = mock(ObjectStorage.class);
-        when(objectStorage.createBucket(any(), anyString())).thenReturn(ImmutableBucketInfo.builder()
-                .address(osAddress)
-                .build());
-
-        TerraformTask t = new TerraformTask(lockService, objectStorage);
+        TerraformTask t = new TerraformTask(lockService, objectStorage, secretService);
 
         // ---
 
@@ -87,6 +81,11 @@ public class TerraformTaskTest {
         extraVars.put("aws_access_key", System.getenv("AWS_ACCESS_KEY"));
         extraVars.put("aws_secret_key", System.getenv("AWS_SECRET_KEY"));
         args.put(Constants.EXTRA_VARS_KEY, extraVars);
+
+        Map<String, Object> gitSsh = new HashMap<>();
+        gitSsh.put(GitSshWrapper.PRIVATE_KEYS_KEY, Collections.singletonList(Files.createTempFile("test", ".key").toAbsolutePath().toString()));
+        gitSsh.put(GitSshWrapper.SECRETS_KEY, Collections.singletonList(Collections.singletonMap("secretName", "test")));
+        args.put(Constants.GIT_SSH_KEY, gitSsh);
 
         args.put(Constants.STATE_ID_KEY, "testState");
 
@@ -118,5 +117,31 @@ public class TerraformTaskTest {
 
         ctx = new MockContext(args);
         t.execute(ctx);
+    }
+
+    private static ObjectStorage createObjectStorage(WireMockRule wireMockRule) throws Exception {
+        String osAddress = "http://localhost:" + wireMockRule.port() + "/test";
+        wireMockRule.stubFor(WireMock.get("/test").willReturn(WireMock.aResponse().withStatus(404)));
+        wireMockRule.stubFor(WireMock.post("/test").willReturn(WireMock.aResponse().withStatus(200)));
+
+        ObjectStorage os = mock(ObjectStorage.class);
+        when(os.createBucket(any(), anyString())).thenReturn(ImmutableBucketInfo.builder()
+                .address(osAddress)
+                .build());
+
+        return os;
+    }
+
+    private static SecretService createSecretService(Path workDir) throws Exception {
+        Path src = Paths.get(System.getenv("PRIVATE_KEY_PATH"));
+        Path dst = Files.createTempFile(workDir, "private", ".key");
+        Files.copy(src, dst, StandardCopyOption.REPLACE_EXISTING);
+
+        Map<String, String> m = Collections.singletonMap("private", workDir.relativize(dst).toString());
+
+        SecretService ss = mock(SecretService.class);
+        when(ss.exportKeyAsFile(any(), any(), any(), any(), any(), any())).thenReturn(m);
+
+        return ss;
     }
 }

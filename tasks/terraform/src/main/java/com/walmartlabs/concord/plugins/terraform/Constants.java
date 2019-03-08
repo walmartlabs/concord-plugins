@@ -29,12 +29,13 @@ public final class Constants {
     public static final String DIR_OR_PLAN_KEY = "dirOrPlan";
     public static final String EXTRA_ENV_KEY = "extraEnv";
     public static final String EXTRA_VARS_KEY = "extraVars";
+    public static final String GIT_SSH_KEY = "gitSsh";
     public static final String IGNORE_ERRORS_KEY = "ignoreErrors";
     public static final String RESULT_KEY = "result";
     public static final String STATE_ID_KEY = "stateId";
 
     public static final String[] ALL_IN_PARAMS = {ACTION_KEY, BACKEND_KEY, DEBUG_KEY, DEFAULT_ENV_KEY, DIR_OR_PLAN_KEY,
-            EXTRA_ENV_KEY, EXTRA_VARS_KEY, IGNORE_ERRORS_KEY, RESULT_KEY, STATE_ID_KEY};
+            EXTRA_ENV_KEY, EXTRA_VARS_KEY, GIT_SSH_KEY, IGNORE_ERRORS_KEY, RESULT_KEY, STATE_ID_KEY};
 
     private Constants() {
     }
