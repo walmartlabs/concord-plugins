@@ -16,7 +16,7 @@
     <properties>
         <skipTests>true</skipTests>
         <terraform.repo>https://releases.hashicorp.com/terraform</terraform.repo>
-        <terraform.version>0.11.11</terraform.version>
+        <terraform.version>0.11.12</terraform.version>
         <terraform.arch>linux_amd64</terraform.arch>
     </properties>
 

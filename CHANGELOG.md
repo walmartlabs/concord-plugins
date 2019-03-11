@@ -7,6 +7,10 @@
 - terraform: Concord secrets and private key files can now be used
 for GIT modules auth.
 
+### Changed
+
+- terraform: updated to `0.11.12`.
+
 
 
 ## [1.2.2] - 2019-03-06
