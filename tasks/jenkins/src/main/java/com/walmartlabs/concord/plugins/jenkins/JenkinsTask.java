@@ -65,16 +65,16 @@ public class JenkinsTask implements Task {
         JenkinsClient client = new JenkinsClient(cfg);
         String queueLink = client.build(cfg.getJobName(), simpleParams, fileParams);
 
-        long jobStartedAt = System.currentTimeMillis();
+        long startTimeMs = System.currentTimeMillis();
         log.info("Waiting for the start of the job, queue link {}", queueLink);
-        Executable executable = waitBuildStart(cfg, client, queueLink, jobStartedAt);
+        Executable executable = waitBuildStart(cfg, client, queueLink, startTimeMs);
 
         BuildInfo buildInfo = client.getBuildInfo(executable);
         log.info("Jenkins job status '{}' (still building={})", buildInfo.getResult(), buildInfo.isBuilding());
 
         if (!isFinalStatus(buildInfo.getResult()) && cfg.isSync()) {
             log.info("Waiting for completion of the build...");
-            buildInfo = waitForCompletion(cfg, client, executable, jobStartedAt);
+            buildInfo = waitForCompletion(cfg, client, executable, startTimeMs);
         }
 
         Map<String, Object> result = new HashMap<>();
@@ -86,7 +86,7 @@ public class JenkinsTask implements Task {
         log.info("Job info is saved as '{}' variable: {}", OUT_VARIABLE_KEY, result);
     }
 
-    private static Executable waitBuildStart(JenkinsConfiguration cfg, JenkinsClient client, String queueLink, long startTime) throws Exception {
+    private static Executable waitBuildStart(JenkinsConfiguration cfg, JenkinsClient client, String queueLink, long startTimeMs) throws Exception {
         while (!Thread.currentThread().isInterrupted()) {
             QueueItem queueItem = client.getQueueItem(queueLink);
 
@@ -103,7 +103,7 @@ public class JenkinsTask implements Task {
                 log.info("Jenkins job in queue, reason: '{}'", queueItem.getWhy());
             }
 
-            assertJobTimeout(cfg, startTime);
+            assertJobTimeout(cfg, startTimeMs);
 
             sleep(WAIT_DELAY);
         }
@@ -111,7 +111,7 @@ public class JenkinsTask implements Task {
         throw new RuntimeException("Job build was interrupted");
     }
 
-    private static BuildInfo waitForCompletion(JenkinsConfiguration cfg, JenkinsClient client, Executable executable, long jobStartedAt) throws Exception {
+    private static BuildInfo waitForCompletion(JenkinsConfiguration cfg, JenkinsClient client, Executable executable, long startTimeMs) throws Exception {
         while (!Thread.currentThread().isInterrupted()) {
             BuildInfo buildInfo = client.getBuildInfo(executable);
 
@@ -123,7 +123,7 @@ public class JenkinsTask implements Task {
                 return buildInfo;
             }
 
-            assertJobTimeout(cfg, jobStartedAt);
+            assertJobTimeout(cfg, startTimeMs);
 
             Thread.sleep(WAIT_DELAY);
         }
@@ -176,13 +176,14 @@ public class JenkinsTask implements Task {
         }
     }
 
-    private static void assertJobTimeout(JenkinsConfiguration config, long startTime) {
-        if (config.getJobTimeout() <= 0) {
+    private static void assertJobTimeout(JenkinsConfiguration cfg, long startTimeMs) {
+        long timeout = cfg.getJobTimeout();
+        if (timeout <= 0) {
             return;
         }
 
-        long currentTime = System.currentTimeMillis();
-        if (currentTime - startTime >= config.getJobTimeout()) {
+        long currentTimeMs = System.currentTimeMillis();
+        if (currentTimeMs - startTimeMs >= timeout * 1000) {
             throw new RuntimeException("Timeout waiting for the job");
         }
     }

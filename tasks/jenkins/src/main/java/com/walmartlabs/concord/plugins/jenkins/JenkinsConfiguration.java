@@ -41,7 +41,7 @@ public class JenkinsConfiguration {
     private final Map<String, Object> parameters;
     private final String jobName;
     private final boolean sync;
-    private final int jobTimeout;
+    private final long jobTimeout;
     private final boolean debug;
 
     public JenkinsConfiguration(Map<String, Object> cfg) {
@@ -54,7 +54,7 @@ public class JenkinsConfiguration {
         this.writeTimeout = getInt(cfg, Constants.WRITE_TIMEOUT_KEY, DEFAULT_WRITE_TIMEOUT);
         this.readTimeout = getInt(cfg, Constants.READ_TIMEOUT_KEY, DEFAULT_READ_TIMEOUT);
         this.sync = getBoolean(cfg, Constants.SYNC_KEY, true);
-        this.jobTimeout = getInt(cfg, Constants.JOB_TIMEOUT_KEY, -1);
+        this.jobTimeout = getNumber(cfg, Constants.JOB_TIMEOUT_KEY, -1).longValue();
         this.debug = getBoolean(cfg, Constants.DEBUG_KEY, false);
     }
 
@@ -94,7 +94,7 @@ public class JenkinsConfiguration {
         return sync;
     }
 
-    public int getJobTimeout() {
+    public long getJobTimeout() {
         return jobTimeout;
     }
 
