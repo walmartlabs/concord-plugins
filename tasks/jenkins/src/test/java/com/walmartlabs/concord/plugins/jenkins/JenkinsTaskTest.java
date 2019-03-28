@@ -64,7 +64,7 @@ public class JenkinsTaskTest {
         Map<String, Object> cfg = new HashMap<>();
         cfg.put(Constants.BASE_URL_KEY, "http://localhost:8181/");
         cfg.put(Constants.USERNAME_KEY, "admin");
-        cfg.put(Constants.API_TOKEN_KEY, "114d8ade9646a0758438773fdd96dbbb67");
+        cfg.put(Constants.API_TOKEN_KEY, System.getenv("JENKINS_API_TOKEN"));
         return cfg;
     }
 }
