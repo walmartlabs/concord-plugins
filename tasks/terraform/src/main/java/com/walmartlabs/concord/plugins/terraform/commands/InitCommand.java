@@ -33,8 +33,10 @@ public class InitCommand {
     private final Path pwd;
     private final Path dir;
     private final Map<String, String> env;
+    private final boolean silent;
 
-    public InitCommand(Path pwd, Path dir, Map<String, String> env) {
+    public InitCommand(Path pwd, Path dir, Map<String, String> env, boolean silent) {
+        this.silent = silent;
         if (!pwd.isAbsolute()) {
             throw new IllegalArgumentException("'pwd' must be an absolute path, got: " + pwd);
         }
@@ -54,6 +56,6 @@ public class InitCommand {
         args.add("-input=false");
         args.add(dir.toString());
 
-        return terraform.exec(pwd, "\u001b[36minit\u001b[0m", env, args);
+        return terraform.exec(pwd, "\u001b[36minit\u001b[0m", silent, env, args);
     }
 }

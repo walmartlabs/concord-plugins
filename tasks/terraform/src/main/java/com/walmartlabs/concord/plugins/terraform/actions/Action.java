@@ -26,6 +26,8 @@ import com.walmartlabs.concord.plugins.terraform.Utils;
 import com.walmartlabs.concord.plugins.terraform.backend.Backend;
 import com.walmartlabs.concord.plugins.terraform.commands.InitCommand;
 import com.walmartlabs.concord.sdk.Context;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -35,6 +37,8 @@ import java.nio.file.StandardOpenOption;
 import java.util.Map;
 
 public abstract class Action {
+
+    private static final Logger log = LoggerFactory.getLogger(Action.class);
 
     protected static Path createVarsFile(Path dir, ObjectMapper objectMapper, Map<String, Object> m) throws IOException {
         if (m == null || m.isEmpty()) {
@@ -49,7 +53,9 @@ public abstract class Action {
         return p;
     }
 
-    protected static void init(Context ctx, Path workDir, Path dirOrPlan, Map<String, String> env, Terraform terraform, Backend backend) throws Exception {
+    protected static void init(Context ctx, Path workDir, Path dirOrPlan, boolean silent, Map<String, String> env, Terraform terraform, Backend backend) throws Exception {
+        log.info("init -> initializing the backend and running `terraform init`...");
+
         Path tfDir = Utils.getAbsolute(workDir, dirOrPlan);
         if (Files.isRegularFile(tfDir)) {
             // when using a previously created plan file, run TF in the process' root directory
@@ -58,7 +64,7 @@ public abstract class Action {
 
         backend.init(ctx, tfDir);
 
-        Terraform.Result r = new InitCommand(workDir, tfDir, env).exec(terraform);
+        Terraform.Result r = new InitCommand(workDir, tfDir, env, silent).exec(terraform);
         if (r.getCode() != 0) {
             throw new RuntimeException("Initialization finished with code " + r.getCode() + ": " + r.getStderr());
         }

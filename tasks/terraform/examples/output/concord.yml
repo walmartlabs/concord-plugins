@@ -7,6 +7,15 @@ flows:
     - task: terraform
       in:
         action: apply
+        saveOutput: true # run `terraform output` after apply and save the output
         extraVars:
           aws_access_key: "AWS access key" # replace with the real values
           aws_secret_key: "AWS secret key" # or use Concord Secrets, `decryptString` etc
+
+    # `terraform output` can be executed as a separate action as well
+    # - task: terraform
+    #   in:
+    #     action: output
+
+  - log: "Output: ${result.data}"
+  - log: "Public IP: ${result.data.public_instance_ip.value}"

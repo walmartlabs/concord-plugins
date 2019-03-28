@@ -22,14 +22,13 @@ package com.walmartlabs.concord.plugins.terraform;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.walmartlabs.concord.plugins.terraform.actions.ApplyAction;
-import com.walmartlabs.concord.plugins.terraform.actions.ApplyResult;
-import com.walmartlabs.concord.plugins.terraform.actions.PlanAction;
-import com.walmartlabs.concord.plugins.terraform.actions.PlanResult;
+import com.walmartlabs.concord.plugins.terraform.actions.*;
 import com.walmartlabs.concord.plugins.terraform.backend.Backend;
 import com.walmartlabs.concord.plugins.terraform.backend.ConcordBackend;
 import com.walmartlabs.concord.plugins.terraform.backend.DummyBackend;
 import com.walmartlabs.concord.sdk.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -44,6 +43,8 @@ import static com.walmartlabs.concord.plugins.terraform.Utils.getPath;
 
 @Named("terraform")
 public class TerraformTask implements Task {
+
+    private static final Logger log = LoggerFactory.getLogger(TerraformTask.class);
 
     private static final String DEFAULT_BACKEND = "concord";
 
@@ -87,6 +88,8 @@ public class TerraformTask implements Task {
             terraform.exec(workDir, "version", "version");
         }
 
+        log.info("Starting {}...", action);
+
         try {
             backend.lock(ctx);
 
@@ -101,6 +104,12 @@ public class TerraformTask implements Task {
                     ApplyAction a = new ApplyAction(ctx, cfg, env);
                     ApplyResult result = a.exec(terraform, backend);
                     ctx.setVariable(Constants.RESULT_KEY, objectMapper.convertValue(result, Map.class));
+                    break;
+                }
+                case OUTPUT: {
+                    OutputAction a = new OutputAction(ctx, cfg, env);
+                    OutputResult result = a.exec(terraform, backend);
+                    ctx.setVariable(Constants.RESULT_KEY, result);
                     break;
                 }
                 default:
@@ -176,6 +185,7 @@ public class TerraformTask implements Task {
 
     public enum Action {
         APPLY,
-        PLAN
+        PLAN,
+        OUTPUT
     }
 }

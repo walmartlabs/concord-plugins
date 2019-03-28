@@ -30,17 +30,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class ApplyCommand {
+public class OutputCommand {
 
-    private static final Logger log = LoggerFactory.getLogger(ApplyCommand.class);
+    private static final Logger log = LoggerFactory.getLogger(OutputCommand.class);
 
     private final boolean debug;
     private final Path pwd;
-    private final Path dirOrPlan;
-    private final Path varFile;
+    private final String module;
     private final Map<String, String> env;
 
-    public ApplyCommand(boolean debug, Path pwd, Path dirOrPlan, Path varFile, Map<String, String> env) {
+    public OutputCommand(boolean debug, Path pwd, String module, Map<String, String> env) {
         this.debug = debug;
 
         if (!pwd.isAbsolute()) {
@@ -48,31 +47,22 @@ public class ApplyCommand {
         }
         this.pwd = pwd;
 
-        if (!dirOrPlan.isAbsolute()) {
-            throw new IllegalArgumentException("'dirOrPlan' must be an absolute path, got: " + dirOrPlan);
-        }
-        this.dirOrPlan = dirOrPlan;
-
-
-        this.varFile = varFile;
+        this.module = module;
         this.env = env;
     }
 
     public Result exec(Terraform terraform) throws Exception {
         List<String> args = new ArrayList<>();
-        args.add("apply");
-        args.add("-input=false");
-        args.add("-auto-approve");
+        args.add("output");
+        args.add("-json");
 
-        if (varFile != null) {
+        if (module != null) {
             if (debug) {
-                log.info("exec -> using var file: {}", varFile);
+                log.info("exec -> using module: {}", module);
             }
-            args.add("-var-file=" + varFile.toAbsolutePath().toString());
+            args.add("-module=" + module);
         }
 
-        args.add(dirOrPlan.toString());
-
-        return terraform.exec(pwd, "\u001b[35mapply\u001b[0m", false, env, args);
+        return terraform.exec(pwd, "\u001b[33moutput\u001b[0m", false, env, args);
     }
 }

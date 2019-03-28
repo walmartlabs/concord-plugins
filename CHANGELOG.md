@@ -1,5 +1,13 @@
 # Change log
 
+## [Unreleased]
+
+### Added
+
+- terraform: support for `terraform output`.
+
+
+
 ## [1.3.0] - 2019-03-11
 
 ### Added

@@ -59,10 +59,10 @@ public class Terraform {
     }
 
     public Result exec(Path pwd, String logPrefix, String... args) throws Exception {
-        return exec(pwd, logPrefix, Collections.emptyMap(), Arrays.asList(args));
+        return exec(pwd, logPrefix, false, Collections.emptyMap(), Arrays.asList(args));
     }
 
-    public Result exec(Path pwd, String logPrefix, Map<String, String> env, List<String> args) throws Exception {
+    public Result exec(Path pwd, String logPrefix, boolean silent, Map<String, String> env, List<String> args) throws Exception {
         List<String> cmd = new ArrayList<>();
         cmd.add(binary.toAbsolutePath().toString());
         cmd.addAll(args);
@@ -85,8 +85,8 @@ public class Terraform {
 
         Process p = pb.start();
 
-        Future<String> stderr = executor.submit(new StreamReader(logPrefix, p.getErrorStream()));
-        Future<String> stdout = executor.submit(new StreamReader(logPrefix, p.getInputStream()));
+        Future<String> stderr = executor.submit(new StreamReader(logPrefix, false, p.getErrorStream()));
+        Future<String> stdout = executor.submit(new StreamReader(logPrefix, silent, p.getInputStream()));
 
         int code = p.waitFor();
         return new Result(code, stdout.get(), stderr.get());
@@ -135,10 +135,12 @@ public class Terraform {
     private static class StreamReader implements Callable<String> {
 
         private final String logPrefix;
+        private final boolean silent;
         private final InputStream in;
 
-        private StreamReader(String logPrefix, InputStream in) {
+        private StreamReader(String logPrefix, boolean silent, InputStream in) {
             this.logPrefix = logPrefix;
+            this.silent = silent;
             this.in = in;
         }
 
@@ -150,7 +152,9 @@ public class Terraform {
 
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    log(logPrefix, line);
+                    if (!silent) {
+                        log(logPrefix, line);
+                    }
 
                     sb.append(removeAnsiColors(line))
                             .append(System.lineSeparator());

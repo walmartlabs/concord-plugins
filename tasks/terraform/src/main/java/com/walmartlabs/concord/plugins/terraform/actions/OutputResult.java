@@ -27,34 +27,28 @@ import java.io.Serializable;
 import java.util.Map;
 
 @JsonInclude(Include.NON_EMPTY)
-public class ApplyResult implements Serializable {
+public class OutputResult implements Serializable {
 
-    public static ApplyResult ok(String output, Map<String, Object> data) {
-        return new ApplyResult(true, output, null, data);
+    public static OutputResult ok(Map<String, Object> data) {
+        return new OutputResult(true, null, data);
     }
 
-    public static ApplyResult error(String error) {
-        return new ApplyResult(false, null, error, null);
+    public static OutputResult error(String error) {
+        return new OutputResult(false, error, null);
     }
 
     private final boolean ok;
-    private final String output;
     private final String error;
     private final Map<String, Object> data;
 
-    public ApplyResult(boolean ok, String output, String error, Map<String, Object> data) {
+    public OutputResult(boolean ok, String error, Map<String, Object> data) {
         this.ok = ok;
-        this.output = output;
         this.error = error;
         this.data = data;
     }
 
     public boolean isOk() {
         return ok;
-    }
-
-    public String getOutput() {
-        return output;
     }
 
     public String getError() {

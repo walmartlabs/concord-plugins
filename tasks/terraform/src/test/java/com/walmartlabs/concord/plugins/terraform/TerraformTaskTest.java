@@ -117,6 +117,19 @@ public class TerraformTaskTest {
 
         ctx = new MockContext(args);
         t.execute(ctx);
+
+        // ---
+
+        System.out.println("===================================================================================");
+
+        args = new HashMap<>();
+        args.put(com.walmartlabs.concord.sdk.Constants.Context.WORK_DIR_KEY, workDir.toAbsolutePath().toString());
+        args.put(Constants.ACTION_KEY, TerraformTask.Action.OUTPUT.name());
+        args.put(Constants.DEBUG_KEY, true);
+        args.put(Constants.STATE_ID_KEY, "testState");
+
+        ctx = new MockContext(args);
+        t.execute(ctx);
     }
 
     private static ObjectStorage createObjectStorage(WireMockRule wireMockRule) throws Exception {

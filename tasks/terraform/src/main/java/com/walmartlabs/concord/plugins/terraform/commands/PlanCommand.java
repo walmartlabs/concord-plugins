@@ -81,6 +81,6 @@ public class PlanCommand {
 
         args.add(dirOrPlan.toString());
 
-        return terraform.exec(pwd, "\u001b[32mplan\u001b[0m", env, args);
+        return terraform.exec(pwd, "\u001b[32mplan\u001b[0m", false, env, args);
     }
 }

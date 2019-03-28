@@ -40,6 +40,7 @@ public class PlanAction extends Action {
 
     private final Context ctx;
     private final boolean debug;
+    private final boolean verbose;
     private final Path workDir;
     private final Path dirOrPlan;
     private final Map<String, Object> extraVars;
@@ -53,6 +54,7 @@ public class PlanAction extends Action {
         this.env = env;
 
         this.debug = MapUtils.get(cfg, Constants.DEBUG_KEY, false, Boolean.class);
+        this.verbose = MapUtils.get(cfg, Constants.VERBOSE_KEY, false, Boolean.class);
 
         this.workDir = getPath(cfg, com.walmartlabs.concord.sdk.Constants.Context.WORK_DIR_KEY, null);
         if (!workDir.isAbsolute()) {
@@ -68,7 +70,7 @@ public class PlanAction extends Action {
 
     public PlanResult exec(Terraform terraform, Backend backend) throws Exception {
         try {
-            init(ctx, workDir, dirOrPlan, env, terraform, backend);
+            init(ctx, workDir, dirOrPlan, !verbose, env, terraform, backend);
 
             Path varsFile = createVarsFile(workDir, objectMapper, extraVars);
             Path outFile = getOutFile(workDir);

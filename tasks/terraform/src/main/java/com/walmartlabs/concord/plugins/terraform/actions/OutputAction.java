@@ -24,34 +24,29 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.walmartlabs.concord.plugins.terraform.Constants;
 import com.walmartlabs.concord.plugins.terraform.Terraform;
 import com.walmartlabs.concord.plugins.terraform.backend.Backend;
-import com.walmartlabs.concord.plugins.terraform.commands.ApplyCommand;
+import com.walmartlabs.concord.plugins.terraform.commands.OutputCommand;
 import com.walmartlabs.concord.sdk.Context;
 import com.walmartlabs.concord.sdk.MapUtils;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 
 import static com.walmartlabs.concord.plugins.terraform.Utils.getPath;
 
-public class ApplyAction extends Action {
+public class OutputAction extends Action {
 
     private final Context ctx;
-    private final Map<String, Object> cfg;
     private final boolean debug;
     private final boolean verbose;
     private final Path workDir;
-    private final Path dirOrPlan;
-    private final Map<String, Object> extraVars;
+    private final Path dir;
+    private final String module;
     private final Map<String, String> env;
     private final boolean ignoreErrors;
-    private final boolean saveOutput;
     private final ObjectMapper objectMapper;
 
-    @SuppressWarnings("unchecked")
-    public ApplyAction(Context ctx, Map<String, Object> cfg, Map<String, String> env) {
+    public OutputAction(Context ctx, Map<String, Object> cfg, Map<String, String> env) {
         this.ctx = ctx;
-        this.cfg = cfg;
         this.env = env;
 
         this.debug = MapUtils.get(cfg, Constants.DEBUG_KEY, false, Boolean.class);
@@ -62,48 +57,32 @@ public class ApplyAction extends Action {
             throw new IllegalArgumentException("'workDir' must be an absolute path, got: " + workDir);
         }
 
-        this.dirOrPlan = getPath(cfg, Constants.DIR_OR_PLAN_KEY, workDir);
-
-        this.extraVars = MapUtils.get(cfg, Constants.EXTRA_VARS_KEY, null, Map.class);
+        this.dir = getPath(cfg, Constants.DIR_KEY, workDir);
+        this.module = MapUtils.getString(cfg, Constants.MODULE_KEY);
         this.ignoreErrors = MapUtils.get(cfg, Constants.IGNORE_ERRORS_KEY, false, Boolean.class);
-        this.saveOutput = MapUtils.get(cfg, Constants.SAVE_OUTPUT_KEY, false, Boolean.class);
+
         this.objectMapper = new ObjectMapper();
     }
 
-    public ApplyResult exec(Terraform terraform, Backend backend) throws Exception {
+    @SuppressWarnings("unchecked")
+    public OutputResult exec(Terraform terraform, Backend backend) throws Exception {
         try {
-            init(ctx, workDir, dirOrPlan, !verbose, env, terraform, backend);
+            init(ctx, workDir, dir, !verbose, env, terraform, backend);
 
-            Path dirOrPlanAbsolute = workDir.resolve(dirOrPlan);
-
-            Path varsFile = null;
-            if (Files.isDirectory(dirOrPlanAbsolute)) {
-                // running without a previously created plan file
-                varsFile = createVarsFile(workDir, objectMapper, extraVars);
-            }
-
-            Terraform.Result r = new ApplyCommand(debug, workDir, dirOrPlanAbsolute, varsFile, env).exec(terraform);
+            Path p = dir != null ? workDir.resolve(dir) : workDir;
+            Terraform.Result r = new OutputCommand(debug, p, module, env).exec(terraform);
             if (r.getCode() != 0) {
                 throw new RuntimeException("Process finished with code " + r.getCode() + ": " + r.getStderr());
             }
 
-            Map<String, Object> data = null;
-            if (saveOutput) {
-                OutputResult o = new OutputAction(ctx, cfg, env).exec(terraform, backend);
-                if (!o.isOk()) {
-                    return ApplyResult.error(o.getError());
-                }
-
-                data = o.getData();
-            }
-
-            return ApplyResult.ok(r.getStdout(), data);
+            Map<String, Object> data = objectMapper.readValue(r.getStdout(), Map.class);
+            return OutputResult.ok(data);
         } catch (Exception e) {
             if (!ignoreErrors) {
                 throw e;
             }
 
-            return ApplyResult.error(e.getMessage());
+            return OutputResult.error(e.getMessage());
         }
     }
 }
