@@ -4,6 +4,7 @@
 
 ### Added
 
+- new plugin: `tasks/jenkins`;
 - terraform: support for `terraform output`.
 
 

@@ -39,11 +39,12 @@
         <module>tasks/jira</module>
         <module>tasks/ldap</module>
         <module>tasks/terraform</module>
+        <module>tasks/jenkins</module>
     </modules>
 
     <properties>
         <scm.connection>scm:git:https://github.com/walmartlabs/concord-plugins.git</scm.connection>
-        <concord.version>1.9.0</concord.version>
+        <concord.version>1.12.1-SNAPSHOT</concord.version>
     </properties>
 
     <dependencyManagement>
