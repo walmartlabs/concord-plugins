@@ -1,0 +1,34 @@
+flows:
+  default:
+    - task: gremlin
+      in:
+        action: cpu #Consumes CPU resources
+        apiKey: myApiKey #Gremlin Api Key
+        cores: 1 #The number of CPU cores to hog
+        length: 15 #The length of the attack (seconds)
+        targetType: Exact
+        targetList: ["client1", "client2"]
+    - log: "Gremling Attack Guid: ${attackGuid}" #The output (gremlin attack guid) is stored ${attackGuid}
+    - call: sendSlackComm #Send Gremlin Report Url to Slack channel.
+      in:
+        attackType: "CPU"
+
+  sendSlackComm:
+    - task: slack
+      in:
+        channelId: ${channelName}
+        text: "*Gremlin Attack Report - ${attackType}*"
+        iconEmoji: ":gremlin:"
+        attachments:
+          - fallback: "Gremlin Attack Report Url ${gremlinAppUrl}/${attackGuid}" The output is stored in a result
+            actions:
+              - type: "button"
+                text: "Click Here To Access Report"
+                url: "${gremlinAppUrl}/${attackGuid}"
+
+configuration:
+  dependencies:
+    - "mvn://com.walmartlabs.concord.plugins:gremlin-task:1.3.1-SNAPSHOT"
+  arguments:
+    channelName: "myChannel"
+    gremlinAppUrl: "https://app.gremlin.com/attacks"
