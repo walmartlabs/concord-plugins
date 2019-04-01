@@ -85,8 +85,15 @@ public class GremlinClient {
                 .url(url)
                 .get()
                 .build();
-
         return call(request);
+    }
+
+    public void delete() throws IOException {
+        Request request = getRequestBuilder(ctx)
+                .url(url)
+                .delete()
+                .build();
+        deleteCall(request);
     }
 
     private static Request.Builder requestBuilder(Context ctx) {
@@ -122,6 +129,21 @@ public class GremlinClient {
         }
     }
 
+    private void deleteCall(Request request) throws IOException {
+        //setup client params
+        setupClientParams(ctx);
+
+        Response response = getClientResponse(request);
+        int statusCode = response.code();
+        try (ResponseBody responseBody = response.body()) {
+            String results = null;
+            if (responseBody != null) {
+                results = responseBody.string();
+            }
+            assertResponseCode(statusCode, results, successCode);
+        }
+    }
+
     private static void assertResponseCode(int code, String result, int successCode) {
         if (code == successCode) {
             return;
@@ -134,7 +156,7 @@ public class GremlinClient {
         } else if (code == 403) {
             throw new RuntimeException("User does not have permission to perform request. Here are the full error details: " + result);
         } else if (code == 404) {
-            throw new RuntimeException("Issue does not exist. Here are the full error details: " + result);
+            throw new RuntimeException("Attack does not exist. Here are the full error details: " + result);
         } else if (code == 500) {
             throw new RuntimeException("Internal Server Error. Here are the full error details" + result);
         } else {
