@@ -55,8 +55,13 @@ public class GremlinTask implements Task {
         String appUrl = cfg.get("appUrl").toString();
         Action action = getAction(ctx);
 
-        log.info("Using Gremlin API URL {}", apiUrl);
-        log.info("Starting Gremlin {} Attack", action);
+        if (action.toString().equals("HALT")) {
+            log.info("Starting '{}' action...", action);
+        } else {
+            log.info("Starting '{}' attack...", action);
+        }
+
+        log.info("Using Gremlin API URL: '{}'...", apiUrl);
 
         switch (action) {
             case CPU: {
@@ -114,6 +119,12 @@ public class GremlinTask implements Task {
                 c.packetLoss(ctx, apiUrl, appUrl);
                 break;
             }
+            case HALT: {
+                String attackGuid = assertString(ctx, ATTACK_GUID);
+                Utils d = new Utils();
+                d.halt(ctx, apiUrl, attackGuid);
+                break;
+            }
             default:
                 throw new IllegalArgumentException("Unsupported action type: " + action);
         }
@@ -148,6 +159,7 @@ public class GremlinTask implements Task {
         BLACKHOLE,
         DNS,
         LATENCY,
-        PACKETLOSS
+        PACKETLOSS,
+        HALT
     }
 }

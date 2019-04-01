@@ -97,11 +97,23 @@ public class Utils {
             attackGuid = results.get("results").toString();
             attackGuid = attackGuid.replaceAll("\"", "");
             ctx.setVariable(ATTACK_GUID, attackGuid);
-            log.info("Gremlin Attack Guid# {}", ctx.getVariable(ATTACK_GUID));
+            log.info("Gremlin Attack Guid: '{}'", ctx.getVariable(ATTACK_GUID));
         } catch (Exception e) {
             throw new RuntimeException("Error occurred while creating attack", e);
         }
 
         return attackGuid;
+    }
+
+    public void halt(Context ctx, String apiUrl, String attackGuid) {
+        try {
+            new GremlinClient(ctx)
+                    .url(apiUrl + "attacks/" + attackGuid)
+                    .successCode(202)
+                    .delete();
+            log.info("Gremlin Attack with Guid# '{}' is halted....", ctx.getVariable(ATTACK_GUID));
+        } catch (Exception e) {
+            throw new RuntimeException("Error occurred while halting attack", e);
+        }
     }
 }
