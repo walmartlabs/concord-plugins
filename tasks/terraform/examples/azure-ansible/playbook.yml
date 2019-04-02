@@ -1,0 +1,8 @@
+---
+- hosts: myHosts
+  tasks:
+    - name: Install a package
+      become: true
+      apt:
+        name: vim
+        state: present
