@@ -1,0 +1,36 @@
+configuration:
+  dependencies:
+    - "mvn://com.walmartlabs.concord.plugins:terraform-task:1.5.0"
+    - "mvn://com.walmartlabs.concord.plugins.basic:ansible-tasks:1.14.0"
+
+flows:
+  default:
+    # apply the changes
+    - task: terraform
+      in:
+        action: apply
+        saveOutput: true
+        extraVars:
+          subscription_id: "azure subsciption id" # replace with the real values
+          tenant_id: "azure tenant id" # or use Concord Secrets, `decryptString` etc
+          client_id: "azure client id" # replace with the real values
+          client_secret: "azure client secret" # or use Concord Secrets, `decryptString` etc
+          ssh_public_key: "publis ssh key" # load it from a file or store as a Concord Secret
+
+    - log: "Public IP: ${result.data.public_ip.value}"
+
+    # deploy using Ansible
+    - task: ansible
+      in:
+        playbook: playbook.yml
+        user: "azureuser" # same as in example.tf
+        privateKey:
+          org: "myOrg"
+          secretName: "mySecret"
+        inventory:
+          myHosts:
+            hosts:
+              - "${result.data.public_ip.value}"
+        config:
+          ssh_connection:
+            retries: 10 # wait for SSH to come up
