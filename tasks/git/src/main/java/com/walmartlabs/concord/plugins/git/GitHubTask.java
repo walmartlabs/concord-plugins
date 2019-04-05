@@ -30,6 +30,7 @@ import org.eclipse.egit.github.core.service.CommitService;
 import org.eclipse.egit.github.core.service.DataService;
 import org.eclipse.egit.github.core.service.IssueService;
 import org.eclipse.egit.github.core.service.PullRequestService;
+import org.eclipse.egit.github.core.service.RepositoryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,6 +69,7 @@ public class GitHubTask implements Task {
     private static final String GITHUB_MERGEHEAD = "head";
     private static final String GITHUB_MERGEBASE = "base";
     private static final String GITHUB_MERGECOMMITMSG = "commitMessage";
+    private static final String GITHUB_FORKTARGETORG = "targetOrg";
 
     private static final String STATUS_CHECK_STATE = "state";
     private static final String STATUS_CHECK_TARGET_URL = "targetUrl";
@@ -116,6 +118,10 @@ public class GitHubTask implements Task {
             }
             case ADDSTATUS: {
                 addStatus(ctx, gitHubUri);
+                break;
+            }
+            case FORKREPO: {
+                forkRepo(ctx, gitHubUri);
                 break;
             }
             default:
@@ -371,6 +377,37 @@ public class GitHubTask implements Task {
         }
     }
 
+    private static void forkRepo(Context ctx, String gitHubUri) throws Exception {
+        String gitHubAccessToken = assertString(ctx, GITHUB_ACCESSTOKEN);
+        String gitHubOrgName = assertString(ctx, GITHUB_ORGNAME);
+        String gitHubRepoName = assertString(ctx, GITHUB_REPONAME);
+        String targetOrg = getString(ctx, GITHUB_FORKTARGETORG);
+
+        GitHubClient client = GitHubClient.createClient(gitHubUri);
+
+        try {
+            //Connect to GitHub
+            client.setOAuth2Token(gitHubAccessToken);
+            IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
+
+            //Fork a Git Repo
+            RepositoryService repoService = new RepositoryService(client);
+            if (targetOrg != null && !targetOrg.isEmpty()) {
+                log.info("Forking '{}/{}' into '{}' org...", gitHubOrgName, gitHubRepoName, targetOrg);
+                repoService.forkRepository(repo, targetOrg);
+                log.info("Fork action completed");
+            }
+            else {
+                log.info("Forking '{}/{}' into your personal repo...", gitHubOrgName, gitHubRepoName);
+                repoService.forkRepository(repo);
+                log.info("Fork action completed");
+            }
+        }catch (Exception e) {
+            throw new IllegalArgumentException("Error occured during fork: " + e.getMessage());
+        }
+
+    }
+
     private static Action getAction(Context ctx) {
         Object v = ctx.getVariable(ACTION_KEY);
         if (v instanceof String) {
@@ -405,6 +442,7 @@ public class GitHubTask implements Task {
         MERGE,
         CREATETAG,
         GETCOMMIT,
-        ADDSTATUS
+        ADDSTATUS,
+        FORKREPO
     }
 }
