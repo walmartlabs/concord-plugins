@@ -36,10 +36,7 @@ import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
 import javax.naming.ldap.InitialLdapContext;
 import javax.naming.ldap.LdapContext;
-import java.util.HashMap;
-import java.util.Hashtable;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 import static com.walmartlabs.concord.sdk.ContextUtils.assertString;
 
@@ -61,13 +58,11 @@ public class LdapTask implements Task {
     private static final String LDAP_USER = "user";
     private static final String LDAP_GROUP = "group";
     private static final String LDAP_SECURITY_ENABLED = "securityEnabled";
-    private static final String LDAP_SEARCH_FILTER = "searchFilter";
     private static final String LDAP_DN = "dn";
 
     // out params
     private static final String LDAP_OUT = "out";
     private static final String LDAP_DEFAULT_OUT = "ldapResult";
-
 
     @InjectVariable("ldapParams")
     private Map<String, Object> defaults;
@@ -102,7 +97,7 @@ public class LdapTask implements Task {
         }
     }
 
-    public SearchResult searchByDn(Context ctx, String dn) {
+    private SearchResult searchByDn(Context ctx, String dn) {
         if (dn == null) {
             dn = assertString(ctx, LDAP_DN);
         }
@@ -118,7 +113,7 @@ public class LdapTask implements Task {
             NamingEnumeration<SearchResult> results = search(ctx, searchFilter);
 
             if (results.hasMoreElements()) {
-                result = (SearchResult) results.nextElement();
+                result = results.nextElement();
                 success = true;
             }
 
@@ -129,7 +124,7 @@ public class LdapTask implements Task {
         }
     }
 
-    public SearchResult getUser(Context ctx) {
+    private SearchResult getUser(Context ctx) {
         String user = assertString(ctx, LDAP_USER);
 
         boolean success = false;
@@ -138,18 +133,18 @@ public class LdapTask implements Task {
         try {
             // create custom filter for user
             String searchFilter = "(|"
-                + "(userPrincipalName=" + user + ")"
-                + "(sAMAccountName=" + user + ")" 
-                + "(mailNickname=" + user + ")"
-                + "(proxyAddresses=smtp:" + user + ")"
-                + "(mail=" + user + ")"
-                + ")";
-            
+                    + "(userPrincipalName=" + user + ")"
+                    + "(sAMAccountName=" + user + ")"
+                    + "(mailNickname=" + user + ")"
+                    + "(proxyAddresses=smtp:" + user + ")"
+                    + "(mail=" + user + ")"
+                    + ")";
+
             // use private method search
             NamingEnumeration<SearchResult> results = search(ctx, searchFilter);
 
             if (results.hasMoreElements()) {
-                result = (SearchResult) results.nextElement();
+                result = results.nextElement();
                 success = true;
             }
 
@@ -160,7 +155,7 @@ public class LdapTask implements Task {
         }
     }
 
-    public SearchResult getGroup(Context ctx) {
+    private SearchResult getGroup(Context ctx) {
         String group = assertString(ctx, LDAP_GROUP);
         boolean securityEnabled = ContextUtils.assertVariable(ctx, LDAP_SECURITY_ENABLED, Boolean.class);
 
@@ -170,13 +165,14 @@ public class LdapTask implements Task {
         try {
             // create custom filter for group
             String searchFilter = "(name=" + group + ")";
-            
+
             // use private method search
             NamingEnumeration<SearchResult> results = search(ctx, searchFilter);
 
             while (results.hasMoreElements()) {
                 result = results.nextElement();
                 String dn = getAttrValue(result, "distinguishedName");
+
                 if (dn != null && dn.toLowerCase().contains("ou=security") == securityEnabled) {
                     success = true;
                     break;
@@ -190,10 +186,10 @@ public class LdapTask implements Task {
         }
     }
 
-    public boolean isMemberOf(Context ctx) {
+    private void isMemberOf(Context ctx) {
         boolean success = false;
         boolean result = false;
-        
+
         try {
             SearchResult user = getUser(ctx);
             SearchResult group = getGroup(ctx);
@@ -201,13 +197,12 @@ public class LdapTask implements Task {
             if (user != null && group != null) {
                 String userDn = getAttrValue(user, "distinguishedName");
                 String groupDn = getAttrValue(group, "distinguishedName");
-    
+
                 result = isMemberOf(ctx, userDn, groupDn);
                 success = true;
             }
 
             setOutVariable(ctx, success, result);
-            return result;
         } catch (Exception e) {
             throw new IllegalArgumentException("Error occurred while searching " + e);
         }
@@ -304,6 +299,7 @@ public class LdapTask implements Task {
 
     /**
      * Converts a {@link SearchResult} object to a Map
+     *
      * @param r object to convert to a Map
      * @return Map representation of the SearchResult object
      */
@@ -311,14 +307,24 @@ public class LdapTask implements Task {
         if (r == null) {
             return null;
         }
+
         Map<String, Object> rMap = new HashMap<>(r.getAttributes().size());
         try {
             Attributes attrs = r.getAttributes();
             NamingEnumeration<String> e = attrs.getIDs();
-            Map<String, String> attrsMap = new HashMap<>(attrs.size());
+
+            Map<String, Object> attrsMap = new HashMap<>(attrs.size());
             while (e.hasMore()) {
                 String key = e.next();
-                attrsMap.put(key, attrs.get(key).get().toString());
+                Attribute attribute = attrs.get(key);
+
+                Set<String> values = getAllAttributesValues(attribute);
+                if (values.size() == 1) {
+                    attrsMap.put(key, values.iterator().next());
+                } else {
+                    attrsMap.put(key, values);
+                }
+
             }
             rMap.put("attributes", attrsMap);
         } catch (Exception ex) {
@@ -328,9 +334,21 @@ public class LdapTask implements Task {
         return rMap;
     }
 
+    private static Set<String> getAllAttributesValues(Attribute attribute) throws NamingException {
+        Set<String> values = new HashSet<>();
+
+        NamingEnumeration ne = attribute.getAll();
+        while (ne.hasMore()) {
+            Object o = ne.next();
+            values.add(o.toString());
+        }
+
+        return values;
+    }
+
     private static void setOutVariable(Context ctx, Boolean success, Object result) {
-        String key = getString(null, ctx, LDAP_OUT, LDAP_DEFAULT_OUT);       
-        
+        String key = getString(null, ctx, LDAP_OUT, LDAP_DEFAULT_OUT);
+
         Map<String, Object> response = new HashMap<>();
         response.put("success", success);
         response.put("result", result);

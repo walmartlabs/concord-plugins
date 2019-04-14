@@ -1,5 +1,14 @@
 # Change log
 
+## [Unreleased]
+
+### Changed
+
+- ldap: support for multivalue LDAP attributes when fetching user
+details from AD/LDAP.
+
+
+
 ## [1.7.0] - 2019-04-08
 
 ### Added
