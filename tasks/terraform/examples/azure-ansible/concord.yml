@@ -13,8 +13,8 @@ flows:
         extraVars:
           subscription_id: "azure subsciption id" # replace with the real values
           tenant_id: "azure tenant id" # or use Concord Secrets, `decryptString` etc
-          client_id: "azure client id" # replace with the real values
-          client_secret: "azure client secret" # or use Concord Secrets, `decryptString` etc
+          client_id: "azure client id"
+          client_secret: "azure client secret"
           ssh_public_key: "publis ssh key" # load it from a file or store as a Concord Secret
 
     - log: "Public IP: ${result.data.public_ip.value}"
