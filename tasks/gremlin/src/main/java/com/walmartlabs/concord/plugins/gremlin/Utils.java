@@ -20,10 +20,6 @@ package com.walmartlabs.concord.plugins.gremlin;
  * =====
  */
 
-/**
- * Created by ppendha on 3/23/19.
- */
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.walmartlabs.concord.common.ConfigurationUtils;
@@ -38,6 +34,9 @@ import java.util.Map;
 import static com.walmartlabs.concord.sdk.ContextUtils.assertList;
 import static com.walmartlabs.concord.sdk.ContextUtils.assertMap;
 
+/**
+ * Created by ppendha on 3/23/19.
+ */
 public class Utils {
 
     private static final Logger log = LoggerFactory.getLogger(GremlinTask.class);

@@ -4,6 +4,7 @@
 
 ### Changed
 
+- gremlin: add the `X-Gremlin-Agent` header to requests;
 - ldap: support for multivalue LDAP attributes when fetching user
 details from AD/LDAP.
 
