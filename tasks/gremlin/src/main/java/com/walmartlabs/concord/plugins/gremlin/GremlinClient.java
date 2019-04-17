@@ -100,12 +100,14 @@ public class GremlinClient {
         String apiKey = assertString(ctx, GREMLIN_API_KEY);
         return new Request.Builder()
                 .addHeader("Content-Type", "application/json")
+                .addHeader("X-Gremlin-Agent", "concord/" + Version.getVersion())
                 .addHeader("Authorization", "Key " + apiKey);
     }
 
     private static Request.Builder getRequestBuilder(Context ctx) {
         String apiKey = assertString(ctx, GREMLIN_API_KEY);
         return new Request.Builder()
+                .addHeader("X-Gremlin-Agent", "concord/" + Version.getVersion())
                 .addHeader("Authorization", "Key " + apiKey);
     }
 
@@ -176,8 +178,7 @@ public class GremlinClient {
 
 
     private static void setupClientParams(Context ctx) {
-        GremlinTask config = new GremlinTask();
-        Map<String, Object> cfg = config.createCfg(ctx);
+        Map<String, Object> cfg = GremlinTask.createCfg(ctx);
 
         long connectTimeout = Long.parseLong(cfg.get("connectTimeout").toString());
         long readTimeout = Long.parseLong(cfg.get("readTimeout").toString());

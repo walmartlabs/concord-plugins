@@ -12,6 +12,18 @@
     <artifactId>gremlin-task</artifactId>
     <packaging>takari-jar</packaging>
 
+    <build>
+        <resources>
+            <resource>
+                <filtering>true</filtering>
+                <directory>${project.basedir}/src/main/resources</directory>
+                <includes>
+                    <include>**/*</include>
+                </includes>
+            </resource>
+        </resources>
+    </build>
+
     <dependencies>
         <dependency>
             <groupId>com.walmartlabs.concord</groupId>
