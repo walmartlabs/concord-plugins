@@ -1,6 +1,6 @@
 # Change log
 
-## [Unreleased]
+## [1.8.0] - 2019-04-18
 
 ### Added
 
