@@ -26,17 +26,14 @@ import com.walmartlabs.concord.sdk.InjectVariable;
 import com.walmartlabs.concord.sdk.Task;
 import org.eclipse.egit.github.core.*;
 import org.eclipse.egit.github.core.client.GitHubClient;
-import org.eclipse.egit.github.core.service.CommitService;
-import org.eclipse.egit.github.core.service.DataService;
-import org.eclipse.egit.github.core.service.IssueService;
-import org.eclipse.egit.github.core.service.PullRequestService;
-import org.eclipse.egit.github.core.service.RepositoryService;
+import org.eclipse.egit.github.core.service.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Named;
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.walmartlabs.concord.plugins.git.Utils.getUrl;
 import static com.walmartlabs.concord.sdk.ContextUtils.*;
@@ -76,12 +73,11 @@ public class GitHubTask implements Task {
     private static final String STATUS_CHECK_DESCRIPTION = "description";
     private static final String STATUS_CHECK_CONTEXT = "context";
 
-
     @InjectVariable("githubParams")
     private Map<String, Object> defaults;
 
     @Override
-    public void execute(Context ctx) throws Exception {
+    public void execute(Context ctx) {
         Action action = getAction(ctx);
         String gitHubUri = getUrl(defaults, ctx, API_URL_KEY);
         log.info("Starting '{}' action...", action);
@@ -124,12 +120,20 @@ public class GitHubTask implements Task {
                 forkRepo(ctx, gitHubUri);
                 break;
             }
+            case GETBRANCHLIST: {
+                getBranchList(ctx, gitHubUri);
+                break;
+            }
+            case GETTAGLIST: {
+                getTagList(ctx, gitHubUri);
+                break;
+            }
             default:
                 throw new IllegalArgumentException("Unsupported action type: " + action);
         }
     }
 
-    private static void createPR(Context ctx, String gitHubUri) throws Exception {
+    private static void createPR(Context ctx, String gitHubUri) {
         String gitHubAccessToken = assertString(ctx, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(ctx, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(ctx, GITHUB_REPONAME);
@@ -159,11 +163,11 @@ public class GitHubTask implements Task {
                 ctx.setVariable("prId", result.getNumber());
             }
         } catch (IOException e) {
-            throw new IllegalArgumentException("Cannot create a pull request: " + e.getMessage());
+            throw new RuntimeException("Cannot create a pull request: " + e.getMessage());
         }
     }
 
-    private static void commentPR(Context ctx, String gitHubUri) throws Exception {
+    private static void commentPR(Context ctx, String gitHubUri) {
         String gitHubAccessToken = assertString(ctx, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(ctx, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(ctx, GITHUB_REPONAME);
@@ -187,7 +191,7 @@ public class GitHubTask implements Task {
         }
     }
 
-    private static void mergePR(Context ctx, String gitHubUri) throws Exception {
+    private static void mergePR(Context ctx, String gitHubUri) {
         String gitHubAccessToken = assertString(ctx, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(ctx, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(ctx, GITHUB_REPONAME);
@@ -203,11 +207,11 @@ public class GitHubTask implements Task {
             prService.merge(repo, gitHubPRID, "GitHub PR Merge");
             log.info("Merged PR# {}", gitHubPRID);
         } catch (IOException e) {
-            throw new IllegalArgumentException("Cannot merge the pull request: " + e.getMessage());
+            throw new RuntimeException("Cannot merge the pull request: " + e.getMessage());
         }
     }
 
-    private static void closePR(Context ctx, String gitHubUri) throws Exception {
+    private static void closePR(Context ctx, String gitHubUri) {
         String gitHubAccessToken = assertString(ctx, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(ctx, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(ctx, GITHUB_REPONAME);
@@ -226,12 +230,12 @@ public class GitHubTask implements Task {
             prService.editPullRequest(repo, pullRequest);
             log.info("Closed PR# {}", gitHubPRID);
         } catch (IOException e) {
-            throw new IllegalArgumentException("Cannot close the pull request: " + e.getMessage());
+            throw new RuntimeException("Cannot close the pull request: " + e.getMessage());
         }
 
     }
 
-    private static void merge(Context ctx, String gitHubUri) throws Exception {
+    private static void merge(Context ctx, String gitHubUri) {
         String gitHubAccessToken = assertString(ctx, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(ctx, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(ctx, GITHUB_REPONAME);
@@ -259,11 +263,11 @@ public class GitHubTask implements Task {
             client.postStream(uri.toString(), params);
             log.info("Merged '{}' with '{}'", head, base);
         } catch (IOException e) {
-            throw new IllegalArgumentException("Cannot merge 'base' and 'head': " + e.getMessage());
+            throw new RuntimeException("Cannot merge 'base' and 'head': " + e.getMessage());
         }
     }
 
-    private static void getCommit(Context ctx, String gitHubUri) throws Exception {
+    private static void getCommit(Context ctx, String gitHubUri) {
         String gitHubAccessToken = assertString(ctx, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(ctx, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(ctx, GITHUB_REPONAME);
@@ -286,7 +290,7 @@ public class GitHubTask implements Task {
         }
     }
 
-    private static void createTag(Context ctx, String gitHubUri) throws Exception {
+    private static void createTag(Context ctx, String gitHubUri) {
         String gitHubAccessToken = assertString(ctx, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(ctx, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(ctx, GITHUB_REPONAME);
@@ -324,7 +328,7 @@ public class GitHubTask implements Task {
             dataService.createTag(repo, tag);
             log.info("Successfully created TAG for the commit #{}", gitHubBranchSHA);
         } catch (IOException e) {
-            throw new IllegalArgumentException("Can't create a tag: " + e.getMessage());
+            throw new RuntimeException("Can't create a tag: " + e.getMessage());
         }
 
         Reference tagRef = new Reference();
@@ -336,7 +340,7 @@ public class GitHubTask implements Task {
             dataService.createReference(repo, tagRef);
             log.info("Successfully Created TAG Reference {}", tagRef.getRef());
         } catch (IOException e) {
-            throw new IllegalArgumentException("Can't create a tag reference: " + e.getMessage());
+            throw new RuntimeException("Can't create a tag reference: " + e.getMessage());
         }
     }
 
@@ -373,11 +377,11 @@ public class GitHubTask implements Task {
 
             log.info("Status check created");
         } catch (Exception e) {
-            throw new IllegalArgumentException("Cannot create a status check request: " + e.getMessage());
+            throw new RuntimeException("Cannot create a status check request: " + e.getMessage());
         }
     }
 
-    private static void forkRepo(Context ctx, String gitHubUri) throws Exception {
+    private static void forkRepo(Context ctx, String gitHubUri) {
         String gitHubAccessToken = assertString(ctx, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(ctx, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(ctx, GITHUB_REPONAME);
@@ -396,16 +400,73 @@ public class GitHubTask implements Task {
                 log.info("Forking '{}/{}' into '{}' org...", gitHubOrgName, gitHubRepoName, targetOrg);
                 repoService.forkRepository(repo, targetOrg);
                 log.info("Fork action completed");
-            }
-            else {
+            } else {
                 log.info("Forking '{}/{}' into your personal repo...", gitHubOrgName, gitHubRepoName);
                 repoService.forkRepository(repo);
                 log.info("Fork action completed");
             }
-        }catch (Exception e) {
-            throw new IllegalArgumentException("Error occured during fork: " + e.getMessage());
+        } catch (Exception e) {
+            throw new RuntimeException("Error occured during fork: " + e.getMessage());
+        }
+    }
+
+    private static void getBranchList(Context ctx, String gitHubUri) {
+        String gitHubAccessToken = assertString(ctx, GITHUB_ACCESSTOKEN);
+        String gitHubOrgName = assertString(ctx, GITHUB_ORGNAME);
+        String gitHubRepoName = assertString(ctx, GITHUB_REPONAME);
+
+        GitHubClient client = GitHubClient.createClient(gitHubUri);
+
+        try {
+            //Connect to GitHub
+            client.setOAuth2Token(gitHubAccessToken);
+            IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
+
+            //Getting branch list
+            RepositoryService repoService = new RepositoryService(client);
+
+            log.info("Getting branch list from '{}/{}'...", gitHubOrgName, gitHubRepoName);
+            List<RepositoryBranch> list = repoService.getBranches(repo);
+            if (list != null && !list.isEmpty()) {
+                List<String> branchList = list.stream().map(RepositoryBranch::getName).collect(Collectors.toList());
+                log.info("List of Branches:  '{}'", branchList);
+                ctx.setVariable("branchList", branchList);
+            }
+            log.info("'getBranchList' action completed");
+
+        } catch (Exception e) {
+            throw new RuntimeException("Error occured while getting branch list: " + e.getMessage());
         }
 
+    }
+
+    private static void getTagList(Context ctx, String gitHubUri) {
+        String gitHubAccessToken = assertString(ctx, GITHUB_ACCESSTOKEN);
+        String gitHubOrgName = assertString(ctx, GITHUB_ORGNAME);
+        String gitHubRepoName = assertString(ctx, GITHUB_REPONAME);
+
+        GitHubClient client = GitHubClient.createClient(gitHubUri);
+
+        try {
+            //Connect to GitHub
+            client.setOAuth2Token(gitHubAccessToken);
+            IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
+
+            //Getting tag list
+            RepositoryService repoService = new RepositoryService(client);
+
+            log.info("Getting tag list from '{}/{}'...", gitHubOrgName, gitHubRepoName);
+            List<RepositoryTag> list = repoService.getTags(repo);
+            if (list != null && !list.isEmpty()) {
+                List<String> tagList = list.stream().map(RepositoryTag::getName).collect(Collectors.toList());
+                log.info("List of Tags: '{}'", tagList);
+                ctx.setVariable("tagList", tagList);
+            }
+            log.info("'getTagList' action completed");
+
+        } catch (Exception e) {
+            throw new RuntimeException("Error occured while getting tag list: " + e.getMessage());
+        }
     }
 
     private static Action getAction(Context ctx) {
@@ -443,6 +504,8 @@ public class GitHubTask implements Task {
         CREATETAG,
         GETCOMMIT,
         ADDSTATUS,
-        FORKREPO
+        FORKREPO,
+        GETBRANCHLIST,
+        GETTAGLIST
     }
 }
