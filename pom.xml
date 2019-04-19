@@ -11,7 +11,7 @@
 
     <groupId>com.walmartlabs.concord.plugins</groupId>
     <artifactId>concord-plugins-parent</artifactId>
-    <version>1.8.0</version>
+    <version>1.8.1-SNAPSHOT</version>
 
     <packaging>pom</packaging>
 
@@ -114,6 +114,6 @@
 
     <scm>
         <developerConnection>${scm.connection}</developerConnection>
-        <tag>1.8.0</tag>
+        <tag>HEAD</tag>
     </scm>
 </project>
