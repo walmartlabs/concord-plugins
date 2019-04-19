@@ -1,5 +1,13 @@
 # Change log
 
+## [Unreleased]
+
+### Added
+
+- git: new GitHub actions `getBranchList`, `getTagList`.
+
+
+
 ## [1.7.1] - 2019-04-17
 
 ### Changed
