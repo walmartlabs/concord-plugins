@@ -51,6 +51,7 @@ public class GitHubTask implements Task {
     private static final String GITHUB_ACCESSTOKEN = "accessToken";
     private static final String GITHUB_ORGNAME = "org";
     private static final String GITHUB_REPONAME = "repo";
+    private static final String GITHUB_BRANCH = "branch";
     private static final String GITHUB_PRTITLE = "prTitle";
     private static final String GITHUB_PRBODY = "prBody";
     private static final String GITHUB_PRCOMMENT = "prComment";
@@ -67,6 +68,7 @@ public class GitHubTask implements Task {
     private static final String GITHUB_MERGEBASE = "base";
     private static final String GITHUB_MERGECOMMITMSG = "commitMessage";
     private static final String GITHUB_FORKTARGETORG = "targetOrg";
+
 
     private static final String STATUS_CHECK_STATE = "state";
     private static final String STATUS_CHECK_TARGET_URL = "targetUrl";
@@ -126,6 +128,10 @@ public class GitHubTask implements Task {
             }
             case GETTAGLIST: {
                 getTagList(ctx, gitHubUri);
+                break;
+            }
+            case GETLATESTSHA: {
+                getLatestSHA(ctx, gitHubUri);
                 break;
             }
             default:
@@ -469,6 +475,37 @@ public class GitHubTask implements Task {
         }
     }
 
+    private static void getLatestSHA(Context ctx, String gitHubUri) {
+        String gitHubAccessToken = assertString(ctx, GITHUB_ACCESSTOKEN);
+        String gitHubOrgName = assertString(ctx, GITHUB_ORGNAME);
+        String gitHubRepoName = assertString(ctx, GITHUB_REPONAME);
+        String gitHubBranchName = getString(ctx, GITHUB_BRANCH, "master");
+
+        GitHubClient client = GitHubClient.createClient(gitHubUri);
+
+        try {
+            //Connect to GitHub
+            client.setOAuth2Token(gitHubAccessToken);
+            IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
+
+            // get SHA of latest commit
+            RepositoryService repoService = new RepositoryService(client);
+            log.info("Getting latest commit SHA for '{}/{}/{}'...", gitHubOrgName, gitHubRepoName, gitHubBranchName);
+            List<RepositoryBranch> branches = repoService.getBranches(repo);
+
+            String latestCommitSHA = branches.stream()
+                    .filter(b -> b.getName().equals(gitHubBranchName))
+                    .findFirst()
+                    .map(b -> b.getCommit().getSha())
+                    .orElseThrow(() -> new RuntimeException("Branch " + "'" + gitHubBranchName + "'" + " not found"));
+            ctx.setVariable("latestCommitSHA", latestCommitSHA);
+            log.info("Latest commit SHA: '{}'", latestCommitSHA);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Error occured while getting latest commit SHA: " + e.getMessage());
+        }
+    }
+
     private static Action getAction(Context ctx) {
         Object v = ctx.getVariable(ACTION_KEY);
         if (v instanceof String) {
@@ -506,6 +543,7 @@ public class GitHubTask implements Task {
         ADDSTATUS,
         FORKREPO,
         GETBRANCHLIST,
-        GETTAGLIST
+        GETTAGLIST,
+        GETLATESTSHA
     }
 }

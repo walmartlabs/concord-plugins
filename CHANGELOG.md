@@ -1,5 +1,13 @@
 # Change log
 
+## [Unreleased]
+
+### Added
+
+- git: new GitHub action `getLatestSha`.
+
+
+
 ## [1.8.0] - 2019-04-18
 
 ### Added
