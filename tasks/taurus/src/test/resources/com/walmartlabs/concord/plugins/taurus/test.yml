@@ -1,0 +1,10 @@
+execution:
+  - concurrency: 2
+    ramp-up: 30s
+    hold-for: 30s
+    scenario: quick-test
+
+scenarios:
+  quick-test:
+    requests:
+      - "http://localhost:8001/${endpoint}"
