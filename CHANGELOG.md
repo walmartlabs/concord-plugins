@@ -1,5 +1,13 @@
 # Change log
 
+## [Unreleased]
+
+### Added
+
+- new plugin: `tasks/taurus`.
+
+
+
 ## [1.9.0] - 2019-04-23
 
 ### Added
