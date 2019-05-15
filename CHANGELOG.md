@@ -1,5 +1,11 @@
 # Change log
 
+## [Unreleased]
+
+### Added
+
+- git: new `github` task action `getStatuses`
+
 ## [1.10.0] - 2019-05-09
 
 ### Added

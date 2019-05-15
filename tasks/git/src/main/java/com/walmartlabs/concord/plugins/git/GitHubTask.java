@@ -38,9 +38,6 @@ import java.util.stream.Collectors;
 import static com.walmartlabs.concord.plugins.git.Utils.getUrl;
 import static com.walmartlabs.concord.sdk.ContextUtils.*;
 
-/**
- * Created by ppendha on 5/22/18.
- */
 @Named("github")
 public class GitHubTask implements Task {
 
@@ -116,6 +113,10 @@ public class GitHubTask implements Task {
             }
             case ADDSTATUS: {
                 addStatus(ctx, gitHubUri);
+                break;
+            }
+            case GETSTATUSES: {
+                getStatuses(ctx, gitHubUri);
                 break;
             }
             case FORKREPO: {
@@ -365,25 +366,51 @@ public class GitHubTask implements Task {
                 state, gitHubOrgName, gitHubRepoName, commitSha);
 
         GitHubClient client = GitHubClient.createClient(gitHubUri);
+        client.setOAuth2Token(gitHubAccessToken);
+        IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
+
+        CommitService commitService = new CommitService(client);
+
+        CommitStatus commitStatus = new CommitStatus();
+
+        // error, failure, pending, or success
+        commitStatus.setState(state);
+
+        // Label that identifies the status
+        commitStatus.setContext(context);
+
+        // Link to test
+        commitStatus.setTargetUrl(targetUrl);
+
+        commitStatus.setDescription(description);
+
         try {
-            client.setOAuth2Token(gitHubAccessToken);
-
-            IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
-
-            String id = repo.generateId();
-            String uri = "/repos/" + id + "/statuses/" + commitSha;
-
-            Map<String, String> params = new HashMap<>();
-            params.put("state", state.toLowerCase());
-            params.put("target_url", targetUrl);
-            params.put("description", description);
-            params.put("context", context);
-
-            client.post(uri, params, null);
-
+            commitService.createStatus(repo, commitSha, commitStatus);
             log.info("Status check created");
         } catch (Exception e) {
             throw new RuntimeException("Cannot create a status check request: " + e.getMessage());
+        }
+    }
+
+    private static void getStatuses(Context ctx, String gitHubUri) {
+        String gitHubAccessToken = assertString(ctx, GITHUB_ACCESSTOKEN);
+        String gitHubOrgName = assertString(ctx, GITHUB_ORGNAME);
+        String gitHubRepoName = assertString(ctx, GITHUB_REPONAME);
+        String commitSha = assertString(ctx, GITHUB_COMMIT_SHA);
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        GitHubClient client = GitHubClient.createClient(gitHubUri);
+        client.setOAuth2Token(gitHubAccessToken);
+        IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
+
+        CommitService commitService = new CommitService(client);
+        List statuses;
+        try {
+            log.info("Getting status for commit {}", commitSha);
+            statuses = commitService.getStatuses(repo, commitSha);
+            ctx.setVariable("commitStatuses", objectMapper.convertValue(statuses, Object.class));
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Cannot get status:" + e);
         }
     }
 
@@ -541,6 +568,7 @@ public class GitHubTask implements Task {
         CREATETAG,
         GETCOMMIT,
         ADDSTATUS,
+        GETSTATUSES,
         FORKREPO,
         GETBRANCHLIST,
         GETTAGLIST,
