@@ -55,13 +55,14 @@ public class Taurus {
     };
 
     private static final URL PLUGIN_MANAGER_CMD_SCRIPT = Taurus.class.getResource(Constants.PLUGIN_MANAGER_CMD);
+    private static final URL DUMMY_PLUGIN_MANAGER_CMD_SCRIPT = Taurus.class.getResource(Constants.DUMMY_PLUGIN_MANAGER_CMD);
 
     private static final String FAKE_HOME_PATH = ".bzt/home";
 
     private final ExecutorService executor;
     private final Map<String, String> defaultEnv;
 
-    public Taurus(Path workDir, boolean useFakeHome) throws IOException {
+    public Taurus(Path workDir, boolean useFakeHome, boolean useDummyPluginManagerCmd) throws IOException {
         this.executor = Executors.newCachedThreadPool();
         this.defaultEnv = new HashMap<>();
 
@@ -71,7 +72,7 @@ public class Taurus {
             defaultEnv.put("HOME", Utils.assertDir(workDir, FAKE_HOME_PATH).toAbsolutePath().toString());
         }
 
-        init(workDir);
+        init(workDir, useDummyPluginManagerCmd);
     }
 
     public Result exec(List<String> args, String logPrefix) throws Exception {
@@ -97,7 +98,7 @@ public class Taurus {
         return Result.ok(stdout.get(), stderr.get());
     }
 
-    private static void init(Path workDir) throws IOException {
+    private static void init(Path workDir, boolean useDummyPluginManagerCmd) throws IOException {
         // copy and extract jmeter
         Path jmeterDir = workDir.resolve(Constants.JMETER_TMP_DIR);
         copyAndExtract(JMETER_DIST, workDir, jmeterDir);
@@ -116,7 +117,13 @@ public class Taurus {
 
         // setup pluginMgrCmd
         Path binDir = workDir.resolve(Constants.JMETER_PATH_BIN);
-        Path p = copy(PLUGIN_MANAGER_CMD_SCRIPT, binDir);
+
+        Path p;
+        if (useDummyPluginManagerCmd) {
+            p = copy(DUMMY_PLUGIN_MANAGER_CMD_SCRIPT, binDir);
+        } else {
+            p = copy(PLUGIN_MANAGER_CMD_SCRIPT, binDir);
+        }
         Files.setPosixFilePermissions(p, PosixFilePermissions.fromString("rwxr-xr-x"));
     }
 

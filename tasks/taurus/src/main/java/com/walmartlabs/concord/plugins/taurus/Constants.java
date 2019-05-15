@@ -29,6 +29,7 @@ public final class Constants {
     public static final String DEPENDENCY_CASUTG = "jmeter-plugins-casutg-" + Version.getPluginsCasutgVersion() + ".jar";
     public static final String DEPENDENCY_PLUGINS_MGR = "jmeter-plugins-manager-" + Version.getPluginMgrVersion() + ".jar";
     public static final String PLUGIN_MANAGER_CMD = "PluginsManagerCMD.sh";
+    public static final String DUMMY_PLUGIN_MANAGER_CMD = "DummyPluginsManagerCMD.sh";
     public static final String DEPENDENCY_PRMCTL = "jmeter-plugins-prmctl-" + Version.getPluginsPrmctlVersion() + ".jar";
     public static final String JMETER_TMP_DIR = ".bzt/jmeter-taurus";
     public static final String JMETER_PATH = ".bzt/jmeter-taurus/apache-jmeter-" + Version.getJMeterVersion();
