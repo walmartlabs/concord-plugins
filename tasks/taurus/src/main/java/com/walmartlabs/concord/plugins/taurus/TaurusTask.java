@@ -46,6 +46,7 @@ public class TaurusTask implements Task {
 
     private static final String ACTION_KEY = "action";
     private static final String CONFIGS_KEY = "configs";
+    private static final String DOWNLOAD_PLUGINS = "downloadPlugins";
     private static final String IGNORE_ERRORS_KEY = "ignoreErrors";
     private static final String NO_SYS_CONFIG_KEY = "noSysConfig";
     private static final String PROXY_KEY = "proxy";
@@ -76,7 +77,11 @@ public class TaurusTask implements Task {
         Map<String, Object> cfg = createCfg(ctx);
 
         boolean useFakeHome = MapUtils.getBoolean(cfg, USE_FAKE_HOME_KEY, true);
-        Taurus taurus = new Taurus(workDir, useFakeHome);
+        boolean downloadPlugins = MapUtils.getBoolean(cfg, DOWNLOAD_PLUGINS, false);
+
+        // we're going to use a fake JMeter's PluginsManagerCMD script unless users specifically
+        // ask us to download JMX plugins
+        Taurus taurus = new Taurus(workDir, useFakeHome, !downloadPlugins);
 
         Action action = getAction(cfg);
         switch (action) {

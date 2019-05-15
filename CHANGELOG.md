@@ -4,7 +4,12 @@
 
 ### Added
 
-- git: new `github` task action `getStatuses`
+- taurus: new parameter `downloadPlugins`. The task skips downloading
+JMeter plugins unless `downloadPlugins` is `true`. This allows for
+completely offline work;
+- git: new `github` task action `getStatuses`.
+
+
 
 ## [1.10.0] - 2019-05-09
 
