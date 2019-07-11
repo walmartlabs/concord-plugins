@@ -39,6 +39,7 @@
         <module>tasks/gremlin</module>
         <module>tasks/jenkins</module>
         <module>tasks/jira</module>
+        <module>tasks/jsonpath</module>
         <module>tasks/ldap</module>
         <module>tasks/terraform</module>
         <module>tasks/taurus</module>

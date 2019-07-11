@@ -1,0 +1,17 @@
+configuration:
+  dependencies:
+    - "mvn://com.walmartlabs.concord.plugins:jsonpath-task:1.12.0"
+
+flows:
+  default:
+    # inline
+    - log: "Inline result: ${jsonPath.readJson(http.asString('https://jsonplaceholder.typicode.com/todos'), '$.[:10].title')}"
+
+    # using the task syntax
+    - task: jsonPath
+      in:
+        action: "readJson"
+        src: "${http.asString('https://jsonplaceholder.typicode.com/todos')}"
+        path: "$.[:10].title"
+
+    - log: "Task syntax result: ${result}"

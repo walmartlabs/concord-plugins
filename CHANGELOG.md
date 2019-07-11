@@ -1,5 +1,13 @@
 # Change log
 
+## [Unreleased]
+
+### Added
+
+- new plugin: `tasks/jsonpath`.
+
+
+
 ## [1.11.0] - 2019-05-15
 
 ### Added
