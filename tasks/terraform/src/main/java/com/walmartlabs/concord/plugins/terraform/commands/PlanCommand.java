@@ -35,14 +35,17 @@ public class PlanCommand {
     private static final Logger log = LoggerFactory.getLogger(PlanCommand.class);
 
     private final boolean debug;
+    private final boolean destroy;
     private final Path pwd;
     private final Path dirOrPlan;
     private final Path varFile;
     private final Path outFile;
     private final Map<String, String> env;
 
-    public PlanCommand(boolean debug, Path pwd, Path dirOrPlan, Path varFile, Path outFile, Map<String, String> env) {
+    public PlanCommand(boolean debug, boolean destroy, Path pwd, Path dirOrPlan, Path varFile, Path outFile,
+                       Map<String, String> env) {
         this.debug = debug;
+        this.destroy = destroy;
 
         this.pwd = pwd;
         if (!pwd.isAbsolute()) {
@@ -64,6 +67,10 @@ public class PlanCommand {
         args.add("plan");
         args.add("-input=false");
         args.add("-detailed-exitcode");
+
+        if (destroy) {
+            args.add("-destroy");
+        }
 
         if (varFile != null) {
             if (debug) {

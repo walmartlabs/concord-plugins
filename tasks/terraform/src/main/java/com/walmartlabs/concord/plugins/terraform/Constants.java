@@ -26,6 +26,7 @@ public final class Constants {
     public static final String BACKEND_KEY = "backend";
     public static final String DEBUG_KEY = "debug";
     public static final String DEFAULT_ENV_KEY = "defaultEnv";
+    public static final String DESTROY_KEY = "destroy";
     public static final String DIR_KEY = "dir";
     public static final String DIR_OR_PLAN_KEY = "dirOrPlan";
     public static final String EXTRA_ENV_KEY = "extraEnv";
@@ -38,9 +39,9 @@ public final class Constants {
     public static final String STATE_ID_KEY = "stateId";
     public static final String VERBOSE_KEY = "verbose";
 
-    public static final String[] ALL_IN_PARAMS = {ACTION_KEY, BACKEND_KEY, DEBUG_KEY, DEFAULT_ENV_KEY, DIR_KEY,
-            DIR_OR_PLAN_KEY, EXTRA_ENV_KEY, EXTRA_VARS_KEY, GIT_SSH_KEY, IGNORE_ERRORS_KEY, MODULE_KEY, RESULT_KEY,
-            SAVE_OUTPUT_KEY, STATE_ID_KEY, VERBOSE_KEY};
+    public static final String[] ALL_IN_PARAMS = {ACTION_KEY, BACKEND_KEY, DEBUG_KEY, DEFAULT_ENV_KEY, DESTROY_KEY,
+            DIR_KEY, DIR_OR_PLAN_KEY, EXTRA_ENV_KEY, EXTRA_VARS_KEY, GIT_SSH_KEY, IGNORE_ERRORS_KEY, MODULE_KEY,
+            RESULT_KEY, SAVE_OUTPUT_KEY, STATE_ID_KEY, VERBOSE_KEY};
 
     private Constants() {
     }
