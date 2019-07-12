@@ -4,7 +4,8 @@
 
 ### Added
 
-- new plugin: `tasks/jsonpath`.
+- new plugin: `tasks/jsonpath`;
+- git: new `github` task action `deleteTag`.
 
 
 

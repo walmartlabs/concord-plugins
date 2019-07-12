@@ -59,6 +59,7 @@ public class GitHubTask implements Task {
     private static final String GITHUB_TAGMESSAGE = "tagMessage";
     private static final String GITHUB_TAGGERUID = "tagAuthorName";
     private static final String GITHUB_TAGGEREMAIL = "tagAuthorEmail";
+    private static final String GITHUB_TAGNAME = "tagName";
     private static final String GITHUB_COMMIT_SHA = "commitSHA";
     private static final String GITHUB_TAG_REFS = "refs/tags/";
     private static final String GITHUB_MERGEHEAD = "head";
@@ -101,6 +102,10 @@ public class GitHubTask implements Task {
             }
             case CREATETAG: {
                 createTag(ctx, gitHubUri);
+                break;
+            }
+            case DELETETAG: {
+                deleteTag(ctx, gitHubUri);
                 break;
             }
             case MERGE: {
@@ -351,6 +356,31 @@ public class GitHubTask implements Task {
         }
     }
 
+    private static void deleteTag(Context ctx, String gitHubUri) {
+        String gitHubAccessToken = assertString(ctx, GITHUB_ACCESSTOKEN);
+        String gitHubOrgName = assertString(ctx, GITHUB_ORGNAME);
+        String gitHubRepoName = assertString(ctx, GITHUB_REPONAME);
+        String gitHubTagName = assertString(ctx, GITHUB_TAGNAME);
+
+        //Initiate the client
+        GitHubClient client = GitHubClient.createClient(gitHubUri);
+        //Connect to GitHub
+        client.setOAuth2Token(gitHubAccessToken);
+        IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
+
+        Tag tag = new Tag();
+        tag.setTag(gitHubTagName);
+
+        DataService dataService = new DataService(client);
+        try {
+            //delete Tag
+            dataService.deleteTag(repo, tag);
+            log.info("Successfully deleted TAG '{}' from '{}/{}'", gitHubTagName, gitHubOrgName, gitHubRepoName);
+        } catch (IOException e) {
+            throw new RuntimeException("Cannot delete tag '" + gitHubTagName + "': " + e.getMessage());
+        }
+    }
+
     private static void addStatus(Context ctx, String gitHubUri) {
         String gitHubAccessToken = assertString(ctx, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(ctx, GITHUB_ORGNAME);
@@ -566,6 +596,7 @@ public class GitHubTask implements Task {
         CLOSEPR,
         MERGE,
         CREATETAG,
+        DELETETAG,
         GETCOMMIT,
         ADDSTATUS,
         GETSTATUSES,
