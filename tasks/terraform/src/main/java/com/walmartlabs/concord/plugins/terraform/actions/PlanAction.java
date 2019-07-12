@@ -40,6 +40,7 @@ public class PlanAction extends Action {
 
     private final Context ctx;
     private final boolean debug;
+    private final boolean destroy;
     private final boolean verbose;
     private final Path workDir;
     private final Path dirOrPlan;
@@ -54,6 +55,7 @@ public class PlanAction extends Action {
         this.env = env;
 
         this.debug = MapUtils.get(cfg, Constants.DEBUG_KEY, false, Boolean.class);
+        this.destroy = MapUtils.get(cfg, Constants.DESTROY_KEY, false, Boolean.class);
         this.verbose = MapUtils.get(cfg, Constants.VERBOSE_KEY, false, Boolean.class);
 
         this.workDir = getPath(cfg, com.walmartlabs.concord.sdk.Constants.Context.WORK_DIR_KEY, null);
@@ -75,7 +77,7 @@ public class PlanAction extends Action {
             Path varsFile = createVarsFile(workDir, objectMapper, extraVars);
             Path outFile = getOutFile(workDir);
 
-            Terraform.Result r = new PlanCommand(debug, workDir, workDir.resolve(dirOrPlan), varsFile, outFile, env).exec(terraform);
+            Terraform.Result r = new PlanCommand(debug, destroy, workDir, workDir.resolve(dirOrPlan), varsFile, outFile, env).exec(terraform);
             switch (r.getCode()) {
                 case 0: {
                     return PlanResult.noChanges(r.getStdout(), workDir.relativize(outFile).toString());

@@ -23,3 +23,4 @@ A collection of plugins for [Concord](https://concord.walmartlabs.com).
 - [Muhammad Amir](https://github.com/muhammad-amir-confiz)
 - [Prasanth Pendam](https://github.com/ppendha)
 - [Yury Brigadirenko](https://github.com/brig)
+- [Matija Gobec](https://github.com/mgobec)
