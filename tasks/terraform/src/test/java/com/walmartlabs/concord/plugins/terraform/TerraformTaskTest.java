@@ -112,6 +112,7 @@ public class TerraformTaskTest {
         args.put(com.walmartlabs.concord.sdk.Constants.Context.WORK_DIR_KEY, workDir.toAbsolutePath().toString());
         args.put(Constants.ACTION_KEY, TerraformTask.Action.APPLY.name());
         args.put(Constants.DEBUG_KEY, true);
+        args.put(Constants.DESTROY_KEY, true);
         args.put(Constants.DIR_OR_PLAN_KEY, result.get("planPath"));
         args.put(Constants.STATE_ID_KEY, "testState");
 
