@@ -4,6 +4,8 @@
 
 ### Added
 
+- terraform: new `action: plan` parameter - `destroy: true`. Destroys
+managed infrastructure;
 - new plugin: `tasks/jsonpath`;
 - git: new `github` task action `deleteTag`.
 
