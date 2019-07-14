@@ -9,6 +9,11 @@ managed infrastructure;
 - new plugin: `tasks/jsonpath`;
 - git: new `github` task action `deleteTag`.
 
+### Changed
+
+- jira: `reporter` value can now be overridden using the
+`requestorUid` parameter.
+
 
 
 ## [1.11.0] - 2019-05-15

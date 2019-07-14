@@ -135,7 +135,7 @@ public class JiraTask implements Task {
         String projectKey = assertString(ctx, JIRA_PROJECT_KEY);
         String summary = assertString(ctx, JIRA_SUMMARY);
         String description = assertString(ctx, JIRA_DESCRIPTION);
-        String requestorUid = assertString(ctx, JIRA_REQUESTOR_UID);
+        String requestorUid = getString(ctx, JIRA_REQUESTOR_UID);
         String issueType = assertString(ctx, JIRA_ISSUE_TYPE);
         String issuePriority = getString(ctx, JIRA_ISSUE_PRIORITY, null);
         Map<String, Object> assignee = getMap(ctx, JIRA_ASSIGNEE, null);
@@ -149,7 +149,6 @@ public class JiraTask implements Task {
         try {
             //Build JSON data
             Map<String, Object> objProj = Collections.singletonMap("key", projectKey);
-            Map<String, Object> objReporter = Collections.singletonMap("name", requestorUid);
             Map<String, Object> objPriority = Collections.singletonMap("name", issuePriority);
             Map<String, Object> objIssueType = Collections.singletonMap("name", issueType);
 
@@ -157,7 +156,11 @@ public class JiraTask implements Task {
             objMain.put("project", objProj);
             objMain.put("summary", summary);
             objMain.put("description", description);
-            objMain.put("reporter", objReporter);
+
+            if (requestorUid != null) {
+                objMain.put("reporter", Collections.singletonMap("name", requestorUid));
+            }
+
             objMain.put("priority", objPriority);
             objMain.put("issuetype", objIssueType);
 
