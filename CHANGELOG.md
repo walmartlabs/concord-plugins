@@ -6,6 +6,13 @@
 
 - git: new `github` task action `deleteBranch`.
 
+### Breaking
+
+- terraform: `dirOrPlan` has been split into two separate
+parameters: `dir` and `plan`. When running `apply` with a previously
+created file, the `dir` must be specified in cases when the TF files
+are located in a subdirectory.
+
 
 
 ## [1.12.0] - 2019-07-14

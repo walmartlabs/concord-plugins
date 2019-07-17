@@ -28,7 +28,6 @@ import com.walmartlabs.concord.plugins.terraform.commands.ApplyCommand;
 import com.walmartlabs.concord.sdk.Context;
 import com.walmartlabs.concord.sdk.MapUtils;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 
@@ -41,7 +40,8 @@ public class ApplyAction extends Action {
     private final boolean debug;
     private final boolean verbose;
     private final Path workDir;
-    private final Path dirOrPlan;
+    private final Path dir;
+    private final Path plan;
     private final Map<String, Object> extraVars;
     private final Map<String, String> env;
     private final boolean ignoreErrors;
@@ -57,12 +57,17 @@ public class ApplyAction extends Action {
         this.debug = MapUtils.get(cfg, Constants.DEBUG_KEY, false, Boolean.class);
         this.verbose = MapUtils.get(cfg, Constants.VERBOSE_KEY, false, Boolean.class);
 
+        // the process' working directory (aka the payload directory)
         this.workDir = getPath(cfg, com.walmartlabs.concord.sdk.Constants.Context.WORK_DIR_KEY, null);
         if (!workDir.isAbsolute()) {
             throw new IllegalArgumentException("'workDir' must be an absolute path, got: " + workDir);
         }
 
-        this.dirOrPlan = getPath(cfg, Constants.DIR_OR_PLAN_KEY, workDir);
+        // the TF files directory
+        this.dir = getPath(cfg, Constants.DIR_KEY, workDir);
+
+        // a file, created by the plan action
+        this.plan = getPath(cfg, Constants.PLAN_KEY, null);
 
         this.extraVars = MapUtils.get(cfg, Constants.EXTRA_VARS_KEY, null, Map.class);
         this.ignoreErrors = MapUtils.get(cfg, Constants.IGNORE_ERRORS_KEY, false, Boolean.class);
@@ -72,12 +77,12 @@ public class ApplyAction extends Action {
 
     public ApplyResult exec(Terraform terraform, Backend backend) throws Exception {
         try {
-            init(ctx, workDir, dirOrPlan, !verbose, env, terraform, backend);
+            init(ctx, workDir, dir, !verbose, env, terraform, backend);
 
-            Path dirOrPlanAbsolute = workDir.resolve(dirOrPlan);
+            Path dirOrPlanAbsolute = workDir.resolve(plan != null ? plan : dir);
 
             Path varsFile = null;
-            if (Files.isDirectory(dirOrPlanAbsolute)) {
+            if (plan == null) {
                 // running without a previously created plan file
                 varsFile = createVarsFile(workDir, objectMapper, extraVars);
             }

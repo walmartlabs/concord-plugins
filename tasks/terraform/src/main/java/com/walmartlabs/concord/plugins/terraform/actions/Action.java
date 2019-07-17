@@ -53,15 +53,10 @@ public abstract class Action {
         return p;
     }
 
-    protected static void init(Context ctx, Path workDir, Path dirOrPlan, boolean silent, Map<String, String> env, Terraform terraform, Backend backend) throws Exception {
+    protected static void init(Context ctx, Path workDir, Path dir, boolean silent, Map<String, String> env, Terraform terraform, Backend backend) throws Exception {
         log.info("init -> initializing the backend and running `terraform init`...");
 
-        Path tfDir = Utils.getAbsolute(workDir, dirOrPlan);
-        if (Files.isRegularFile(tfDir)) {
-            // when using a previously created plan file, run TF in the process' root directory
-            tfDir = workDir;
-        }
-
+        Path tfDir = Utils.getAbsolute(workDir, dir);
         backend.init(ctx, tfDir);
 
         Terraform.Result r = new InitCommand(workDir, tfDir, env, silent).exec(terraform);

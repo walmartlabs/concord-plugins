@@ -1,6 +1,6 @@
 configuration:
   dependencies:
-    - mvn://com.walmartlabs.concord.plugins:terraform-task:1.4.0
+    - mvn://com.walmartlabs.concord.plugins:terraform-task:1.13.0
 
 flows:
   default:
@@ -35,5 +35,5 @@ flows:
     - task: terraform
       in:
         action: apply
-        dirOrPlan: "${result.planPath}"
+        plan: "${result.planPath}"
         # when using a previously created plan file, no need to pass `extraVars` again
