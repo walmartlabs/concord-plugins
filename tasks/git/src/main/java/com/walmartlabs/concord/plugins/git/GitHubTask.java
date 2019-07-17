@@ -108,6 +108,10 @@ public class GitHubTask implements Task {
                 deleteTag(ctx, gitHubUri);
                 break;
             }
+            case DELETEBRANCH: {
+                deleteBranch(ctx, gitHubUri);
+                break;
+            }
             case MERGE: {
                 merge(ctx, gitHubUri);
                 break;
@@ -381,6 +385,28 @@ public class GitHubTask implements Task {
         }
     }
 
+    private static void deleteBranch(Context ctx, String gitHubUri) {
+        String gitHubAccessToken = assertString(ctx, GITHUB_ACCESSTOKEN);
+        String gitHubOrgName = assertString(ctx, GITHUB_ORGNAME);
+        String gitHubRepoName = assertString(ctx, GITHUB_REPONAME);
+        String gitHubBranchName = assertString(ctx, GITHUB_BRANCH);
+
+        //Initiate the client
+        GitHubClient client = GitHubClient.createClient(gitHubUri);
+        //Connect to GitHub
+        client.setOAuth2Token(gitHubAccessToken);
+        IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
+
+        DataService dataService = new DataService(client);
+        try {
+            //delete branch
+            dataService.deleteBranch(repo, gitHubBranchName);
+            log.info("Deleted Branch '{}' from '{}/{}'", gitHubBranchName, gitHubOrgName, gitHubRepoName);
+        } catch (IOException e) {
+            throw new RuntimeException("Cannot Delete Branch '" + gitHubBranchName + "': " + e.getMessage());
+        }
+    }
+
     private static void addStatus(Context ctx, String gitHubUri) {
         String gitHubAccessToken = assertString(ctx, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(ctx, GITHUB_ORGNAME);
@@ -597,6 +623,7 @@ public class GitHubTask implements Task {
         MERGE,
         CREATETAG,
         DELETETAG,
+        DELETEBRANCH,
         GETCOMMIT,
         ADDSTATUS,
         GETSTATUSES,

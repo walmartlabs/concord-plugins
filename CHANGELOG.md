@@ -1,5 +1,13 @@
 # Change log
 
+## [Unreleased]
+
+### Added
+
+- git: new `github` task action `deleteBranch`.
+
+
+
 ## [1.12.0] - 2019-07-14
 
 ### Added
