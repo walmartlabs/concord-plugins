@@ -75,7 +75,7 @@ public class TerraformTaskTest {
         args.put(com.walmartlabs.concord.sdk.Constants.Context.WORK_DIR_KEY, workDir.toAbsolutePath().toString());
         args.put(Constants.ACTION_KEY, TerraformTask.Action.PLAN.name());
         args.put(Constants.DEBUG_KEY, true);
-        args.put(Constants.DIR_OR_PLAN_KEY, workDir.relativize(dstDir).toString());
+        args.put(Constants.DIR_KEY, "myDir");
 
         Map<String, Object> extraVars = new HashMap<>();
         extraVars.put("aws_access_key", System.getenv("AWS_ACCESS_KEY"));
@@ -113,7 +113,8 @@ public class TerraformTaskTest {
         args.put(Constants.ACTION_KEY, TerraformTask.Action.APPLY.name());
         args.put(Constants.DEBUG_KEY, true);
         args.put(Constants.DESTROY_KEY, true);
-        args.put(Constants.DIR_OR_PLAN_KEY, result.get("planPath"));
+        args.put(Constants.DIR_KEY, "myDir");
+        args.put(Constants.PLAN_KEY, result.get("planPath"));
         args.put(Constants.STATE_ID_KEY, "testState");
 
         ctx = new MockContext(args);
@@ -127,6 +128,7 @@ public class TerraformTaskTest {
         args.put(com.walmartlabs.concord.sdk.Constants.Context.WORK_DIR_KEY, workDir.toAbsolutePath().toString());
         args.put(Constants.ACTION_KEY, TerraformTask.Action.OUTPUT.name());
         args.put(Constants.DEBUG_KEY, true);
+        args.put(Constants.DIR_KEY, "myDir");
         args.put(Constants.STATE_ID_KEY, "testState");
 
         ctx = new MockContext(args);
