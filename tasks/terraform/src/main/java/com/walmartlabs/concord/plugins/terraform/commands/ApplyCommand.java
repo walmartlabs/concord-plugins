@@ -38,9 +38,10 @@ public class ApplyCommand {
     private final Path pwd;
     private final Path dirOrPlan;
     private final Path varFile;
+    private final List<Path> userSuppliedVarFiles;
     private final Map<String, String> env;
 
-    public ApplyCommand(boolean debug, Path pwd, Path dirOrPlan, Path varFile, Map<String, String> env) {
+    public ApplyCommand(boolean debug, Path pwd, Path dirOrPlan, Path varFile, List<Path> userSuppliedVarFiles, Map<String, String> env) {
         this.debug = debug;
 
         if (!pwd.isAbsolute()) {
@@ -55,6 +56,7 @@ public class ApplyCommand {
 
 
         this.varFile = varFile;
+        this.userSuppliedVarFiles = userSuppliedVarFiles;
         this.env = env;
     }
 
@@ -70,6 +72,8 @@ public class ApplyCommand {
             }
             args.add("-var-file=" + varFile.toAbsolutePath().toString());
         }
+
+        userSuppliedVarFiles.forEach(f -> args.add("-var-file=" + f.toAbsolutePath().toString()));
 
         args.add(dirOrPlan.toString());
 

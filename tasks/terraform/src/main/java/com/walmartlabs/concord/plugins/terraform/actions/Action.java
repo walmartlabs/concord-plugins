@@ -21,6 +21,7 @@ package com.walmartlabs.concord.plugins.terraform.actions;
  */
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableList;
 import com.walmartlabs.concord.plugins.terraform.Terraform;
 import com.walmartlabs.concord.plugins.terraform.Utils;
 import com.walmartlabs.concord.plugins.terraform.backend.Backend;
@@ -33,8 +34,11 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public abstract class Action {
 
@@ -51,6 +55,14 @@ public abstract class Action {
         }
 
         return p;
+    }
+
+    protected static List<Path> createUserSuppliedVarFiles(Path dir, List<String> userSuppliedVarFiles) {
+        if (userSuppliedVarFiles == null) {
+            return ImmutableList.of();
+        }
+
+        return userSuppliedVarFiles.stream().map(f -> dir.resolve(f)).collect(Collectors.toList());
     }
 
     protected static void init(Context ctx, Path workDir, Path dir, boolean silent, Map<String, String> env, Terraform terraform, Backend backend) throws Exception {

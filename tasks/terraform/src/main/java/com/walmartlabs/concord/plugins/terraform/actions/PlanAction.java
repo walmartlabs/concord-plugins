@@ -31,8 +31,11 @@ import com.walmartlabs.concord.sdk.MapUtils;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static com.walmartlabs.concord.plugins.terraform.Utils.getPath;
 
@@ -46,6 +49,7 @@ public class PlanAction extends Action {
     private final Path dir;
     private final Path plan;
     private final Map<String, Object> extraVars;
+    private final List<String> userSuppliedVarFileNames;
     private final Map<String, String> env;
     private final boolean ignoreErrors;
     private final ObjectMapper objectMapper;
@@ -72,6 +76,7 @@ public class PlanAction extends Action {
         this.plan = getPath(cfg, Constants.PLAN_KEY, null);
 
         this.extraVars = MapUtils.get(cfg, Constants.EXTRA_VARS_KEY, null, Map.class);
+        this.userSuppliedVarFileNames = MapUtils.get(cfg, Constants.VARS_FILES, null, List.class);
         this.ignoreErrors = MapUtils.get(cfg, Constants.IGNORE_ERRORS_KEY, false, Boolean.class);
         this.objectMapper = new ObjectMapper();
     }
@@ -85,7 +90,9 @@ public class PlanAction extends Action {
             Path varsFile = createVarsFile(workDir, objectMapper, extraVars);
             Path outFile = getOutFile(workDir);
 
-            Terraform.Result r = new PlanCommand(debug, destroy, workDir, dirOrPlanAbsolute, varsFile, outFile, env).exec(terraform);
+            List<Path> userSuppliedVarFiles = createUserSuppliedVarFiles(workDir, userSuppliedVarFileNames);
+
+            Terraform.Result r = new PlanCommand(debug, destroy, workDir, dirOrPlanAbsolute, varsFile, userSuppliedVarFiles, outFile, env).exec(terraform);
             switch (r.getCode()) {
                 case 0: {
                     return PlanResult.noChanges(r.getStdout(), workDir.relativize(outFile).toString());

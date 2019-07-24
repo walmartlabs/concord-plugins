@@ -39,10 +39,11 @@ public class PlanCommand {
     private final Path pwd;
     private final Path dirOrPlan;
     private final Path varFile;
+    private final List<Path> userSuppliedVarFiles;
     private final Path outFile;
     private final Map<String, String> env;
 
-    public PlanCommand(boolean debug, boolean destroy, Path pwd, Path dirOrPlan, Path varFile, Path outFile,
+    public PlanCommand(boolean debug, boolean destroy, Path pwd, Path dirOrPlan, Path varFile, List<Path> userSuppliedVarFiles, Path outFile,
                        Map<String, String> env) {
         this.debug = debug;
         this.destroy = destroy;
@@ -58,6 +59,7 @@ public class PlanCommand {
         this.dirOrPlan = dirOrPlan;
 
         this.varFile = varFile;
+        this.userSuppliedVarFiles = userSuppliedVarFiles;
         this.outFile = outFile;
         this.env = env;
     }
@@ -78,6 +80,8 @@ public class PlanCommand {
             }
             args.add("-var-file=" + varFile.toAbsolutePath().toString());
         }
+
+        userSuppliedVarFiles.forEach(f -> args.add("-var-file=" + f.toAbsolutePath().toString()));
 
         if (outFile != null) {
             if (debug) {
