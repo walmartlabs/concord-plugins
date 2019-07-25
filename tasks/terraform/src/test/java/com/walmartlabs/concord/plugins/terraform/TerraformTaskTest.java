@@ -22,7 +22,6 @@ package com.walmartlabs.concord.plugins.terraform;
 
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
-import com.google.common.collect.ImmutableList;
 import com.walmartlabs.concord.common.IOUtils;
 import com.walmartlabs.concord.sdk.*;
 import org.junit.Before;
@@ -36,9 +35,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.junit.Assert.assertNotNull;
@@ -99,7 +96,8 @@ public class TerraformTaskTest {
         Path varfile1 = varFile("varfile1.tfvars");
         Files.copy(varfile1, dstDir.resolve(varfile1.getFileName()));
 
-        args.put(Constants.VARS_FILES, ImmutableList.of("varfile0.tfvars", "varfile1.tfvars"));
+
+        args.put(Constants.VARS_FILES, new ArrayList<>(Arrays.asList("varfile0.tfvars", "varfile1.tfvars")));
         Map<String, Object> extraVars = new HashMap<>();
         extraVars.put("aws_access_key", System.getenv("AWS_ACCESS_KEY"));
         extraVars.put("aws_secret_key", System.getenv("AWS_SECRET_KEY"));

@@ -21,7 +21,6 @@ package com.walmartlabs.concord.plugins.terraform.actions;
  */
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableList;
 import com.walmartlabs.concord.plugins.terraform.Terraform;
 import com.walmartlabs.concord.plugins.terraform.Utils;
 import com.walmartlabs.concord.plugins.terraform.backend.Backend;
@@ -36,6 +35,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -59,7 +59,7 @@ public abstract class Action {
 
     protected static List<Path> createUserSuppliedVarFiles(Path dir, List<String> userSuppliedVarFiles) {
         if (userSuppliedVarFiles == null) {
-            return ImmutableList.of();
+            return Collections.emptyList();
         }
 
         return userSuppliedVarFiles.stream().map(f -> dir.resolve(f)).collect(Collectors.toList());
