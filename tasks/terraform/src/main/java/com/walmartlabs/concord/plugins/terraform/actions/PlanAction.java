@@ -23,6 +23,7 @@ package com.walmartlabs.concord.plugins.terraform.actions;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.walmartlabs.concord.plugins.terraform.Constants;
 import com.walmartlabs.concord.plugins.terraform.Terraform;
+import com.walmartlabs.concord.plugins.terraform.Utils;
 import com.walmartlabs.concord.plugins.terraform.backend.Backend;
 import com.walmartlabs.concord.plugins.terraform.commands.PlanCommand;
 import com.walmartlabs.concord.sdk.Context;
@@ -31,11 +32,9 @@ import com.walmartlabs.concord.sdk.MapUtils;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import static com.walmartlabs.concord.plugins.terraform.Utils.getPath;
 
@@ -90,7 +89,7 @@ public class PlanAction extends Action {
             Path varsFile = createVarsFile(workDir, objectMapper, extraVars);
             Path outFile = getOutFile(workDir);
 
-            List<Path> userSuppliedVarFiles = createUserSuppliedVarFiles(workDir, userSuppliedVarFileNames);
+            List<Path> userSuppliedVarFiles = Utils.resolve(workDir, userSuppliedVarFileNames);
 
             Terraform.Result r = new PlanCommand(debug, destroy, workDir, dirOrPlanAbsolute, varsFile, userSuppliedVarFiles, outFile, env).exec(terraform);
             switch (r.getCode()) {

@@ -24,7 +24,10 @@ import com.walmartlabs.concord.sdk.MapUtils;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public final class Utils {
 
@@ -43,6 +46,14 @@ public final class Utils {
         }
 
         return workDir.resolve(p);
+    }
+
+    public static List<Path> resolve(Path dir, List<String> paths) {
+        if (paths == null) {
+            return Collections.emptyList();
+        }
+
+        return paths.stream().map(dir::resolve).collect(Collectors.toList());
     }
 
     private Utils() {

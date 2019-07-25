@@ -1,5 +1,14 @@
 # Change log
 
+## [Unreleased]
+
+### Added
+
+- terraform: support for user supplied var files for `plan` and
+`apply` actions.
+
+
+
 ## [1.13.0] - 2019-07-17
 
 ### Added

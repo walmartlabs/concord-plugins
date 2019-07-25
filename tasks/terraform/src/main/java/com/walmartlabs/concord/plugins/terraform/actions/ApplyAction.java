@@ -23,16 +23,15 @@ package com.walmartlabs.concord.plugins.terraform.actions;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.walmartlabs.concord.plugins.terraform.Constants;
 import com.walmartlabs.concord.plugins.terraform.Terraform;
+import com.walmartlabs.concord.plugins.terraform.Utils;
 import com.walmartlabs.concord.plugins.terraform.backend.Backend;
 import com.walmartlabs.concord.plugins.terraform.commands.ApplyCommand;
 import com.walmartlabs.concord.sdk.Context;
 import com.walmartlabs.concord.sdk.MapUtils;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static com.walmartlabs.concord.plugins.terraform.Utils.getPath;
 
@@ -92,7 +91,7 @@ public class ApplyAction extends Action {
                 varsFile = createVarsFile(workDir, objectMapper, extraVars);
             }
 
-            List<Path> userSuppliedVarFiles = createUserSuppliedVarFiles(workDir, userSuppliedVarFileNames);
+            List<Path> userSuppliedVarFiles = Utils.resolve(workDir, userSuppliedVarFileNames);
 
             Terraform.Result r = new ApplyCommand(debug, workDir, dirOrPlanAbsolute, varsFile, userSuppliedVarFiles, env).exec(terraform);
             if (r.getCode() != 0) {
