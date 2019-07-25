@@ -29,7 +29,10 @@ import com.walmartlabs.concord.sdk.Context;
 import com.walmartlabs.concord.sdk.MapUtils;
 
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.walmartlabs.concord.plugins.terraform.Utils.getPath;
 
@@ -43,6 +46,7 @@ public class ApplyAction extends Action {
     private final Path dir;
     private final Path plan;
     private final Map<String, Object> extraVars;
+    private final List<String> userSuppliedVarFileNames;
     private final Map<String, String> env;
     private final boolean ignoreErrors;
     private final boolean saveOutput;
@@ -70,6 +74,7 @@ public class ApplyAction extends Action {
         this.plan = getPath(cfg, Constants.PLAN_KEY, null);
 
         this.extraVars = MapUtils.get(cfg, Constants.EXTRA_VARS_KEY, null, Map.class);
+        this.userSuppliedVarFileNames = MapUtils.get(cfg, Constants.VARS_FILES, null, List.class);
         this.ignoreErrors = MapUtils.get(cfg, Constants.IGNORE_ERRORS_KEY, false, Boolean.class);
         this.saveOutput = MapUtils.get(cfg, Constants.SAVE_OUTPUT_KEY, false, Boolean.class);
         this.objectMapper = new ObjectMapper();
@@ -87,7 +92,9 @@ public class ApplyAction extends Action {
                 varsFile = createVarsFile(workDir, objectMapper, extraVars);
             }
 
-            Terraform.Result r = new ApplyCommand(debug, workDir, dirOrPlanAbsolute, varsFile, env).exec(terraform);
+            List<Path> userSuppliedVarFiles = createUserSuppliedVarFiles(workDir, userSuppliedVarFileNames);
+
+            Terraform.Result r = new ApplyCommand(debug, workDir, dirOrPlanAbsolute, varsFile, userSuppliedVarFiles, env).exec(terraform);
             if (r.getCode() != 0) {
                 throw new RuntimeException("Process finished with code " + r.getCode() + ": " + r.getStderr());
             }
