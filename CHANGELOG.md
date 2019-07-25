@@ -5,7 +5,8 @@
 ### Added
 
 - terraform: support for user supplied var files for `plan` and
-`apply` actions.
+`apply` actions;
+- git: new `git` task action `pull`.
 
 
 

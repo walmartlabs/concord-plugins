@@ -28,6 +28,7 @@ import com.walmartlabs.concord.sdk.Context;
 import com.walmartlabs.concord.sdk.SecretService;
 import com.walmartlabs.concord.sdk.Task;
 import org.eclipse.jgit.api.*;
+import org.eclipse.jgit.api.MergeResult.MergeStatus;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.transport.*;
 import org.eclipse.jgit.transport.RemoteRefUpdate.Status;
@@ -75,6 +76,8 @@ public class GitTask implements Task {
     private static final String GIT_USER_NAME = "username";
     private static final String GIT_WORKING_DIR = "workingDir";
     private static final String REFS_REMOTES = "refs/remotes/origin/";
+    private static final String GIT_PULL_REMOTE_REPO = "remoteRepo";
+    private static final String GIT_PULL_CURRENT_BRANCH = "currentBranch";
 
     private static final String OUT_KEY = "out";
     private static final String IGNORE_ERRORS_KEY = "ignoreErrors";
@@ -110,6 +113,10 @@ public class GitTask implements Task {
                 doCommit(ctx);
                 break;
             }
+            case PULL: {
+                doPull(ctx);
+                break;
+            }
             default:
                 throw new IllegalArgumentException("Unsupported action type: " + action);
         }
@@ -137,6 +144,71 @@ public class GitTask implements Task {
             handleError(error, e, ctx, dstDir);
         } finally {
             cleanUp(transportCfg.get(GIT_KEY_PATH));
+        }
+    }
+
+    private void doPull(Context ctx) throws Exception {
+        Path dstDir = prepareTargetDirectory(ctx);
+        String remoteRepo = getString(ctx, GIT_PULL_REMOTE_REPO, "origin");
+        String currentBranch = assertString(ctx, GIT_PULL_CURRENT_BRANCH);
+
+        Map<String, String> transportCfg = getTransportConfig(ctx);
+        TransportConfigCallback transportCallback = createTransportConfigCallback(transportCfg);
+
+        Git git = Git.open(dstDir.toFile());
+
+        try {
+            PullCommand pullCommand = git.pull();
+            log.info("Pulling changes from remote repository...");
+            PullResult result = pullCommand.setRemote(remoteRepo)
+                    .setRemoteBranchName(currentBranch)
+                    .setTransportConfigCallback(transportCallback)
+                    .call();
+
+            String fetchResult = result.getFetchResult().getMessages();
+            MergeResult mergeResult = result.getMergeResult();
+            MergeStatus mergeStatus = mergeResult.getMergeStatus();
+
+            if (result.isSuccessful()) {
+                if (!fetchResult.isEmpty()) {
+                    log.info("Fetch result: '{}'", fetchResult);
+                }
+
+                log.info("Merge result: '{}'", mergeResult.toString());
+                log.info("Merge status: '{}'", mergeStatus.toString().toUpperCase());
+
+                switch (mergeStatus) {
+                    case FAST_FORWARD:
+                    case FAST_FORWARD_SQUASHED:
+                    case MERGED_SQUASHED:
+                    case MERGED: {
+                        log.info("Pulled changes from remote repo '{}' into your current branch '{}'.", remoteRepo, currentBranch);
+                        break;
+                    }
+                    case ALREADY_UP_TO_DATE: {
+                        log.info("Everything up-to-date. Nothing to pull from '{}'.", remoteRepo);
+                        break;
+                    }
+                }
+            } else {
+                switch (mergeStatus) {
+                    case ABORTED:
+                    case NOT_SUPPORTED:
+                    case CHECKOUT_CONFLICT:
+                    case CONFLICTING:
+                    case FAILED: {
+                        if (!fetchResult.isEmpty()) {
+                            log.error("Fetch result: '{}'", result.getFetchResult().getMessages());
+                        }
+                        log.error("Merge result: '{}'", mergeResult.toString());
+                        log.error("Merge status: '{}'", mergeStatus.toString().toUpperCase());
+                        throw new IllegalArgumentException("Git pull from remote repository to current branch failed. Please fix the above errors before giving a retry...");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            String error = "Error occurred during git pull action.\n" + e.getMessage();
+            handleError(error, e, ctx, dstDir);
         }
     }
 
@@ -585,7 +657,8 @@ public class GitTask implements Task {
         CLONE,
         CREATEBRANCH,
         MERGE,
-        COMMIT
+        COMMIT,
+        PULL
     }
 
     public enum ResultStatus {
