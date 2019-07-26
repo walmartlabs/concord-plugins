@@ -76,8 +76,7 @@ public class GitTask implements Task {
     private static final String GIT_USER_NAME = "username";
     private static final String GIT_WORKING_DIR = "workingDir";
     private static final String REFS_REMOTES = "refs/remotes/origin/";
-    private static final String GIT_PULL_REMOTE_REPO = "remoteRepo";
-    private static final String GIT_PULL_CURRENT_BRANCH = "currentBranch";
+    private static final String GIT_PULL_REMOTE_BRANCH = "remoteBranch";
 
     private static final String OUT_KEY = "out";
     private static final String IGNORE_ERRORS_KEY = "ignoreErrors";
@@ -149,19 +148,21 @@ public class GitTask implements Task {
 
     private void doPull(Context ctx) throws Exception {
         Path dstDir = prepareTargetDirectory(ctx);
-        String remoteRepo = getString(ctx, GIT_PULL_REMOTE_REPO, "origin");
-        String currentBranch = assertString(ctx, GIT_PULL_CURRENT_BRANCH);
+        String remoteBranch = assertString(ctx, GIT_PULL_REMOTE_BRANCH);
 
         Map<String, String> transportCfg = getTransportConfig(ctx);
         TransportConfigCallback transportCallback = createTransportConfigCallback(transportCfg);
 
         Git git = Git.open(dstDir.toFile());
 
+        // TODO: Research if there is a way to pass uri. For now defaulting it to a name
+        String remote = "origin";
+
         try {
             PullCommand pullCommand = git.pull();
-            log.info("Pulling changes from remote repository...");
-            PullResult result = pullCommand.setRemote(remoteRepo)
-                    .setRemoteBranchName(currentBranch)
+            log.info("Pulling changes from remote '{}/{}'...", remote, remoteBranch);
+            PullResult result = pullCommand.setRemote(remote)
+                    .setRemoteBranchName(remoteBranch)
                     .setTransportConfigCallback(transportCallback)
                     .call();
 
@@ -170,6 +171,7 @@ public class GitTask implements Task {
             MergeStatus mergeStatus = mergeResult.getMergeStatus();
 
             if (result.isSuccessful()) {
+
                 if (!fetchResult.isEmpty()) {
                     log.info("Fetch result: '{}'", fetchResult);
                 }
@@ -182,11 +184,11 @@ public class GitTask implements Task {
                     case FAST_FORWARD_SQUASHED:
                     case MERGED_SQUASHED:
                     case MERGED: {
-                        log.info("Pulled changes from remote repo '{}' into your current branch '{}'.", remoteRepo, currentBranch);
+                        log.info("Pulled changes from remote '{}/{}'.", remote, remoteBranch);
                         break;
                     }
                     case ALREADY_UP_TO_DATE: {
-                        log.info("Everything up-to-date. Nothing to pull from '{}'.", remoteRepo);
+                        log.info("Everything up-to-date. Nothing to pull from remote '{}/{}'.", remote, remoteBranch);
                         break;
                     }
                 }
@@ -202,7 +204,7 @@ public class GitTask implements Task {
                         }
                         log.error("Merge result: '{}'", mergeResult.toString());
                         log.error("Merge status: '{}'", mergeStatus.toString().toUpperCase());
-                        throw new IllegalArgumentException("Git pull from remote repository to current branch failed. Please fix the above errors before giving a retry...");
+                        throw new IllegalArgumentException("Git pull action failed. Please fix the above errors before retrying...");
                     }
                 }
             }
