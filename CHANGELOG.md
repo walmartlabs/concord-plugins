@@ -1,5 +1,13 @@
 # Change log
 
+## [Unreleased]
+
+### Changed
+
+- terraform: the CLI version updated to `0.12.5`.
+
+ 
+
 ## [1.14.0] - 2019-07-26
 
 ### Added
