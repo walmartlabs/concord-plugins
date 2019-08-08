@@ -43,9 +43,11 @@ public class OutputAction extends Action {
     private final String module;
     private final Map<String, String> env;
     private final boolean ignoreErrors;
+    private final boolean skipInit;
+
     private final ObjectMapper objectMapper;
 
-    public OutputAction(Context ctx, Map<String, Object> cfg, Map<String, String> env) {
+    public OutputAction(Context ctx, Map<String, Object> cfg, Map<String, String> env, boolean skipInit) {
         this.ctx = ctx;
         this.env = env;
 
@@ -60,6 +62,7 @@ public class OutputAction extends Action {
         this.dir = getPath(cfg, Constants.DIR_KEY, workDir);
         this.module = MapUtils.getString(cfg, Constants.MODULE_KEY);
         this.ignoreErrors = MapUtils.get(cfg, Constants.IGNORE_ERRORS_KEY, false, Boolean.class);
+        this.skipInit = skipInit;
 
         this.objectMapper = new ObjectMapper();
     }
@@ -67,10 +70,19 @@ public class OutputAction extends Action {
     @SuppressWarnings("unchecked")
     public OutputResult exec(Terraform terraform, Backend backend) throws Exception {
         try {
-            init(ctx, workDir, dir, !verbose, env, terraform, backend);
+            if (!skipInit) {
+                // normally we'd run `terraform init` in the specified `dir`
+                // the backend configuration must be placed there as well
+                init(ctx, workDir, dir, !verbose, env, terraform, backend);
+            } else {
+                // however, if we're running `terraform output` as a part of the apply action
+                // we skip the `terraform init` run and we need to run `terraform output`
+                // in the root directory
+                // the backend configuration must be in the root directory too
+                backend.init(ctx, workDir);
+            }
 
-            Path p = dir != null ? workDir.resolve(dir) : workDir;
-            Terraform.Result r = new OutputCommand(debug, p, module, env).exec(terraform);
+            Terraform.Result r = new OutputCommand(debug, workDir, module, env).exec(terraform);
             if (r.getCode() != 0) {
                 throw new RuntimeException("Process finished with code " + r.getCode() + ": " + r.getStderr());
             }

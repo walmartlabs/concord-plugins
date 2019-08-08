@@ -100,7 +100,7 @@ public class ApplyAction extends Action {
 
             Map<String, Object> data = null;
             if (saveOutput) {
-                OutputResult o = new OutputAction(ctx, cfg, env).exec(terraform, backend);
+                OutputResult o = new OutputAction(ctx, cfg, env, true).exec(terraform, backend);
                 if (!o.isOk()) {
                     return ApplyResult.error(o.getError());
                 }

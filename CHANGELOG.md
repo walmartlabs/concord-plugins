@@ -1,5 +1,14 @@
 # Change log
 
+## [Unreleased]
+
+### Changed
+
+- terraform: fixed the apply's command when `saveOutput` and `dir`
+options are used.
+
+
+
 ## [1.14.1] - 2019-07-31
 
 ### Changed

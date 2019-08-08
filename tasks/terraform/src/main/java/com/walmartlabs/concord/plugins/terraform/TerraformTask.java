@@ -107,7 +107,7 @@ public class TerraformTask implements Task {
                     break;
                 }
                 case OUTPUT: {
-                    OutputAction a = new OutputAction(ctx, cfg, env);
+                    OutputAction a = new OutputAction(ctx, cfg, env, false);
                     OutputResult result = a.exec(terraform, backend);
                     ctx.setVariable(Constants.RESULT_KEY, result);
                     break;
