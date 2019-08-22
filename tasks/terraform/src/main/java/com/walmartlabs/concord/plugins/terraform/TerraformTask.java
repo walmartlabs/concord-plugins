@@ -26,6 +26,7 @@ import com.walmartlabs.concord.plugins.terraform.actions.*;
 import com.walmartlabs.concord.plugins.terraform.backend.Backend;
 import com.walmartlabs.concord.plugins.terraform.backend.ConcordBackend;
 import com.walmartlabs.concord.plugins.terraform.backend.DummyBackend;
+import com.walmartlabs.concord.plugins.terraform.backend.SupportedBackend;
 import com.walmartlabs.concord.sdk.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +41,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.walmartlabs.concord.plugins.terraform.Utils.getPath;
+import static com.walmartlabs.concord.plugins.terraform.backend.SupportedBackend.backendSupported;
 
 @Named("terraform")
 public class TerraformTask implements Task {
@@ -123,8 +125,20 @@ public class TerraformTask implements Task {
 
     private Backend getBackend(Map<String, Object> cfg) {
         boolean debug = MapUtils.get(cfg, Constants.DEBUG_KEY, false, Boolean.class);
-        String s = MapUtils.getString(cfg, Constants.BACKEND_KEY, DEFAULT_BACKEND);
-        switch (s) {
+        String backendId = DEFAULT_BACKEND;
+        if (cfg.get(Constants.BACKEND_KEY) != null) {
+            if (Map.class.isAssignableFrom(cfg.get(Constants.BACKEND_KEY).getClass())) {
+                Map<String, Object> backend = MapUtils.getMap(cfg, Constants.BACKEND_KEY, null);
+                backendId = backend.keySet().iterator().next();
+                if (backendSupported(backendId)) {
+                    // Retrieve the backend configuration parameters
+                    return new SupportedBackend(debug, backendId, MapUtils.getMap(backend, backendId, null), objectMapper);
+                }
+            } else {
+                backendId = MapUtils.getString(cfg, Constants.BACKEND_KEY, DEFAULT_BACKEND);
+            }
+        }
+        switch (backendId) {
             case "none": {
                 return new DummyBackend();
             }
@@ -132,7 +146,7 @@ public class TerraformTask implements Task {
                 return new ConcordBackend(debug, lockService, objectStorage, objectMapper);
             }
             default: {
-                throw new IllegalArgumentException("Unknown backend type: " + s);
+                throw new IllegalArgumentException("Unknown backend type: " + backendId);
             }
         }
     }
