@@ -30,7 +30,10 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
+import java.io.Reader;
+import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -40,6 +43,8 @@ import java.util.*;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.*;
 
 //
@@ -48,12 +53,25 @@ import static org.mockito.Mockito.*;
 // CONCORD_TMP_DIR	= /tmp/concord
 // AWS_ACCESS_KEY	= <your_aws_access_key>
 // AWS_SECRET_KEY	= <your_aws_secret_key>
-// TF_TEST_FILE	    = <path_to>/concord-plugins/tasks/terraform/src/test/terraform/main.tf
+// TF_TEST_FILE	    = <path_to>/concord-plugins/tasks/terraform/src/test/terraform/main.tf or another file you want to test
 // PRIVATE_KEY_PATH = <your_aws_pem_file>
+//
+// Alternatively you can use the following:
+//
+// - An ~/.aws/credentials with a [concord-integration-tests] stanza where the access key id and secret key will be taken from
+// - The default src/test/terraform/main.tf test file
+// - A ~/.aws/conconrd-integration-tests.pem that will be used as the private key
+// - The CONCORD_TMP_DIR envar will be set for you to /tmp/concord
+//
+// Once setup this should just allow you to run the test.
 //
 
 @Ignore
 public class TerraformTaskTest {
+
+    private final static String CONCORD_TMP_DIR_KEY = "CONCORD_TMP_DIR";
+    private final static String CONCORD_TMP_DIR_VALUE = "/tmp/concord";
+    private final static String CONCORD_AWS_CREDENTIALS_KEY = "concord-integration-tests";
 
     private String basedir;
 
@@ -69,10 +87,21 @@ public class TerraformTaskTest {
     @Test
     @SuppressWarnings("unchecked")
     public void test() throws Exception {
-        Path workDir = IOUtils.createTempDir("test");
+
+        AWSCredentials awsCredentials = awsCredentials();
+        Path workDir = workDir();
+        Path testFile = terraformTestFile();
+
+        System.out.println("Using the following:");
+        System.out.println();
+        System.out.println("AWS Access Key ID: " + awsCredentials.accessKey);
+        System.out.println("   AWS Secret Key: " + awsCredentials.secretKey);
+        System.out.println("   Terraform file: " + testFile);
+        System.out.println("          workDir: " + workDir);
+        System.out.println();
+
         Files.createDirectories(workDir);
         Path dstDir = workDir;
-        Path testFile = Paths.get(System.getenv("TF_TEST_FILE"));
         Files.copy(testFile, dstDir.resolve(testFile.getFileName()));
 
         // ---
@@ -99,8 +128,8 @@ public class TerraformTaskTest {
 
         args.put(Constants.VARS_FILES, new ArrayList<>(Arrays.asList("varfile0.tfvars", "varfile1.tfvars")));
         Map<String, Object> extraVars = new HashMap<>();
-        extraVars.put("aws_access_key", System.getenv("AWS_ACCESS_KEY"));
-        extraVars.put("aws_secret_key", System.getenv("AWS_SECRET_KEY"));
+        extraVars.put("aws_access_key", awsCredentials.accessKey);
+        extraVars.put("aws_secret_key", awsCredentials.secretKey);
         args.put(Constants.EXTRA_VARS_KEY, extraVars);
 
         Map<String, Object> gitSsh = new HashMap<>();
@@ -177,9 +206,17 @@ public class TerraformTaskTest {
     }
 
     private static SecretService createSecretService(Path workDir) throws Exception {
-        Path src = Paths.get(System.getenv("PRIVATE_KEY_PATH"));
+        String pemFileEnvar = System.getenv("PRIVATE_KEY_PATH");
         Path dst = Files.createTempFile(workDir, "private", ".key");
-        Files.copy(src, dst, StandardCopyOption.REPLACE_EXISTING);
+        if (pemFileEnvar != null) {
+            Files.copy(Paths.get(pemFileEnvar), dst, StandardCopyOption.REPLACE_EXISTING);
+        } else {
+            // Look for an ~/.aws/concord-integration-tests.pem file
+            File pemFile = new File(System.getProperty("user.hom"), ".aws/" + CONCORD_AWS_CREDENTIALS_KEY + ".pem");
+            if (pemFile.exists()) {
+                Files.copy(pemFile.toPath(), dst, StandardCopyOption.REPLACE_EXISTING);
+            }
+        }
 
         Map<String, String> m = Collections.singletonMap("private", workDir.relativize(dst).toString());
 
@@ -206,5 +243,122 @@ public class TerraformTaskTest {
 
     private String responseTemplate(String name) throws IOException {
         return new String(Files.readAllBytes(new File(basedir, "src/test/terraform/" + name).toPath()));
+    }
+
+    //
+    // Helpers for using AWS credentials in ~/.aws/credentials
+    //
+
+    private AWSCredentials awsCredentials() {
+        AWSCredentials awsCredentials = new AWSCredentials();
+        File awsCredentialsFile = new File(System.getProperty("user.home"), ".aws/credentials");
+        if (awsCredentialsFile.exists()) {
+            Map<String,Properties> awsCredentialsIni = parseIni(awsCredentialsFile);
+            if (awsCredentialsIni != null) {
+                Properties concordAwsCredentials = awsCredentialsIni.get(CONCORD_AWS_CREDENTIALS_KEY);
+                awsCredentials.accessKey = concordAwsCredentials.getProperty("aws_access_key_id");
+                awsCredentials.secretKey = concordAwsCredentials.getProperty("aws_secret_access_key");
+            }
+        }
+
+        if (awsCredentials.accessKey.isEmpty() && awsCredentials.secretKey.isEmpty()) {
+            awsCredentials.accessKey = System.getenv("AWS_ACCESS_KEY");
+            awsCredentials.secretKey = System.getenv("AWS_SECRET_KEY");
+        }
+
+        if (awsCredentials.accessKey.isEmpty() && awsCredentials.secretKey.isEmpty()) {
+            throw new RuntimeException(String.format("An AWS access key id and secret key must be set using envars or the ~/.aws/credentials file with the %s profile.", CONCORD_AWS_CREDENTIALS_KEY));
+        }
+
+        return awsCredentials;
+    }
+
+    private static class AWSCredentials {
+        String accessKey;
+        String secretKey;
+
+        @Override
+        public String toString() {
+            return "AWSCredentials{" +
+                    "accessKey='" + accessKey + '\'' +
+                    ", secretKey='" + secretKey + '\'' +
+                    '}';
+        }
+    }
+
+    private static Map<String, Properties> parseIni(File file) {
+        try (Reader reader = new FileReader(file)) {
+            Map<String, Properties> result = new HashMap();
+            new Properties() {
+
+                private Properties section;
+
+                @Override
+                public Object put(Object key, Object value) {
+                    String header = (key + " " + value).trim();
+                    if (header.startsWith("[") && header.endsWith("]")) {
+                        return result.put(header.substring(1, header.length() - 1), section = new Properties());
+                    } else {
+                        return section.put(key, value);
+                    }
+                }
+
+            }.load(reader);
+            return result;
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    //
+    // Helpers for setting envars and setting CONCORD_TMP_DIR envar
+    //
+
+    private Path workDir() throws Exception {
+        String concordTmpDir = System.getenv(CONCORD_TMP_DIR_KEY);
+        if (concordTmpDir == null) {
+            // Grab the old environment and add the CONCORD_TMP_DIR value to it and reset it
+            Map<String,String> newEnvironment = new HashMap();
+            newEnvironment.putAll(System.getenv());
+            newEnvironment.put(CONCORD_TMP_DIR_KEY, CONCORD_TMP_DIR_VALUE);
+            setNewEnvironment(newEnvironment);
+        }
+        return IOUtils.createTempDir("test");
+    }
+
+    private Path terraformTestFile() {
+        String terraformTestFileEnvar = System.getenv("TF_TEST_FILE");
+        if (terraformTestFileEnvar != null) {
+            return Paths.get(System.getenv("TF_TEST_FILE"));
+        }
+        // Use the test terraform file we have in the repository
+        return new File(basedir, "src/test/terraform/main.tf").toPath();
+    }
+
+    private static void setNewEnvironment(Map<String, String> newEnvironment) throws Exception {
+        try {
+            Class<?> processEnvironmentClass = Class.forName("java.lang.ProcessEnvironment");
+            Field theEnvironmentField = processEnvironmentClass.getDeclaredField("theEnvironment");
+            theEnvironmentField.setAccessible(true);
+            Map<String, String> env = (Map<String, String>) theEnvironmentField.get(null);
+            env.putAll(newEnvironment);
+            Field theCaseInsensitiveEnvironmentField = processEnvironmentClass.getDeclaredField("theCaseInsensitiveEnvironment");
+            theCaseInsensitiveEnvironmentField.setAccessible(true);
+            Map<String, String> cienv = (Map<String, String>)     theCaseInsensitiveEnvironmentField.get(null);
+            cienv.putAll(newEnvironment);
+        } catch (NoSuchFieldException e) {
+            Class[] classes = Collections.class.getDeclaredClasses();
+            Map<String, String> env = System.getenv();
+            for(Class cl : classes) {
+                if("java.util.Collections$UnmodifiableMap".equals(cl.getName())) {
+                    Field field = cl.getDeclaredField("m");
+                    field.setAccessible(true);
+                    Object obj = field.get(env);
+                    Map<String, String> map = (Map<String, String>) obj;
+                    map.clear();
+                    map.putAll(newEnvironment);
+                }
+            }
+        }
     }
 }
