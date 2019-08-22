@@ -65,6 +65,9 @@ import static org.mockito.Mockito.*;
 //
 // Once setup this should just allow you to run the test.
 //
+// TODO: need to test destroy, computes are left in AWS
+// TODO: split test apart to prepare for testing OCI/GCP
+//
 
 @Ignore
 public class TerraformTaskTest {
@@ -263,7 +266,13 @@ public class TerraformTaskTest {
 
         if (awsCredentials.accessKey.isEmpty() && awsCredentials.secretKey.isEmpty()) {
             awsCredentials.accessKey = System.getenv("AWS_ACCESS_KEY");
+            if (awsCredentials.accessKey == null) {
+                awsCredentials.accessKey = System.getenv("AWS_ACCESS_KEY_ID");
+            }
             awsCredentials.secretKey = System.getenv("AWS_SECRET_KEY");
+            if (awsCredentials.secretKey == null) {
+                awsCredentials.secretKey = System.getenv("AWS_SECRET_ACCESS_KEY");
+            }
         }
 
         if (awsCredentials.accessKey.isEmpty() && awsCredentials.secretKey.isEmpty()) {

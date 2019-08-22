@@ -9,11 +9,11 @@ Based on the internal version by:
 In order to run the integration test that works against AWS you to setup the following
 envars so the test can pick up the right resources to execute correctly:
 
-CONCORD_TMP_DIR	 = /tmp/concord <br>
-AWS_ACCESS_KEY	 = [your_aws_access_key] <br>
-AWS_SECRET_KEY	 = [your_aws_secret_key] <br>
-TF_TEST_FILE	    = /path/to/your/main.tf <br>
-PRIVATE_KEY_PATH = /path/to/your/<aws_pem_file>
+CONCORD_TMP_DIR	       = /tmp/concord <br>
+AWS_ACCESS_KEY_ID	     = [your_aws_access_key] <br>
+AWS_SECRET_ACCESS_KEY	 = [your_aws_secret_key] <br>
+TF_TEST_FILE	         = /path/to/your/main.tf <br>
+PRIVATE_KEY_PATH       = /path/to/your/<aws_pem_file>
 
 Alternatively, you can setup the following:
 
