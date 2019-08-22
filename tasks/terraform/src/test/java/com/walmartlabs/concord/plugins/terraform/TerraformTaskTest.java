@@ -26,8 +26,6 @@ import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.walmartlabs.concord.common.IOUtils;
 import com.walmartlabs.concord.plugins.terraform.backend.SupportedBackend;
 import com.walmartlabs.concord.sdk.*;
-import org.json.JSONObject;
-import org.json.JSONTokener;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -192,13 +190,13 @@ public class TerraformTaskTest {
 
         File overrides = dstDir.resolve("concord_override.tf.json").toFile();
         try (Reader reader = new FileReader(overrides)) {
-            JSONObject overridesJson = new JSONObject(new JSONTokener(reader));
-            JSONObject s3 = overridesJson.getJSONObject("terraform").getJSONObject("backend").getJSONObject("s3");
-            assertEquals("bucket-value", s3.getString("bucket"));
-            assertEquals("key-value", s3.getString("key"));
-            assertEquals("region-value", s3.getString("region"));
-            assertEquals("dynamodb_table-value", s3.getString("dynamodb_table"));
-            assertTrue(s3.getBoolean("encrypt"));
+            ObjectMapper objectMapper = new ObjectMapper();
+            Map<String,Object> s3 = (Map)((Map)((Map) objectMapper.readValue(reader, Map.class).get("terraform")).get("backend")).get("s3");
+            assertEquals("bucket-value", s3.get("bucket"));
+            assertEquals("key-value", s3.get("key"));
+            assertEquals("region-value", s3.get("region"));
+            assertEquals("dynamodb_table-value", s3.get("dynamodb_table"));
+            assertTrue((Boolean)s3.get("encrypt"));
         }
     }
 
