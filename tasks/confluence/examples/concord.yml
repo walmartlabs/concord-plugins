@@ -1,0 +1,168 @@
+configuration:
+  dependencies:
+  - "mvn://com.walmartlabs.concord.plugins:confluence-task:1.14.3-SNAPSHOT"
+  arguments:
+    mySpaceKey: "MYCONFLUENESPACE"
+    myPageTitle: "My First Page Title"
+    myPageContent: "<p>This is my page content</p><p>This is a second paragraph</p>"
+    myContentTemplate: "content.mustache"
+    myPageUpdate: "<p>This is an update to an existing page</p>"
+    myPageComment: "<p>This is an comment to an existing page</p>"
+    myAttachmentComment: "This is an attachment comment"
+    myAttachmentPath: "path/toMy/myFile.ini"
+    myChildPageTitle: "My Child Page Title"
+    myChildPageContent: "<p>This is child page<br/> content</p>"
+    confluenceCreds:
+      userId: myUserId
+      pwd: myPwd
+
+flows:
+  default:
+  - call: flowCreatePage
+  - call: flowUpdatePage
+  - call: flowAddComments
+  - call: flowUploadAttachment
+  - call: flowCreateChildPage
+  - call: flowGetPageContent
+  - call: flowDeleteParentPage
+  - call: flowDeleteChildPage
+
+
+  flowCreatePage:
+  - task: confluence
+    in:
+      action: createPage
+      userId: ${confluenceCreds.userId}
+      password: ${confluenceCreds.pwd}
+      spaceKey: ${mySpaceKey}
+      pageTitle: ${myPageTitle}
+      template: ${myContentTemplate}
+      templateParams:
+        myVariable1: "content variable 1"
+        myVariable2: "content variable 2"
+        myVariable3: "content variable 3"
+      ignoreErrors: true
+  - if: ${!result.ok}
+    then:
+    - throw: "Something went wrong: ${result.error}"
+    else:
+    - log: "Here is Page view info url: ${result.data}"
+
+  flowUpdatePage:
+  - task: confluence
+    in:
+      action: updatePage
+      userId: ${confluenceCreds.userId}
+      password: ${confluenceCreds.pwd}
+      spaceKey: ${mySpaceKey}
+      pageTitle: ${myPageTitle}
+      pageUpdate: ${myPageUpdate}
+      overWrite: true
+      ignoreErrors: true
+  - if: ${!result.ok}
+    then:
+    - throw: "Something went wrong: ${result.error}"
+    else:
+    - log: "Here is Page view info url: ${result.data}"
+
+  flowAddComments:
+  - log: "Adding comments to page#: ${id}"
+  - task: confluence
+    in:
+      action: addCommentsToPage
+      userId: ${confluenceCreds.userId}
+      password: ${confluenceCreds.pwd}
+      pageId: ${id}
+      pageComment: ${myPageComment}
+      ignoreErrors: true
+  - log: "Result status is ${result.ok}"
+  - if: ${result.ok}
+    then:
+    - log: "Here is Page view info url: ${result.data}"
+    else:
+    - throw: "Something went wrong: ${result.error}"
+
+  flowUploadAttachment:
+  - log: "Uploading  attachment to page#: ${id}"
+  - task: confluence
+    in:
+      action: uploadAttachment
+      userId: ${confluenceCreds.userId}
+      password: ${confluenceCreds.pwd}
+      pageId: ${id}
+      attachmentComment: ${myAttachmentComment}
+      attachmentPath: ${myAttachmentPath}
+      ignoreErrors: true
+  - log: "Result status is ${result.ok}"
+  - if: ${result.ok}
+    then:
+    - log: "Here is Page view info url: ${result.data}"
+    else:
+    - throw: "Something went wrong: ${result.error}"
+
+  flowCreateChildPage:
+  - log: "Creating a child page under page#: ${id}"
+  - task: confluence
+    in:
+      action: createChildPage
+      userId: ${confluenceCreds.userId}
+      password: ${confluenceCreds.pwd}
+      spaceKey: ${mySpaceKey}
+      parentPageId: ${id}
+      childPageTitle: ${myChildPageTitle}
+      childPageContent: ${myChildPageContent}
+      ignoreErrors: true
+  - log: "My child page Id is ${result.childId}"
+  - log: "Result status is ${result.ok}"
+  - if: ${!result.ok}
+    then:
+    - throw: "Something went wrong: ${result.error}"
+    else:
+    - log: "Here is Page view info url: ${result.data}"
+
+  flowDeleteParentPage:
+  - log: "Deleting parent page#: ${id}"
+  - task: confluence
+    in:
+      action: deletePage
+      userId: ${confluenceCreds.userId}
+      password: ${confluenceCreds.pwd}
+      pageId: ${id}
+      ignoreErrors: true
+  - log: "Result status is ${result.ok}"
+  - if: ${!result.ok}
+    then:
+    - throw: "Something went wrong: ${result.error}"
+    else:
+    - log: "Parent page is deleted"
+
+  flowDeleteChildPage:
+  - log: "Deleting child page#: ${childId}"
+  - task: confluence
+    in:
+      action: deletePage
+      userId: ${confluenceCreds.userId}
+      password: ${confluenceCreds.pwd}
+      pageId: ${childId}
+      ignoreErrors: true
+  - log: "Result status is ${result.ok}"
+  - if: ${!result.ok}
+    then:
+    - throw: "Something went wrong: ${result.error}"
+    else:
+    - log: "Child page is deleted"
+
+  flowGetPageContent:
+  - task: confluence
+    in:
+      action: getPageContent
+      userId: ${confluenceCreds.userId}
+      password: ${confluenceCreds.pwd}
+      pageId: ${id}
+      ignoreErrors: true
+  - log: "Result status is ${result.ok}"
+  - if: ${!result.ok}
+    then:
+    - throw: "Something went wrong: ${result.error}"
+    else:
+    - log: "Page content is ${result.data}"

@@ -4,6 +4,7 @@
 
 A collection of plugins for [Concord](https://concord.walmartlabs.com).
 
+- [confluence](./tasks/confluence) - [Confluence](https://www.atlassian.com/software/confluence) plugin [[docs](https://concord.walmartlabs.com/docs/plugins/confluence.html)]
 - [git](./tasks/git) - GIT and GitHub plugins [[docs](https://concord.walmartlabs.com/docs/plugins/git.html)]
 - [gremlin](./tasks/gremlin) - [Gremlin](https://www.gremlin.com/) plugin [[docs](https://concord.walmartlabs.com/docs/plugins/gremlin.html)]
 - [jenkins](./tasks/jenkins) - [Jenkins](https://jenkins.io/) plugin [[docs](https://concord.walmartlabs.com/docs/plugins/jenkins.html)]

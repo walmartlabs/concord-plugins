@@ -4,6 +4,7 @@
 
 ### Added
 
+- new plugin: `tasks/confluence`;
 - new plugin: `tasks/puppet`.
 
 
