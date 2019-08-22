@@ -1,0 +1,101 @@
+configuration:
+  dependencies:
+    - mvn://org.codehaus.groovy:groovy-all:pom:2.5.7
+
+  arguments:
+    puppetParams:
+      debug: true
+
+flows:
+  default:
+    - call: promptForAction
+    - log: "done"
+
+  promptForAction:
+    # Create Action Prompt Form
+    - ${execution.removeVariable('apiTokenForm')}   # clear stale form data
+    - set:
+        options:
+          - "Create API Token"
+          - "Execute PQL Query"
+          - "Exit"
+        fields:
+          - action: { type: "string", label: "What do you want to do?", "placeholder": "Choose action here", allow: "${options}", search: true}
+    - form: actionForm
+      fields: ${fields}
+    - switch: ${actionForm.action}
+      "Create API Token":
+        - log: "Creating an API token"
+        - call: createToken
+      "Execute PQL Query":
+        - log: "Executing PQL Query"
+        - call: executeQuery
+      "Exit":
+        - log: "Exiting..."
+        - exit
+    - call: promptForAction
+
+
+  # Create an API Token
+  createToken:
+    - form: apiTokenForm  # get user info
+    - task: puppet   # create the token
+      in:
+        action: "createApiToken"
+        ignoreErrors: true
+        username: ${apiTokenForm.username}
+        password: ${apiTokenForm.password}
+        tokenLife: ${apiTokenForm.lifetime}
+        tokenLabel: ${apiTokenForm.label}
+        tokenDescription: ${apiTokenForm.description}
+    - if: ${result.ok}
+      then:
+        - log: "New api token: ${result.data}"
+      else:
+        - log: "Error creating api token: ${result.error}"
+
+
+  # execute a PQL query
+  executeQuery:
+    - form: queryForm     # get the query
+    - task: puppet   # execute it
+      in:
+        action: "pql"
+        ignoreErrors: true
+        queryString: ${queryForm.query}
+    - if: ${result.ok}
+      then:
+        # prove we got the results
+        - call: printJson
+          in:
+            objectToPrint: ${result.data}
+        # filter down to only the certname values
+        - set:
+            certnames: ${result.data.stream().map(x -> x.get("certname")).toList()}
+        - log: "Only certnames:"
+        - call: printJson
+          in:
+            objectToPrint: ${certnames}
+      else:
+        - log: "Error executing pql: ${result.error}"
+
+
+  # Pretty prints an object as JSON.
+  # set in-variable
+  # - objectToPrint
+  printJson:
+    - script: groovy
+      body: |
+        import groovy.json.JsonBuilder
+        println new JsonBuilder(objectToPrint).toPrettyString()
+
+forms:
+  apiTokenForm:
+    - username: { label: "Username", type: "string"}
+    - password: { label: "Password", type: "string", inputType: "password" }
+    - lifetime: { label: "Token Lifetime", type: "string", allow: ["10m", "1h", "1d", "1y"], value: "1h" }
+    - label: { label: "Token Label", type: "string?" }
+    - description: { label: "Token Description", type: "string?", value: "Created on ${datetime.current('yyyy-MM-dd HH:mm:ss')}" }
+
+  queryForm:
+    - query: { label: "Query String", type: "string", placeholder: "inventory{ limit 5 }" }

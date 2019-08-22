@@ -1,5 +1,13 @@
 # Change log
 
+## [Unreleased]
+
+### Added
+
+- new plugin: `tasks/puppet`.
+
+
+
 ## [1.14.2] - 2019-08-08
 
 ### Changed

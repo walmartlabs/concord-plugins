@@ -41,6 +41,7 @@
         <module>tasks/jira</module>
         <module>tasks/jsonpath</module>
         <module>tasks/ldap</module>
+        <module>tasks/puppet</module>
         <module>tasks/terraform</module>
         <module>tasks/taurus</module>
     </modules>
