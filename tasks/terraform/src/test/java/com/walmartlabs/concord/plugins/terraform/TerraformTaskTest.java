@@ -20,9 +20,11 @@ package com.walmartlabs.concord.plugins.terraform;
  * =====
  */
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.walmartlabs.concord.common.IOUtils;
+import com.walmartlabs.concord.plugins.terraform.backend.SupportedBackend;
 import com.walmartlabs.concord.sdk.*;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -41,8 +43,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.*;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.*;
@@ -78,22 +79,21 @@ public class TerraformTaskTest {
 
     private String basedir;
 
+    private AWSCredentials awsCredentials;
+    private Path workDir;
+    private Path dstDir;
+    private Path testFile;
+    private LockService lockService;
+    private ObjectStorage objectStorage;
+    private SecretService secretService;
+
     @Before
-    public void setup() {
+    public void setup() throws Exception {
         basedir = new File("").getAbsolutePath();
-    }
 
-    @Rule
-    public WireMockRule wireMockRule = new WireMockRule(WireMockConfiguration.wireMockConfig()
-            .port(12345));
-
-    @Test
-    @SuppressWarnings("unchecked")
-    public void test() throws Exception {
-
-        AWSCredentials awsCredentials = awsCredentials();
-        Path workDir = workDir();
-        Path testFile = terraformTestFile();
+        awsCredentials = awsCredentials();
+        workDir = workDir();
+        testFile = terraformTestFile();
 
         System.out.println("Using the following:");
         System.out.println();
@@ -104,41 +104,28 @@ public class TerraformTaskTest {
         System.out.println();
 
         Files.createDirectories(workDir);
-        Path dstDir = workDir;
+        dstDir = workDir;
         Files.copy(testFile, dstDir.resolve(testFile.getFileName()));
 
-        // ---
+        lockService = mock(LockService.class);
+        objectStorage = createObjectStorage(wireMockRule);
+        secretService = createSecretService(workDir);
+    }
 
-        LockService lockService = mock(LockService.class);
-        ObjectStorage objectStorage = createObjectStorage(wireMockRule);
-        SecretService secretService = createSecretService(workDir);
+    @Rule
+    public WireMockRule wireMockRule = new WireMockRule(WireMockConfiguration.wireMockConfig()
+            .port(12345));
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void test() throws Exception {
 
         TerraformTask t = new TerraformTask(lockService, objectStorage, secretService);
 
-        // ---
-
         Map<String, Object> args = baseArguments(workDir, dstDir, TerraformTask.Action.PLAN.name());
-        //
-        // We place our user supplied var files in the workspace and they are declared as being relative
-        // to the Concord workspace. So we copy them into the workspace at the root so we just refer to
-        // them as "varfile0.tfvars" and varfile1.tfvars.
-        //
-        Path varfile0 = varFile("varfile0.tfvars");
-        Files.copy(varfile0, dstDir.resolve(varfile0.getFileName()));
-        Path varfile1 = varFile("varfile1.tfvars");
-        Files.copy(varfile1, dstDir.resolve(varfile1.getFileName()));
-
-
-        args.put(Constants.VARS_FILES, new ArrayList<>(Arrays.asList("varfile0.tfvars", "varfile1.tfvars")));
-        Map<String, Object> extraVars = new HashMap<>();
-        extraVars.put("aws_access_key", awsCredentials.accessKey);
-        extraVars.put("aws_secret_key", awsCredentials.secretKey);
-        args.put(Constants.EXTRA_VARS_KEY, extraVars);
-
-        Map<String, Object> gitSsh = new HashMap<>();
-        gitSsh.put(GitSshWrapper.PRIVATE_KEYS_KEY, Collections.singletonList(Files.createTempFile("test", ".key").toAbsolutePath().toString()));
-        gitSsh.put(GitSshWrapper.SECRETS_KEY, Collections.singletonList(Collections.singletonMap("secretName", "test")));
-        args.put(Constants.GIT_SSH_KEY, gitSsh);
+        args.put(Constants.VARS_FILES, varFiles());
+        args.put(Constants.EXTRA_VARS_KEY, extraVars());
+        args.put(Constants.GIT_SSH_KEY, gitSsh());
 
         Context ctx = new MockContext(args);
         t.execute(ctx);
@@ -195,6 +182,52 @@ public class TerraformTaskTest {
         t.execute(ctx);
     }
 
+    @Test
+    public void validateS3BackendConfigurationSerialization() throws Exception {
+        SupportedBackend backend = new SupportedBackend(true, "s3", s3BackendParameters(), new ObjectMapper());
+        Map<String, Object> args = baseArguments(workDir, dstDir, TerraformTask.Action.PLAN.name());
+        backend.init(new MockContext(args), dstDir);
+
+        File overrides = dstDir.resolve("concord_override.tf.json").toFile();
+        try (Reader reader = new FileReader(overrides)) {
+            ObjectMapper objectMapper = new ObjectMapper();
+            Map<String,Object> s3 = (Map)((Map)((Map) objectMapper.readValue(reader, Map.class).get("terraform")).get("backend")).get("s3");
+            assertEquals("bucket-value", s3.get("bucket"));
+            assertEquals("key-value", s3.get("key"));
+            assertEquals("region-value", s3.get("region"));
+            assertEquals("dynamodb_table-value", s3.get("dynamodb_table"));
+            assertTrue((Boolean)s3.get("encrypt"));
+        }
+    }
+
+    private Map<String,Object> extraVars() throws Exception {
+        Map<String, Object> extraVars = new HashMap<>();
+        extraVars.put("aws_access_key", awsCredentials.accessKey);
+        extraVars.put("aws_secret_key", awsCredentials.secretKey);
+        return extraVars;
+    }
+
+    private List<String> varFiles() throws Exception {
+        //
+        // We place our user supplied var files in the workspace and they are declared as being relative
+        // to the Concord workspace. So we copy them into the workspace at the root so we just refer to
+        // them as "varfile0.tfvars" and varfile1.tfvars.
+        //
+        Path varfile0 = varFile("varfile0.tfvars");
+        Files.copy(varfile0, dstDir.resolve(varfile0.getFileName()));
+        Path varfile1 = varFile("varfile1.tfvars");
+        Files.copy(varfile1, dstDir.resolve(varfile1.getFileName()));
+
+        return new ArrayList<>(Arrays.asList("varfile0.tfvars", "varfile1.tfvars"));
+    }
+
+    private Map<String,Object> gitSsh() throws Exception {
+        Map<String, Object> gitSsh = new HashMap<>();
+        gitSsh.put(GitSshWrapper.PRIVATE_KEYS_KEY, Collections.singletonList(Files.createTempFile("test", ".key").toAbsolutePath().toString()));
+        gitSsh.put(GitSshWrapper.SECRETS_KEY, Collections.singletonList(Collections.singletonMap("secretName", "test")));
+        return gitSsh;
+    }
+
     private static ObjectStorage createObjectStorage(WireMockRule wireMockRule) throws Exception {
         String osAddress = "http://localhost:" + wireMockRule.port() + "/test";
         wireMockRule.stubFor(get("/test").willReturn(aResponse().withStatus(404)));
@@ -246,6 +279,27 @@ public class TerraformTaskTest {
 
     private String responseTemplate(String name) throws IOException {
         return new String(Files.readAllBytes(new File(basedir, "src/test/terraform/" + name).toPath()));
+    }
+
+    //
+    // - task: terraform
+    //     in:
+    //       backend:
+    //         s3:
+    //           bucket: "${bucket}"
+    //           key: "${key}"
+    //           region: "${region}"
+    //           encrypt: ${encrypt}
+    //           dynamodb_table: "${dynamodb_table}"
+    //
+    private Map<String,Object> s3BackendParameters() {
+        Map<String, Object> map = new HashMap();
+        map.put("bucket", "bucket-value");
+        map.put("key", "key-value");
+        map.put("region", "region-value");
+        map.put("encrypt", true);
+        map.put("dynamodb_table", "dynamodb_table-value");
+        return map;
     }
 
     //
