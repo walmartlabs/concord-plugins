@@ -6,7 +6,7 @@ Based on the internal version by:
 
 ## Testing
 
-In order to run the integration test that works against AWS you to setup the following
+In order to run the integration test that works against AWS you need to setup the following
 envars so the test can pick up the right resources to execute correctly:
 
 CONCORD_TMP_DIR	       = /tmp/concord <br>
@@ -18,7 +18,7 @@ PRIVATE_KEY_PATH       = /path/to/your/<aws_pem_file>
 Alternatively, you can setup the following:
 
 1) Create an `~/.aws/credentials` file with a `concord-integration-tests` stanza. The access key id and secret key will
-be taken from this stanza:
+be taken from the `concord-integration-tests` stanza:
 
 ```
 [default]
@@ -29,6 +29,8 @@ aws_secret_access_key=xxx
 aws_access_key_id=xxx
 aws_secret_access_key=xxx
 ```
+
+If you do have the standard `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` envars set they will be used as a fallback if the `~/.aws/credentials` file doesn't exist.
 
 2) Create a keypair in AWS called `concord-integration-tests` and place the downloaded PEM file here: `~/.aws/concord-integration-tests.pem`. This will be used as the private key for the integration test.
 
