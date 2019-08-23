@@ -23,10 +23,7 @@ package com.walmartlabs.concord.plugins.terraform;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.walmartlabs.concord.plugins.terraform.actions.*;
-import com.walmartlabs.concord.plugins.terraform.backend.Backend;
-import com.walmartlabs.concord.plugins.terraform.backend.ConcordBackend;
-import com.walmartlabs.concord.plugins.terraform.backend.DummyBackend;
-import com.walmartlabs.concord.plugins.terraform.backend.SupportedBackend;
+import com.walmartlabs.concord.plugins.terraform.backend.*;
 import com.walmartlabs.concord.sdk.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,28 +38,23 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.walmartlabs.concord.plugins.terraform.Utils.getPath;
-import static com.walmartlabs.concord.plugins.terraform.backend.SupportedBackend.backendSupported;
 
 @Named("terraform")
 public class TerraformTask implements Task {
 
     private static final Logger log = LoggerFactory.getLogger(TerraformTask.class);
 
-    private static final String DEFAULT_BACKEND = "concord";
-
-    private final LockService lockService;
-    private final ObjectStorage objectStorage;
     private final SecretService secretService;
+    private final BackendManager backendManager;
     private final ObjectMapper objectMapper;
 
     @InjectVariable("terraformParams")
     private Map<String, Object> defaults;
 
     @Inject
-    public TerraformTask(LockService lockService, ObjectStorage objectStorage, SecretService secretService) {
-        this.lockService = lockService;
-        this.objectStorage = objectStorage;
+    public TerraformTask(SecretService secretService, BackendManager backendManager) {
         this.secretService = secretService;
+        this.backendManager = backendManager;
         this.objectMapper = new ObjectMapper();
     }
 
@@ -80,7 +72,7 @@ public class TerraformTask implements Task {
         boolean debug = MapUtils.get(cfg, Constants.DEBUG_KEY, false, Boolean.class);
 
         Action action = getAction(cfg);
-        Backend backend = getBackend(cfg);
+        Backend backend = backendManager.getBackend(cfg);
 
         GitSshWrapper gitSshWrapper = GitSshWrapper.createFrom(secretService, ctx, instanceId, workDir, cfg, debug);
         Map<String, String> baseEnv = gitSshWrapper.updateEnv(workDir, new HashMap<>());
@@ -120,34 +112,6 @@ public class TerraformTask implements Task {
         } finally {
             backend.unlock(ctx);
             gitSshWrapper.cleanup();
-        }
-    }
-
-    private Backend getBackend(Map<String, Object> cfg) {
-        boolean debug = MapUtils.get(cfg, Constants.DEBUG_KEY, false, Boolean.class);
-        String backendId = DEFAULT_BACKEND;
-        if (cfg.get(Constants.BACKEND_KEY) != null) {
-            if (Map.class.isAssignableFrom(cfg.get(Constants.BACKEND_KEY).getClass())) {
-                Map<String, Object> backend = MapUtils.getMap(cfg, Constants.BACKEND_KEY, null);
-                backendId = backend.keySet().iterator().next();
-                if (backendSupported(backendId)) {
-                    // Retrieve the backend configuration parameters
-                    return new SupportedBackend(debug, backendId, MapUtils.getMap(backend, backendId, null), objectMapper);
-                }
-            } else {
-                backendId = MapUtils.getString(cfg, Constants.BACKEND_KEY, DEFAULT_BACKEND);
-            }
-        }
-        switch (backendId) {
-            case "none": {
-                return new DummyBackend();
-            }
-            case "concord": {
-                return new ConcordBackend(debug, lockService, objectStorage, objectMapper);
-            }
-            default: {
-                throw new IllegalArgumentException("Unknown backend type: " + backendId);
-            }
         }
     }
 

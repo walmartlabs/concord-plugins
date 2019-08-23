@@ -21,23 +21,16 @@ package com.walmartlabs.concord.plugins.terraform.backend;
  */
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.walmartlabs.concord.plugins.terraform.Constants;
 import com.walmartlabs.concord.sdk.Context;
-import com.walmartlabs.concord.sdk.ContextUtils;
-import com.walmartlabs.concord.sdk.LockService;
-import com.walmartlabs.concord.sdk.ObjectStorage;
-import com.walmartlabs.concord.sdk.ProjectInfo;
-import com.walmartlabs.concord.sdk.RepositoryInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class SupportedBackend implements Backend {
 
@@ -45,25 +38,14 @@ public class SupportedBackend implements Backend {
 
     private final boolean debug;
     private final String backendId;
-    private final Map<String,Object> backendParameters;
+    private final Map<String, Object> backendParameters;
     private final ObjectMapper objectMapper;
-    private final static Set<String> supportedBackends = supportedBackends();
 
-    public SupportedBackend(boolean debug, String backendId, Map<String,Object> backendParameters, ObjectMapper objectMapper) {
+    public SupportedBackend(boolean debug, String backendId, Map<String, Object> backendParameters, ObjectMapper objectMapper) {
         this.debug = debug;
         this.backendId = backendId;
         this.backendParameters = backendParameters;
         this.objectMapper = objectMapper;
-    }
-
-    public static boolean backendSupported(String backend) {
-        return supportedBackends.contains(backend);
-    }
-
-    private static Set<String> supportedBackends() {
-        Set<String> supportedBackends = new HashSet<>();
-        supportedBackends.add("s3");
-        return supportedBackends;
     }
 
     @Override

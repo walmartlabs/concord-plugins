@@ -20,11 +20,10 @@ package com.walmartlabs.concord.plugins.terraform;
  * =====
  */
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.walmartlabs.concord.common.IOUtils;
-import com.walmartlabs.concord.plugins.terraform.backend.SupportedBackend;
+import com.walmartlabs.concord.plugins.terraform.backend.BackendManager;
 import com.walmartlabs.concord.sdk.*;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -86,6 +85,7 @@ public class TerraformTaskTest {
     private LockService lockService;
     private ObjectStorage objectStorage;
     private SecretService secretService;
+    private BackendManager backendManager;
 
     @Before
     public void setup() throws Exception {
@@ -110,6 +110,7 @@ public class TerraformTaskTest {
         lockService = mock(LockService.class);
         objectStorage = createObjectStorage(wireMockRule);
         secretService = createSecretService(workDir);
+        backendManager = new BackendManager(lockService, objectStorage);
     }
 
     @Rule
@@ -120,7 +121,7 @@ public class TerraformTaskTest {
     @SuppressWarnings("unchecked")
     public void test() throws Exception {
 
-        TerraformTask t = new TerraformTask(lockService, objectStorage, secretService);
+        TerraformTask t = new TerraformTask(secretService, backendManager);
 
         Map<String, Object> args = baseArguments(workDir, dstDir, TerraformTask.Action.PLAN.name());
         args.put(Constants.VARS_FILES, varFiles());
@@ -182,24 +183,6 @@ public class TerraformTaskTest {
         t.execute(ctx);
     }
 
-    @Test
-    public void validateS3BackendConfigurationSerialization() throws Exception {
-        SupportedBackend backend = new SupportedBackend(true, "s3", s3BackendParameters(), new ObjectMapper());
-        Map<String, Object> args = baseArguments(workDir, dstDir, TerraformTask.Action.PLAN.name());
-        backend.init(new MockContext(args), dstDir);
-
-        File overrides = dstDir.resolve("concord_override.tf.json").toFile();
-        try (Reader reader = new FileReader(overrides)) {
-            ObjectMapper objectMapper = new ObjectMapper();
-            Map<String,Object> s3 = (Map)((Map)((Map) objectMapper.readValue(reader, Map.class).get("terraform")).get("backend")).get("s3");
-            assertEquals("bucket-value", s3.get("bucket"));
-            assertEquals("key-value", s3.get("key"));
-            assertEquals("region-value", s3.get("region"));
-            assertEquals("dynamodb_table-value", s3.get("dynamodb_table"));
-            assertTrue((Boolean)s3.get("encrypt"));
-        }
-    }
-
     private Map<String,Object> extraVars() throws Exception {
         Map<String, Object> extraVars = new HashMap<>();
         extraVars.put("aws_access_key", awsCredentials.accessKey);
@@ -228,7 +211,8 @@ public class TerraformTaskTest {
         return gitSsh;
     }
 
-    private static ObjectStorage createObjectStorage(WireMockRule wireMockRule) throws Exception {
+    // TODO: move to shared helper class
+    public static ObjectStorage createObjectStorage(WireMockRule wireMockRule) throws Exception {
         String osAddress = "http://localhost:" + wireMockRule.port() + "/test";
         wireMockRule.stubFor(get("/test").willReturn(aResponse().withStatus(404)));
         wireMockRule.stubFor(post("/test").willReturn(aResponse().withStatus(200)));
@@ -279,27 +263,6 @@ public class TerraformTaskTest {
 
     private String responseTemplate(String name) throws IOException {
         return new String(Files.readAllBytes(new File(basedir, "src/test/terraform/" + name).toPath()));
-    }
-
-    //
-    // - task: terraform
-    //     in:
-    //       backend:
-    //         s3:
-    //           bucket: "${bucket}"
-    //           key: "${key}"
-    //           region: "${region}"
-    //           encrypt: ${encrypt}
-    //           dynamodb_table: "${dynamodb_table}"
-    //
-    private Map<String,Object> s3BackendParameters() {
-        Map<String, Object> map = new HashMap();
-        map.put("bucket", "bucket-value");
-        map.put("key", "key-value");
-        map.put("region", "region-value");
-        map.put("encrypt", true);
-        map.put("dynamodb_table", "dynamodb_table-value");
-        return map;
     }
 
     //
