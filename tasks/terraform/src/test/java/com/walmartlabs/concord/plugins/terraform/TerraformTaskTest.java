@@ -42,7 +42,8 @@ import java.nio.file.StandardCopyOption;
 import java.util.*;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.*;
@@ -164,8 +165,8 @@ public class TerraformTaskTest {
         // name_from_varfile0 = bob
         // time_from_varfile1 = now
         //
-        assertTrue(((String)result.get("output")).contains("name_from_varfile0 = bob"));
-        assertTrue(((String)result.get("output")).contains("time_from_varfile1 = now"));
+        assertTrue(((String) result.get("output")).contains("name_from_varfile0 = bob"));
+        assertTrue(((String) result.get("output")).contains("time_from_varfile1 = now"));
 
         // ---
 
@@ -183,7 +184,7 @@ public class TerraformTaskTest {
         t.execute(ctx);
     }
 
-    private Map<String,Object> extraVars() throws Exception {
+    private Map<String, Object> extraVars() throws Exception {
         Map<String, Object> extraVars = new HashMap<>();
         extraVars.put("aws_access_key", awsCredentials.accessKey);
         extraVars.put("aws_secret_key", awsCredentials.secretKey);
@@ -204,7 +205,7 @@ public class TerraformTaskTest {
         return new ArrayList<>(Arrays.asList("varfile0.tfvars", "varfile1.tfvars"));
     }
 
-    private Map<String,Object> gitSsh() throws Exception {
+    private Map<String, Object> gitSsh() throws Exception {
         Map<String, Object> gitSsh = new HashMap<>();
         gitSsh.put(GitSshWrapper.PRIVATE_KEYS_KEY, Collections.singletonList(Files.createTempFile("test", ".key").toAbsolutePath().toString()));
         gitSsh.put(GitSshWrapper.SECRETS_KEY, Collections.singletonList(Collections.singletonMap("secretName", "test")));
@@ -273,7 +274,7 @@ public class TerraformTaskTest {
         AWSCredentials awsCredentials = new AWSCredentials();
         File awsCredentialsFile = new File(System.getProperty("user.home"), ".aws/credentials");
         if (awsCredentialsFile.exists()) {
-            Map<String,Properties> awsCredentialsIni = parseIni(awsCredentialsFile);
+            Map<String, Properties> awsCredentialsIni = parseIni(awsCredentialsFile);
             if (awsCredentialsIni != null) {
                 Properties concordAwsCredentials = awsCredentialsIni.get(CONCORD_AWS_CREDENTIALS_KEY);
                 awsCredentials.accessKey = concordAwsCredentials.getProperty("aws_access_key_id");
@@ -344,7 +345,7 @@ public class TerraformTaskTest {
         String concordTmpDir = System.getenv(CONCORD_TMP_DIR_KEY);
         if (concordTmpDir == null) {
             // Grab the old environment and add the CONCORD_TMP_DIR value to it and reset it
-            Map<String,String> newEnvironment = new HashMap();
+            Map<String, String> newEnvironment = new HashMap();
             newEnvironment.putAll(System.getenv());
             newEnvironment.put(CONCORD_TMP_DIR_KEY, CONCORD_TMP_DIR_VALUE);
             setNewEnvironment(newEnvironment);
@@ -370,13 +371,13 @@ public class TerraformTaskTest {
             env.putAll(newEnvironment);
             Field theCaseInsensitiveEnvironmentField = processEnvironmentClass.getDeclaredField("theCaseInsensitiveEnvironment");
             theCaseInsensitiveEnvironmentField.setAccessible(true);
-            Map<String, String> cienv = (Map<String, String>)     theCaseInsensitiveEnvironmentField.get(null);
+            Map<String, String> cienv = (Map<String, String>) theCaseInsensitiveEnvironmentField.get(null);
             cienv.putAll(newEnvironment);
         } catch (NoSuchFieldException e) {
             Class[] classes = Collections.class.getDeclaredClasses();
             Map<String, String> env = System.getenv();
-            for(Class cl : classes) {
-                if("java.util.Collections$UnmodifiableMap".equals(cl.getName())) {
+            for (Class cl : classes) {
+                if ("java.util.Collections$UnmodifiableMap".equals(cl.getName())) {
                     Field field = cl.getDeclaredField("m");
                     field.setAccessible(true);
                     Object obj = field.get(env);

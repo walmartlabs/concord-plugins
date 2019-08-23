@@ -1,5 +1,25 @@
 package com.walmartlabs.concord.plugins.terraform.backend;
 
+/*-
+ * *****
+ * Concord
+ * -----
+ * Copyright (C) 2017 - 2019 Walmart Inc.
+ * -----
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * =====
+ */
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
@@ -71,12 +91,12 @@ public class BackendManagerTest {
         File overrides = dstDir.resolve("concord_override.tf.json").toFile();
         try (Reader reader = new FileReader(overrides)) {
             ObjectMapper objectMapper = new ObjectMapper();
-            Map<String,Object> s3 = (Map)((Map)((Map) objectMapper.readValue(reader, Map.class).get("terraform")).get("backend")).get("s3");
+            Map<String, Object> s3 = (Map) ((Map) ((Map) objectMapper.readValue(reader, Map.class).get("terraform")).get("backend")).get("s3");
             assertEquals("bucket-value", s3.get("bucket"));
             assertEquals("key-value", s3.get("key"));
             assertEquals("region-value", s3.get("region"));
             assertEquals("dynamodb_table-value", s3.get("dynamodb_table"));
-            assertTrue((Boolean)s3.get("encrypt"));
+            assertTrue((Boolean) s3.get("encrypt"));
         }
     }
 
@@ -95,7 +115,7 @@ public class BackendManagerTest {
     //           encrypt: ${encrypt}
     //           dynamodb_table: "${dynamodb_table}"
     //
-    private Map<String,Object> s3BackendConfiguration() {
+    private Map<String, Object> s3BackendConfiguration() {
         Map<String, Object> backendParameters = new HashMap();
         backendParameters.put("bucket", "bucket-value");
         backendParameters.put("key", "key-value");
@@ -105,7 +125,7 @@ public class BackendManagerTest {
         return backendConfiguration("s3", backendParameters);
     }
 
-    private Map<String,Object> backendConfiguration(String backendId, Map<String,Object> backendParameters) {
+    private Map<String, Object> backendConfiguration(String backendId, Map<String, Object> backendParameters) {
         Map<String, Object> cfg = new HashMap<>();
         Map<String, Object> backend = new HashMap();
         backend.put(backendId, backendParameters);
@@ -113,7 +133,7 @@ public class BackendManagerTest {
         return cfg;
     }
 
-    private Map<String,Object> badBackendConfiguration() {
+    private Map<String, Object> badBackendConfiguration() {
         Map<String, Object> cfg = new HashMap<>();
         Map<String, Object> backend = new HashMap();
         backend.put("one", new HashMap<>());

@@ -23,7 +23,8 @@ package com.walmartlabs.concord.plugins.terraform;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.walmartlabs.concord.plugins.terraform.actions.*;
-import com.walmartlabs.concord.plugins.terraform.backend.*;
+import com.walmartlabs.concord.plugins.terraform.backend.Backend;
+import com.walmartlabs.concord.plugins.terraform.backend.BackendManager;
 import com.walmartlabs.concord.sdk.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
