@@ -1,5 +1,13 @@
 # Change log
 
+## [Unreleased]
+
+### Added
+
+- terraform: support for additional `backend` types.
+
+
+
 ## [1.15.0] - 2019-08-21
 
 ### Added
