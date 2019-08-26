@@ -129,9 +129,7 @@ public class Terraform {
             throw new IllegalStateException(String.format("The Terraform archive '%s' does not appear to be valid.", toolArchive));
         }
         URL zipFile = toolArchive.toFile().toURI().toURL();
-        System.out.println("!!!!! toolArchive " + toolArchive);
         try (InputStream in = zipFile.openStream()) {
-            System.out.println("!!!!!!!! downloading to " + dstDir);
             IOUtils.unzip(in, dstDir);
         }
 
