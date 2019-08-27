@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Added
+
+- terraform: ability to specify a custom URL for the CLI binary;
+- terraform: the CLI binary is no longer packaged into the plugin's
+JAR. Instead, the new `DependencyManager` is used to download and
+cache the binary. Requires Concord 1.31.0 or higher.
+
 ### Changed
 
 - ldap: make `isMemberOf` method public again.
