@@ -97,6 +97,24 @@ public class LdapTask implements Task {
         }
     }
 
+    public boolean isMemberOf(@InjectVariable("context") Context ctx, String userDn, String groupDn) {
+        SearchResult result = searchByDn(ctx, groupDn);
+        if (result == null) {
+            return false;
+        }
+
+        NamingEnumeration<String> members = getAttrValues(result, "member");
+        if (members != null) {
+            while (members.hasMoreElements()) {
+                String member = members.nextElement();
+                if (Objects.equals(userDn, member) || isMemberOf(ctx, userDn, member)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     private SearchResult searchByDn(Context ctx, String dn) {
         if (dn == null) {
             dn = assertString(ctx, LDAP_DN);
@@ -206,24 +224,6 @@ public class LdapTask implements Task {
         } catch (Exception e) {
             throw new IllegalArgumentException("Error occurred while searching " + e);
         }
-    }
-
-    private boolean isMemberOf(Context ctx, String userDn, String groupDn) {
-        SearchResult result = searchByDn(ctx, groupDn);
-        if (result == null) {
-            return false;
-        }
-
-        NamingEnumeration<String> members = getAttrValues(result, "member");
-        if (members != null) {
-            while (members.hasMoreElements()) {
-                String member = members.nextElement();
-                if (Objects.equals(userDn, member) || isMemberOf(ctx, userDn, member)) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 
     private NamingEnumeration<SearchResult> search(Context ctx, String searchFilter) {
