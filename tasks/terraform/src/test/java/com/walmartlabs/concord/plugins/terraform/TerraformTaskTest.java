@@ -25,16 +25,18 @@ import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.walmartlabs.concord.common.IOUtils;
 import com.walmartlabs.concord.plugins.terraform.backend.BackendManager;
 import com.walmartlabs.concord.sdk.*;
+import okhttp3.Call;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.Reader;
+import java.io.*;
 import java.lang.reflect.Field;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -83,10 +85,12 @@ public class TerraformTaskTest {
     private Path workDir;
     private Path dstDir;
     private Path testFile;
+    private Path downloadManagerCacheDir;
     private LockService lockService;
     private ObjectStorage objectStorage;
     private SecretService secretService;
     private BackendManager backendManager;
+    private DependencyManager dependencyManager;
 
     @Before
     public void setup() throws Exception {
@@ -95,6 +99,8 @@ public class TerraformTaskTest {
         awsCredentials = awsCredentials();
         workDir = workDir();
         testFile = terraformTestFile();
+        downloadManagerCacheDir = Paths.get("/tmp/downloadManager/cache");
+        Files.createDirectories(downloadManagerCacheDir);
 
         System.out.println("Using the following:");
         System.out.println();
@@ -112,6 +118,7 @@ public class TerraformTaskTest {
         objectStorage = createObjectStorage(wireMockRule);
         secretService = createSecretService(workDir);
         backendManager = new BackendManager(lockService, objectStorage);
+        dependencyManager = new OKHttpDownloadManager("terraform");
     }
 
     @Rule
@@ -122,7 +129,7 @@ public class TerraformTaskTest {
     @SuppressWarnings("unchecked")
     public void test() throws Exception {
 
-        TerraformTask t = new TerraformTask(secretService, backendManager);
+        TerraformTask t = new TerraformTask(secretService, backendManager, dependencyManager);
 
         Map<String, Object> args = baseArguments(workDir, dstDir, TerraformTask.Action.PLAN.name());
         args.put(Constants.VARS_FILES, varFiles());
@@ -384,6 +391,46 @@ public class TerraformTaskTest {
                     Map<String, String> map = (Map<String, String>) obj;
                     map.clear();
                     map.putAll(newEnvironment);
+                }
+            }
+        }
+    }
+
+    static class OKHttpDownloadManager implements DependencyManager {
+
+        private final File toolDir;
+
+        public OKHttpDownloadManager(String tool) {
+            this.toolDir = new File(System.getProperty("user.home"), ".m2/tools/" + tool);
+            this.toolDir.mkdirs();
+        }
+
+        @Override
+        public Path resolve(URI uri) throws IOException {
+            String urlString = uri.toString();
+            String fileName = urlString.substring(urlString.lastIndexOf('/') + 1);
+            File target = new File(toolDir, fileName);
+            if (!target.exists()) {
+                OkHttpClient client = new OkHttpClient();
+                Request request = new Request.Builder().url(urlString).build();
+                Call call = client.newCall(request);
+                Response response = call.execute();
+                download(response.body().byteStream(), target);
+            }
+            return target.toPath();
+        }
+
+        //
+        // https://stackoverflow.com/questions/309424/how-do-i-read-convert-an-inputstream-into-a-string-in-java
+        //
+        // surprised this is the fastest way to convert an inputstream to a string
+        //
+        private void download(InputStream stream, File target) throws IOException {
+            byte[] buffer = new byte[1024];
+            int length;
+            try (OutputStream result = new FileOutputStream(target)) {
+                while ((length = stream.read(buffer)) != -1) {
+                    result.write(buffer, 0, length);
                 }
             }
         }
