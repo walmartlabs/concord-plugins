@@ -49,7 +49,7 @@
 
     <properties>
         <scm.connection>scm:git:https://github.com/walmartlabs/concord-plugins.git</scm.connection>
-        <concord.version>1.13.1</concord.version>
+        <concord.version>1.31.0</concord.version>
     </properties>
 
     <dependencyManagement>

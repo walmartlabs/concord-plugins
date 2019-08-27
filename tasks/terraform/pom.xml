@@ -15,9 +15,6 @@
 
     <properties>
         <skipTests>true</skipTests>
-        <terraform.repo>https://releases.hashicorp.com/terraform</terraform.repo>
-        <terraform.version>0.12.5</terraform.version>
-        <terraform.arch>linux_amd64</terraform.arch>
     </properties>
 
     <dependencies>
@@ -78,45 +75,10 @@
             <artifactId>wiremock</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>wagon-maven-plugin</artifactId>
-                <version>2.0.0</version>
-                <executions>
-                    <execution>
-                        <id>download-terraform</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>download-single</goal>
-                        </goals>
-                        <configuration>
-                            <url>${terraform.repo}/${terraform.version}</url>
-                            <fromFile>terraform_${terraform.version}_${terraform.arch}.zip</fromFile>
-                            <toFile>
-                                ${project.build.directory}/classes/com/walmartlabs/concord/plugins/terraform/terraform.zip
-                            </toFile>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
-
-    <profiles>
-        <profile>
-            <id>mac</id>
-            <activation>
-                <os>
-                    <family>mac</family>
-                </os>
-            </activation>
-            <properties>
-                <terraform.arch>darwin_amd64</terraform.arch>
-            </properties>
-        </profile>
-    </profiles>
 </project>

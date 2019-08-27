@@ -44,6 +44,7 @@ public class Terraform {
     private final Path binary;
     private final Map<String, String> baseEnv;
     private final ExecutorService executor;
+    private final Path toolArchive;
 
     /**
      * @param workDir the process' working directory. Used to store temporary files
@@ -51,9 +52,10 @@ public class Terraform {
      * @param baseEnv
      * @throws Exception
      */
-    public Terraform(Path workDir, boolean debug, Map<String, String> baseEnv) throws Exception {
+    public Terraform(Path workDir, boolean debug, Map<String, String> baseEnv, Path toolArchive) throws Exception {
         this.debug = debug;
         this.baseEnv = baseEnv;
+        this.toolArchive = toolArchive;
         this.binary = init(workDir, debug);
         this.executor = Executors.newCachedThreadPool();
     }
@@ -92,7 +94,20 @@ public class Terraform {
         return new Result(code, stdout.get(), stderr.get());
     }
 
-    private static Path init(Path workDir, boolean debug) throws Exception {
+    // During the init we will download the version of Terraform specified by the user if defined, otherwise
+    // we will download the default version. Terraform URLs look like the following:
+    //
+    // https://releases.hashicorp.com/terraform/0.12.5/terraform_0.12.5_linux_amd64.zip
+    // https://releases.hashicorp.com/terraform/0.11.2/terraform_0.11.2_linux_amd64.zip
+    //
+    // So we can generalize to:
+    //
+    // https://releases.hashicorp.com/terraform/${version}/terraform_${version}_linux_amd64.zip
+    //
+    // We will also allow the user to specify the full URL if they want to download the tool zip from
+    // and internal repository manager or other internally managed host.
+    //
+    private Path init(Path workDir, boolean debug) throws Exception {
         Path dstDir = workDir.resolve(".terraform");
         if (!Files.exists(dstDir)) {
             Files.createDirectories(dstDir);
@@ -110,14 +125,15 @@ public class Terraform {
             log.info("init -> extracting the binary into {}", workDir.relativize(dstDir));
         }
 
-        URL zipFile = TerraformTask.class.getResource("terraform.zip");
-        if (zipFile == null) {
-            throw new IllegalStateException("Can't find the Terraform's archive file. Make sure the JAR is built correctly");
+        if (toolArchive == null) {
+            throw new IllegalStateException(String.format("The Terraform archive '%s' does not appear to be valid.", toolArchive));
         }
-
+        URL zipFile = toolArchive.toFile().toURI().toURL();
         try (InputStream in = zipFile.openStream()) {
             IOUtils.unzip(in, dstDir);
         }
+
+
 
         return binaryDst;
     }
