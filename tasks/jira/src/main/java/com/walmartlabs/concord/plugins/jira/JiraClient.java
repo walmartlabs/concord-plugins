@@ -9,9 +9,9 @@ package com.walmartlabs.concord.plugins.jira;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -29,16 +29,12 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import static com.walmartlabs.concord.sdk.ContextUtils.assertString;
 import static com.walmartlabs.concord.sdk.ContextUtils.getNumber;
 
 public class JiraClient {
 
     private static final OkHttpClient client = new OkHttpClient();
     private static final Gson gson = new GsonBuilder().create();
-
-    private static final String JIRA_PWD = "password";
-    private static final String JIRA_UID = "userId";
 
     private static final String CLIENT_CONNECTTIMEOUT = "connectTimeout";
     private static final String CLIENT_READTIMEOUT = "readTimeout";
@@ -47,6 +43,7 @@ public class JiraClient {
     private final Context ctx;
     private String url;
     private int successCode;
+    private String auth;
 
     public JiraClient(Context ctx) {
         this.ctx = ctx;
@@ -62,10 +59,15 @@ public class JiraClient {
         return this;
     }
 
+    public JiraClient jiraAuth(String auth) {
+        this.auth = auth;
+        return this;
+    }
+
     public Map<String, Object> post(Map<String, Object> data) throws IOException {
         RequestBody body = RequestBody.create(
                 MediaType.parse("application/json; charset=utf-8"), gson.toJson(data));
-        Request request = requestBuilder(ctx)
+        Request request = requestBuilder(auth)
                 .url(url)
                 .post(body)
                 .build();
@@ -76,7 +78,7 @@ public class JiraClient {
     public void put(Map<String, Object> data) throws IOException {
         RequestBody body = RequestBody.create(
                 MediaType.parse("application/json; charset=utf-8"), gson.toJson(data));
-        Request request = requestBuilder(ctx)
+        Request request = requestBuilder(auth)
                 .url(url)
                 .put(body)
                 .build();
@@ -85,7 +87,7 @@ public class JiraClient {
     }
 
     public void delete() throws IOException {
-        Request request = requestBuilder(ctx)
+        Request request = requestBuilder(auth)
                 .url(url)
                 .delete()
                 .build();
@@ -93,9 +95,9 @@ public class JiraClient {
         call(request);
     }
 
-    private static Request.Builder requestBuilder(Context ctx) {
+    private static Request.Builder requestBuilder(String auth) {
         return new Request.Builder()
-                .addHeader("Authorization", buildAuth(ctx))
+                .addHeader("Authorization", auth)
                 .addHeader("Accept", "application/json");
     }
 
@@ -137,12 +139,6 @@ public class JiraClient {
         } else {
             throw new RuntimeException("Error: " + result);
         }
-    }
-
-    private static String buildAuth(Context ctx) {
-        String uid = assertString(ctx, JIRA_UID);
-        String pwd = assertString(ctx, JIRA_PWD);
-        return Credentials.basic(uid, pwd);
     }
 
     private static void setClientTimeoutParams(Context ctx) {

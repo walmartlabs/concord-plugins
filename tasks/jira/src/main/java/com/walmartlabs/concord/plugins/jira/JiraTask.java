@@ -20,14 +20,13 @@ package com.walmartlabs.concord.plugins.jira;
  * =====
  */
 
+import com.squareup.okhttp.Credentials;
 import com.walmartlabs.concord.common.ConfigurationUtils;
-import com.walmartlabs.concord.sdk.Context;
-import com.walmartlabs.concord.sdk.ContextUtils;
-import com.walmartlabs.concord.sdk.InjectVariable;
-import com.walmartlabs.concord.sdk.Task;
+import com.walmartlabs.concord.sdk.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Inject;
 import javax.inject.Named;
 import java.io.IOException;
 import java.util.*;
@@ -64,8 +63,24 @@ public class JiraTask implements Task {
     private static final String JIRA_TRANSITION_ID = "transitionId";
     private static final String JIRA_URL = "apiUrl";
 
+    private static final String AUTH_KEY = "auth";
+    private static final String SECRET_NAME_KEY = "name";
+    private static final String ORG_KEY = "org";
+    private static final String UID_KEY = "userId";
+    private static final String USERNAME_KEY = "username";
+    private static final String PASSWORD_KEY = "password";
+    private static final String BASIC_KEY = "basic";
+    private static final String SECRET_KEY = "secret";
+
+    private final SecretService secretService;
+
     @InjectVariable("jiraParams")
     private Map<String, Object> defaults;
+
+    @Inject
+    public JiraTask(SecretService secretService) {
+        this.secretService = secretService;
+    }
 
     @Override
     public void execute(Context ctx) throws Exception {
@@ -193,6 +208,7 @@ public class JiraTask implements Task {
 
             Map<String, Object> results = new JiraClient(ctx)
                     .url(url + "issue/")
+                    .jiraAuth(buildAuth(ctx))
                     .successCode(201)
                     .post(objFields);
 
@@ -349,6 +365,40 @@ public class JiraTask implements Task {
             log.error("Error updating an issue: {}", e.getMessage());
             throw new RuntimeException("Error occurred while updating an issue", e);
         }
+    }
+
+    private String buildAuth(Context ctx) throws Exception {
+        Map<String, Object> auth = getMap(ctx, AUTH_KEY);
+        if (auth == null) {
+            String uid = assertString(ctx, UID_KEY);
+            String pwd = assertString(ctx, PASSWORD_KEY);
+
+            return Credentials.basic(uid, pwd);
+        }
+
+        Map<String, Object> basic = MapUtils.getMap(auth, BASIC_KEY, null);
+        if (basic == null) {
+            Map<String, Object> secret = MapUtils.assertMap(auth, SECRET_KEY);
+            Map<String, String> credentials = getSecretData(ctx, secret);
+
+            return Credentials.basic(credentials.get(USERNAME_KEY), credentials.get(PASSWORD_KEY));
+        }
+
+        String username = MapUtils.assertString(basic, USERNAME_KEY);
+        String password = MapUtils.assertString(basic, PASSWORD_KEY);
+
+        return Credentials.basic(username, password);
+    }
+
+    private Map<String, String> getSecretData(Context ctx, Map<String, Object> input) throws Exception {
+        String secretName = MapUtils.assertString(input, SECRET_NAME_KEY);
+        String org = MapUtils.getString(input, ORG_KEY);
+        String password = MapUtils.getString(input, PASSWORD_KEY);
+
+        String txId = (String) ctx.getVariable(Constants.Context.TX_ID_KEY);
+        String workDir = (String) ctx.getVariable(Constants.Context.WORK_DIR_KEY);
+
+        return secretService.exportCredentials(ctx, txId, workDir, org, secretName, password);
     }
 
     private static Action getAction(Context ctx) {

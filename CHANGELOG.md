@@ -1,5 +1,13 @@
 # Change log
 
+## [Unreleased]
+
+### Added
+
+- jira: authentication using Concord username/password secrets.
+
+
+
 ## [1.17.0] - 2019-07-27
 
 ### Added
