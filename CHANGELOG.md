@@ -4,6 +4,7 @@
 
 ### Added
 
+- new plugin: `tasks/zoom`;
 - jira: authentication using Concord username/password secrets.
 
 

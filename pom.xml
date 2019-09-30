@@ -45,6 +45,7 @@
         <module>tasks/terraform</module>
         <module>tasks/taurus</module>
         <module>tasks/confluence</module>
+        <module>tasks/zoom</module>
     </modules>
 
     <properties>

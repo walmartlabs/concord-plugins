@@ -1,0 +1,20 @@
+configuration:
+  dependencies:
+    - "mvn://com.walmartlabs.concord.plugins:zoom-task:1.18.0"
+
+flows:
+  default:
+    - task: zoom
+      in:
+        action: sendMessage
+        channelId: "myZoomChannelId"
+        headText: "Hello to concord world"
+        bodyText: "Hello everyone"
+        ignoreErrors: true
+
+    - log: "Result status is ${result.ok}"
+    - if: "${!result.ok}"
+      then:
+        - throw: "Error while sending a message: ${result.error}"
+      else:
+        - log: "Data: ${result.data}"
