@@ -28,15 +28,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.walmartlabs.concord.sdk.ContextUtils.assertList;
-import static com.walmartlabs.concord.sdk.ContextUtils.assertMap;
+import static com.walmartlabs.concord.sdk.ContextUtils.*;
 
-/**
- * Created by ppendha on 3/23/19.
- */
 public class Utils {
 
     private static final Logger log = LoggerFactory.getLogger(GremlinTask.class);
@@ -44,6 +41,9 @@ public class Utils {
     private static final Gson gson = new GsonBuilder().create();
     private static final String ATTACK_TARGET_LIST = "targetList";
     private static final String ATTACK_TARGET_TAGS = "targetTags";
+    private static final String ATTACK_TARGET_CONTAINER_IDS = "containerIds";
+    private static final String ATTACK_TARGET_CONTAINER_LABELS = "containerLabels";
+    private static final String ATTACK_TARGET_CONTAINER_COUNT = "containerCount";
     private static final String ATTACK_GUID = "attackGuid";
 
     public static String getAttackDetails(Context ctx, String apiUrl, String attackGuid) {
@@ -60,8 +60,8 @@ public class Utils {
         return gson.toJson(results);
     }
 
-    public static String creatAttack(Context ctx, Map<String, Object> objAttack, Map<String, Object> objArgs,
-                                     String targetType, String apiUrl) {
+    public static String createAttackOnHosts(Context ctx, Map<String, Object> objAttack, Map<String, Object> objArgs,
+                                             String targetType, String apiUrl) {
 
         String attackGuid;
         Map<String, Object> objTargetType;
@@ -103,6 +103,72 @@ public class Utils {
 
         return attackGuid;
     }
+
+    public static String createAttackOnContainers(Context ctx, Map<String, Object> objAttack, Map<String, Object> objArgs,
+                                                  String targetType, String apiUrl) {
+        String attackGuid;
+        Map<String, Object> objTargetType;
+        Map<String, Object> objTargetContainers;
+        Map<String, Object> objCount = new HashMap<>();
+
+        try {
+            if (targetType.equalsIgnoreCase("Exact")) {
+                objTargetType = Collections.singletonMap("type", "Exact");
+                List<String> containerIds = assertList(ctx, ATTACK_TARGET_CONTAINER_IDS);
+                Map<String, Object> objContainersIds = Collections.singletonMap("ids", containerIds);
+                objTargetContainers = Collections.singletonMap("containers", objContainersIds);
+            } else {
+                objTargetType = Collections.singletonMap("type", "Random");
+
+                int containerCount = getInt(ctx, ATTACK_TARGET_CONTAINER_COUNT, 1);
+                objCount = Collections.singletonMap("exact", containerCount);
+
+                Map<String, String> containerLabels = assertMap(ctx, ATTACK_TARGET_CONTAINER_LABELS);
+                Map<String, Object> objLabel = Collections.singletonMap("labels", containerLabels);
+                objTargetContainers = Collections.singletonMap("containers", objLabel);
+
+            }
+
+            // Build command
+            objAttack = ConfigurationUtils.deepMerge(objAttack, objArgs);
+            Map<String, Object> objCommand = Collections.singletonMap("command", objAttack);
+
+            // Build target
+            objTargetType = ConfigurationUtils.deepMerge(objTargetType, objTargetContainers);
+            objTargetType = ConfigurationUtils.deepMerge(objTargetType, objCount);
+
+            Map<String, Object> objTarget = Collections.singletonMap("target", objTargetType);
+            objCommand = ConfigurationUtils.deepMerge(objCommand, objTarget);
+
+            Map<String, Object> results = new GremlinClient(ctx)
+                    .url(apiUrl + "attacks/new")
+                    .successCode(201)
+                    .post(objCommand);
+
+            attackGuid = results.get("results").toString();
+            attackGuid = attackGuid.replaceAll("\"", "");
+            ctx.setVariable(ATTACK_GUID, attackGuid);
+            log.info("Gremlin Attack Guid: '{}'", ctx.getVariable(ATTACK_GUID));
+        } catch (Exception e) {
+            throw new RuntimeException("Error occurred while creating attack", e);
+        }
+
+        return attackGuid;
+    }
+
+    public static String createAttack(Context ctx, Map<String, Object> objAttack, Map<String, Object> objArgs,
+                                      String targetType, String apiUrl, String endPointType) {
+        String attackGuid;
+        if ("containers".equals(endPointType)) {
+            attackGuid = createAttackOnContainers(ctx, objAttack, objArgs, targetType, apiUrl);
+        } else if ("hosts".equals(endPointType)) {
+            attackGuid = createAttackOnHosts(ctx, objAttack, objArgs, targetType, apiUrl);
+        } else {
+            throw new IllegalArgumentException("Invalid endPointType. Allowed values are only 'hosts', 'containers' ");
+        }
+        return attackGuid;
+    }
+
 
     public void halt(Context ctx, String apiUrl, String attackGuid) {
         try {

@@ -20,26 +20,16 @@ package com.walmartlabs.concord.plugins.gremlin;
  * =====
  */
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
+import java.util.Arrays;
+import java.util.List;
 
+public class Constants {
 
-public final class Version {
-    private static final String VERSION;
+    public static final List<String> GREMLIN_VALID_PROTOCOLS = Arrays.asList("TCP", "UDP", "ICMP");
+    public static final String GREMLIN_DEFAULT_TARGET_TYPE = "Exact";
+    public static final String GREMLIN_DEFAULT_ENDPOINT_TYPE = "hosts";
+    public static final List<String> GREMLIN_VALID_UNIT_OPTION = Arrays.asList("GB", "MB", "PERCENT");
 
-    static {
-        Properties props = new Properties();
-        try {
-            InputStream in = Version.class.getClassLoader().getResourceAsStream("version.properties");
-            props.load(in);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        VERSION = props.getProperty("version");
-    }
-
-    public static String getVersion() {
-        return VERSION;
+    private Constants() {
     }
 }

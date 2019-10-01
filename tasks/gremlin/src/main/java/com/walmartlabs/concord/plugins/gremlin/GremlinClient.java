@@ -40,9 +40,7 @@ import java.util.concurrent.TimeUnit;
 import static com.walmartlabs.concord.sdk.ContextUtils.assertString;
 import static com.walmartlabs.concord.sdk.ContextUtils.getBoolean;
 
-/**
- * Created by ppendha on 3/23/19.
- */
+
 public class GremlinClient {
 
     private static final OkHttpClient client = new OkHttpClient();

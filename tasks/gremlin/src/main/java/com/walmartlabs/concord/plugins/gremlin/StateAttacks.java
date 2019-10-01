@@ -26,13 +26,10 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
-import static com.walmartlabs.concord.plugins.gremlin.Utils.creatAttack;
+import static com.walmartlabs.concord.plugins.gremlin.Utils.createAttack;
 import static com.walmartlabs.concord.plugins.gremlin.Utils.getAttackDetails;
 import static com.walmartlabs.concord.sdk.ContextUtils.*;
 
-/**
- * Created by ppendha on 3/23/19.
- */
 public class StateAttacks {
 
     private static final Logger log = LoggerFactory.getLogger(GremlinTask.class);
@@ -54,11 +51,13 @@ public class StateAttacks {
     private static final String ATTACK_LENGTH = "length";
     private static final String ATTACK_GUID = "attackGuid";
     private static final String ATTACK_DETAILS = "attackDetails";
+    private static final String ATTACK_ENDPOINT_TYPE = "endPointType";
 
     public void shutdown(Context ctx, String apiUrl, String appUrl) {
         int delay = getInt(ctx, ATTACK_SHUTDOWN_DELAY, 1);
         boolean reboot = getBoolean(ctx, ATTACK_SHUTDOWN_REBOOT, true);
-        String targetType = getString(ctx, ATTACK_TARGET_TYPE, "Exact");
+        String targetType = getString(ctx, ATTACK_TARGET_TYPE, Constants.GREMLIN_DEFAULT_TARGET_TYPE);
+        String endPointType = getString(ctx, ATTACK_ENDPOINT_TYPE, Constants.GREMLIN_DEFAULT_ENDPOINT_TYPE);
 
         List<String> args;
         if (reboot) {
@@ -70,7 +69,7 @@ public class StateAttacks {
         Map<String, Object> objAttack = Collections.singletonMap("type", "shutdown");
         Map<String, Object> objArgs = Collections.singletonMap("args", args);
 
-        String attackGuid = creatAttack(ctx, objAttack, objArgs, targetType, apiUrl);
+        String attackGuid = createAttack(ctx, objAttack, objArgs, targetType, apiUrl, endPointType);
         String attackDetails = getAttackDetails(ctx, apiUrl, attackGuid);
         ctx.setVariable(ATTACK_DETAILS, attackDetails);
         log.info("URL of Gremlin Attack report: " + appUrl + ctx.getVariable(ATTACK_GUID));
@@ -80,7 +79,8 @@ public class StateAttacks {
         int length = assertInt(ctx, ATTACK_LENGTH);
         int offset = getInt(ctx, ATTACK_TIME_TRAVEL_OFFSET, 5);
         boolean ntp = getBoolean(ctx, ATTACK_TIME_TRAVEL_NTP, false);
-        String targetType = getString(ctx, ATTACK_TARGET_TYPE, "Exact");
+        String targetType = getString(ctx, ATTACK_TARGET_TYPE, Constants.GREMLIN_DEFAULT_TARGET_TYPE);
+        String endPointType = getString(ctx, ATTACK_ENDPOINT_TYPE, Constants.GREMLIN_DEFAULT_ENDPOINT_TYPE);
 
         List<String> args;
         if (ntp) {
@@ -92,7 +92,7 @@ public class StateAttacks {
         Map<String, Object> objAttack = Collections.singletonMap("type", "time_travel");
         Map<String, Object> objArgs = Collections.singletonMap("args", args);
 
-        String attackGuid = creatAttack(ctx, objAttack, objArgs, targetType, apiUrl);
+        String attackGuid = createAttack(ctx, objAttack, objArgs, targetType, apiUrl, endPointType);
         String attackDetails = getAttackDetails(ctx, apiUrl, attackGuid);
         ctx.setVariable(ATTACK_DETAILS, attackDetails);
         log.info("URL of Gremlin Attack report: " + appUrl + ctx.getVariable(ATTACK_GUID));
@@ -109,7 +109,8 @@ public class StateAttacks {
         boolean exact = getBoolean(ctx, ATTACK_PROCESS_KILLER_EXACT, false);
         boolean killChildren = getBoolean(ctx, ATTACK_PROCESS_KILLER_KILLCHILDREN, false);
         boolean fullMatch = getBoolean(ctx, ATTACK_PROCESS_KILLER_FULLMATCH, false);
-        String targetType = getString(ctx, ATTACK_TARGET_TYPE, "Exact");
+        String targetType = getString(ctx, ATTACK_TARGET_TYPE, Constants.GREMLIN_DEFAULT_TARGET_TYPE);
+        String endPointType = getString(ctx, ATTACK_ENDPOINT_TYPE, Constants.GREMLIN_DEFAULT_ENDPOINT_TYPE);
 
         List<String> args = new ArrayList<>(Arrays.asList("-l", Integer.toString(length), "-i", Integer.toString(interval), "-p", process));
 
@@ -146,7 +147,7 @@ public class StateAttacks {
         Map<String, Object> objAttack = Collections.singletonMap("type", "process_killer");
         Map<String, Object> objArgs = Collections.singletonMap("args", args);
 
-        String attackGuid = creatAttack(ctx, objAttack, objArgs, targetType, apiUrl);
+        String attackGuid = createAttack(ctx, objAttack, objArgs, targetType, apiUrl, endPointType);
         String attackDetails = getAttackDetails(ctx, apiUrl, attackGuid);
         ctx.setVariable(ATTACK_DETAILS, attackDetails);
         log.info("URL of Gremlin Attack report: " + appUrl + ctx.getVariable(ATTACK_GUID));

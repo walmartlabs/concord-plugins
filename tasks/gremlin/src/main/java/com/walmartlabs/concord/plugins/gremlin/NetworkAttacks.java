@@ -26,19 +26,16 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
-import static com.walmartlabs.concord.plugins.gremlin.Utils.creatAttack;
+import static com.walmartlabs.concord.plugins.gremlin.Utils.createAttack;
 import static com.walmartlabs.concord.plugins.gremlin.Utils.getAttackDetails;
 import static com.walmartlabs.concord.sdk.ContextUtils.*;
 
-/**
- * Created by ppendha on 3/23/19.
- */
 public class NetworkAttacks {
 
     private static final Logger log = LoggerFactory.getLogger(GremlinTask.class);
     private static final String ATTACK_IP_ADDRESSES = "ipAddresses";
     private static final String ATTACK_DEVICE = "device";
-    private static final String ATTACK_HOSTNAMES = "hostnames";
+    private static final String ATTACK_HOST_NAMES = "hostnames";
     private static final String ATTACK_EGRESS_PORTS = "egressPorts";
     private static final String ATTACK_INGRESS_PORTS = "ingressPorts";
     private static final String ATTACK_PROTOCOL = "protocol";
@@ -50,38 +47,31 @@ public class NetworkAttacks {
     private static final String ATTACK_LENGTH = "length";
     private static final String ATTACK_GUID = "attackGuid";
     private static final String ATTACK_DETAILS = "attackDetails";
+    private static final String ATTACK_ENDPOINT_TYPE = "endPointType";
 
     public void blackhole(Context ctx, String apiUrl, String appUrl) {
         int length = assertInt(ctx, ATTACK_LENGTH);
         String ipAddresses = assertString(ctx, ATTACK_IP_ADDRESSES);
         String device = getString(ctx, ATTACK_DEVICE, null);
-        String hostnames = getString(ctx, ATTACK_HOSTNAMES, null);
+        String hostNames = getString(ctx, ATTACK_HOST_NAMES, null);
         String egressPorts = getString(ctx, ATTACK_EGRESS_PORTS, null);
         String ingressPorts = getString(ctx, ATTACK_INGRESS_PORTS, null);
         String protocol = getString(ctx, ATTACK_PROTOCOL, null);
-        String targetType = getString(ctx, ATTACK_TARGET_TYPE, "Exact");
+        String targetType = getString(ctx, ATTACK_TARGET_TYPE, Constants.GREMLIN_DEFAULT_TARGET_TYPE);
+        String endPointType = getString(ctx, ATTACK_ENDPOINT_TYPE, Constants.GREMLIN_DEFAULT_ENDPOINT_TYPE);
 
         List<String> args = new ArrayList<>(Arrays.asList("-l", Integer.toString(length), "-i", ipAddresses));
 
-        if (protocol != null && !protocol.isEmpty()) {
-            List<String> validProtocol = Arrays.asList("TCP", "UDP", "ICMP");
-            if (validProtocol.contains(protocol.toUpperCase())) {
-                protocol = protocol.toUpperCase();
-                args.add("-P");
-                args.add(protocol);
-            } else {
-                throw new IllegalArgumentException("Invalid Protocol. Allowed values are only TCP, UDP, ICMP");
-            }
-        }
+        configureProtocol(protocol, args);
 
         if (device != null && !device.isEmpty()) {
             args.add("-d");
             args.add(device);
         }
 
-        if (hostnames != null && !hostnames.isEmpty()) {
+        if (hostNames != null && !hostNames.isEmpty()) {
             args.add("-h");
-            args.add(hostnames);
+            args.add(hostNames);
         }
 
         if (egressPorts != null && !egressPorts.isEmpty()) {
@@ -97,7 +87,8 @@ public class NetworkAttacks {
         Map<String, Object> objAttack = Collections.singletonMap("type", "blackhole");
         Map<String, Object> objArgs = Collections.singletonMap("args", args);
 
-        String attackGuid = creatAttack(ctx, objAttack, objArgs, targetType, apiUrl);
+        String attackGuid = createAttack(ctx, objAttack, objArgs, targetType, apiUrl, endPointType);
+
         String attackDetails = getAttackDetails(ctx, apiUrl, attackGuid);
         ctx.setVariable(ATTACK_DETAILS, attackDetails);
         log.info("URL of Gremlin Attack report: " + appUrl + ctx.getVariable(ATTACK_GUID));
@@ -108,7 +99,8 @@ public class NetworkAttacks {
         String ipAddresses = assertString(ctx, ATTACK_IP_ADDRESSES);
         String device = getString(ctx, ATTACK_DEVICE, null);
         String protocol = getString(ctx, ATTACK_PROTOCOL, null);
-        String targetType = getString(ctx, ATTACK_TARGET_TYPE, "Exact");
+        String targetType = getString(ctx, ATTACK_TARGET_TYPE, Constants.GREMLIN_DEFAULT_TARGET_TYPE);
+        String endPointType = getString(ctx, ATTACK_ENDPOINT_TYPE, Constants.GREMLIN_DEFAULT_ENDPOINT_TYPE);
 
         List<String> args = new ArrayList<>(Arrays.asList("-l", Integer.toString(length), "-i", ipAddresses));
 
@@ -131,7 +123,7 @@ public class NetworkAttacks {
         Map<String, Object> objAttack = Collections.singletonMap("type", "dns");
         Map<String, Object> objArgs = Collections.singletonMap("args", args);
 
-        String attackGuid = creatAttack(ctx, objAttack, objArgs, targetType, apiUrl);
+        String attackGuid = createAttack(ctx, objAttack, objArgs, targetType, apiUrl, endPointType);
         String attackDetails = getAttackDetails(ctx, apiUrl, attackGuid);
         ctx.setVariable(ATTACK_DETAILS, attackDetails);
         log.info("URL of Gremlin Attack report: " + appUrl + ctx.getVariable(ATTACK_GUID));
@@ -141,34 +133,25 @@ public class NetworkAttacks {
         int length = assertInt(ctx, ATTACK_LENGTH);
         String ipAddresses = assertString(ctx, ATTACK_IP_ADDRESSES);
         String device = getString(ctx, ATTACK_DEVICE, null);
-        String hostnames = getString(ctx, ATTACK_HOSTNAMES, null);
+        String hostNames = getString(ctx, ATTACK_HOST_NAMES, null);
         String egressPorts = getString(ctx, ATTACK_EGRESS_PORTS, null);
         String sourcePorts = getString(ctx, ATTACK_SOURCE_PORTS, null);
         int delay = getInt(ctx, ATTACK_LATENCY_DELAY, 10);
         String protocol = getString(ctx, ATTACK_PROTOCOL, null);
-        String targetType = getString(ctx, ATTACK_TARGET_TYPE, "Exact");
+        String targetType = getString(ctx, ATTACK_TARGET_TYPE, Constants.GREMLIN_DEFAULT_TARGET_TYPE);
+        String endPointType = getString(ctx, ATTACK_ENDPOINT_TYPE, Constants.GREMLIN_DEFAULT_ENDPOINT_TYPE);
 
         List<String> args = new ArrayList<>(Arrays.asList("-l", Integer.toString(length), "-i", ipAddresses, "-m", Integer.toString(delay)));
-
-        if (protocol != null && !protocol.isEmpty()) {
-            List<String> validProtocol = Arrays.asList("TCP", "UDP", "ICMP");
-            if (validProtocol.contains(protocol.toUpperCase())) {
-                protocol = protocol.toUpperCase();
-                args.add("-P");
-                args.add(protocol);
-            } else {
-                throw new IllegalArgumentException("Invalid Protocol. Allowed values are only TCP, UDP, ICMP");
-            }
-        }
+        configureProtocol(protocol, args);
 
         if (device != null && !device.isEmpty()) {
             args.add("-d");
             args.add(device);
         }
 
-        if (hostnames != null && !hostnames.isEmpty()) {
+        if (hostNames != null && !hostNames.isEmpty()) {
             args.add("-h");
-            args.add(hostnames);
+            args.add(hostNames);
         }
 
         if (egressPorts != null && !egressPorts.isEmpty()) {
@@ -184,7 +167,7 @@ public class NetworkAttacks {
         Map<String, Object> objAttack = Collections.singletonMap("type", "latency");
         Map<String, Object> objArgs = Collections.singletonMap("args", args);
 
-        String attackGuid = creatAttack(ctx, objAttack, objArgs, targetType, apiUrl);
+        String attackGuid = createAttack(ctx, objAttack, objArgs, targetType, apiUrl, endPointType);
         String attackDetails = getAttackDetails(ctx, apiUrl, attackGuid);
         ctx.setVariable(ATTACK_DETAILS, attackDetails);
         log.info("URL of Gremlin Attack report: " + appUrl + ctx.getVariable(ATTACK_GUID));
@@ -194,35 +177,26 @@ public class NetworkAttacks {
         int length = assertInt(ctx, ATTACK_LENGTH);
         String ipAddresses = assertString(ctx, ATTACK_IP_ADDRESSES);
         String device = getString(ctx, ATTACK_DEVICE, null);
-        String hostnames = getString(ctx, ATTACK_HOSTNAMES, null);
+        String hostNames = getString(ctx, ATTACK_HOST_NAMES, null);
         String egressPorts = getString(ctx, ATTACK_EGRESS_PORTS, null);
         String sourcePorts = getString(ctx, ATTACK_SOURCE_PORTS, null);
         int percent = getInt(ctx, ATTACK_PACKET_LOSS_PERCENT, 1);
         String protocol = getString(ctx, ATTACK_PROTOCOL, null);
         boolean corrupt = getBoolean(ctx, ATTACK_PACKET_LOSS_CORRUPT, false);
-        String targetType = getString(ctx, ATTACK_TARGET_TYPE, "Exact");
+        String targetType = getString(ctx, ATTACK_TARGET_TYPE, Constants.GREMLIN_DEFAULT_TARGET_TYPE);
+        String endPointType = getString(ctx, ATTACK_ENDPOINT_TYPE, Constants.GREMLIN_DEFAULT_ENDPOINT_TYPE);
 
         List<String> args = new ArrayList<>(Arrays.asList("-l", Integer.toString(length), "-i", ipAddresses, "-r", Integer.toString(percent)));
-
-        if (protocol != null && !protocol.isEmpty()) {
-            List<String> validProtocol = Arrays.asList("TCP", "UDP", "ICMP");
-            if (validProtocol.contains(protocol.toUpperCase())) {
-                protocol = protocol.toUpperCase();
-                args.add("-P");
-                args.add(protocol);
-            } else {
-                throw new IllegalArgumentException("Invalid Protocol. Allowed values are only TCP, UDP, ICMP");
-            }
-        }
+        configureProtocol(protocol, args);
 
         if (device != null && !device.isEmpty()) {
             args.add("-d");
             args.add(device);
         }
 
-        if (hostnames != null && !hostnames.isEmpty()) {
+        if (hostNames != null && !hostNames.isEmpty()) {
             args.add("-h");
-            args.add(hostnames);
+            args.add(hostNames);
         }
 
         if (egressPorts != null && !egressPorts.isEmpty()) {
@@ -242,9 +216,22 @@ public class NetworkAttacks {
         Map<String, Object> objAttack = Collections.singletonMap("type", "packet_loss");
         Map<String, Object> objArgs = Collections.singletonMap("args", args);
 
-        String attackGuid = creatAttack(ctx, objAttack, objArgs, targetType, apiUrl);
+        String attackGuid = createAttack(ctx, objAttack, objArgs, targetType, apiUrl, endPointType);
         String attackDetails = getAttackDetails(ctx, apiUrl, attackGuid);
         ctx.setVariable(ATTACK_DETAILS, attackDetails);
         log.info("URL of Gremlin Attack report: " + appUrl + ctx.getVariable(ATTACK_GUID));
+    }
+
+    private void configureProtocol(String protocol, List<String> args) {
+        if (protocol != null && !protocol.isEmpty()) {
+            List<String> validProtocol = Constants.GREMLIN_VALID_PROTOCOLS;
+            if (validProtocol.contains(protocol.toUpperCase())) {
+                protocol = protocol.toUpperCase();
+                args.add("-P");
+                args.add(protocol);
+            } else {
+                throw new IllegalArgumentException("Invalid Protocol. Allowed values are only TCP, UDP, ICMP");
+            }
+        }
     }
 }

@@ -33,9 +33,6 @@ import java.util.Map;
 
 import static com.walmartlabs.concord.sdk.ContextUtils.assertString;
 
-/**
- * Created by ppendha on 3/23/19.
- */
 @Named("gremlin")
 public class GremlinTask implements Task {
 

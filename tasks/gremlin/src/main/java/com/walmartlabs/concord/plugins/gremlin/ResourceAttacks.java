@@ -26,13 +26,10 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
-import static com.walmartlabs.concord.plugins.gremlin.Utils.creatAttack;
+import static com.walmartlabs.concord.plugins.gremlin.Utils.createAttack;
 import static com.walmartlabs.concord.plugins.gremlin.Utils.getAttackDetails;
 import static com.walmartlabs.concord.sdk.ContextUtils.*;
 
-/**
- * Created by ppendha on 3/23/19.
- */
 public class ResourceAttacks {
 
     private static final Logger log = LoggerFactory.getLogger(GremlinTask.class);
@@ -50,18 +47,21 @@ public class ResourceAttacks {
     private static final String ATTACK_BLOCK_SIZE = "blockSize";
     private static final String ATTACK_GUID = "attackGuid";
     private static final String ATTACK_DETAILS = "attackDetails";
+    private static final String ATTACK_ENDPOINT_TYPE = "endPointType";
+
 
     public void cpu(Context ctx, String apiUrl, String appUrl) {
         int cores = assertInt(ctx, ATTACK_CPU_CORES);
         int length = assertInt(ctx, ATTACK_LENGTH);
-        String targetType = getString(ctx, ATTACK_TARGET_TYPE, "Exact");
+        String targetType = getString(ctx, ATTACK_TARGET_TYPE, Constants.GREMLIN_DEFAULT_TARGET_TYPE);
+        String endPointType = getString(ctx, ATTACK_ENDPOINT_TYPE, Constants.GREMLIN_DEFAULT_ENDPOINT_TYPE);
 
         List<String> args = new ArrayList<>(Arrays.asList("-l", Integer.toString(length), "-c", Integer.toString(cores)));
 
         Map<String, Object> objAttack = Collections.singletonMap("type", "cpu");
         Map<String, Object> objArgs = Collections.singletonMap("args", args);
 
-        String attackGuid = creatAttack(ctx, objAttack, objArgs, targetType, apiUrl);
+        String attackGuid = createAttack(ctx, objAttack, objArgs, targetType, apiUrl, endPointType);
         String attackDetails = getAttackDetails(ctx, apiUrl, attackGuid);
         ctx.setVariable(ATTACK_DETAILS, attackDetails);
         log.info("URL of Gremlin Attack report: " + appUrl + ctx.getVariable(ATTACK_GUID));
@@ -70,10 +70,11 @@ public class ResourceAttacks {
     public void memory(Context ctx, String apiUrl, String appUrl) {
         String unitOption = assertString(ctx, ATTACK_MEMORY_UNIT_OPTIONS);
         int length = assertInt(ctx, ATTACK_LENGTH);
-        String targetType = getString(ctx, ATTACK_TARGET_TYPE, "Exact");
+        String targetType = getString(ctx, ATTACK_TARGET_TYPE, Constants.GREMLIN_DEFAULT_TARGET_TYPE);
+        String endPointType = getString(ctx, ATTACK_ENDPOINT_TYPE, Constants.GREMLIN_DEFAULT_ENDPOINT_TYPE);
 
         List<String> args = new ArrayList<>(Arrays.asList("-l", Integer.toString(length)));
-        List<String> validUnitOption = Arrays.asList("GB", "MB", "PERCENT");
+        List<String> validUnitOption = Constants.GREMLIN_VALID_UNIT_OPTION;
 
         if (validUnitOption.contains(unitOption.toUpperCase())) {
             unitOption = unitOption.toUpperCase();
@@ -98,7 +99,7 @@ public class ResourceAttacks {
         Map<String, Object> objAttack = Collections.singletonMap("type", "memory");
         Map<String, Object> objArgs = Collections.singletonMap("args", args);
 
-        String attackGuid = creatAttack(ctx, objAttack, objArgs, targetType, apiUrl);
+        String attackGuid = createAttack(ctx, objAttack, objArgs, targetType, apiUrl, endPointType);
         String attackDetails = getAttackDetails(ctx, apiUrl, attackGuid);
         ctx.setVariable(ATTACK_DETAILS, attackDetails);
         log.info("URL of Gremlin Attack report: " + appUrl + ctx.getVariable(ATTACK_GUID));
@@ -110,7 +111,8 @@ public class ResourceAttacks {
         int percent = assertInt(ctx, ATTACK_DISK_PERCENT);
         int workers = getInt(ctx, ATTACK_WORKERS, 1);
         int blockSize = getInt(ctx, ATTACK_BLOCK_SIZE, 5);
-        String targetType = getString(ctx, ATTACK_TARGET_TYPE, "Exact");
+        String targetType = getString(ctx, ATTACK_TARGET_TYPE, Constants.GREMLIN_DEFAULT_TARGET_TYPE);
+        String endPointType = getString(ctx, ATTACK_ENDPOINT_TYPE, Constants.GREMLIN_DEFAULT_ENDPOINT_TYPE);
 
         List<String> args = new ArrayList<>(Arrays.asList("-d", dir, "--length", Integer.toString(length),
                 "-p", Integer.toString(percent), "-w", Integer.toString(workers), "-b", Integer.toString(blockSize)));
@@ -118,7 +120,7 @@ public class ResourceAttacks {
         Map<String, Object> objAttack = Collections.singletonMap("type", "disk");
         Map<String, Object> objArgs = Collections.singletonMap("args", args);
 
-        String attackGuid = creatAttack(ctx, objAttack, objArgs, targetType, apiUrl);
+        String attackGuid = createAttack(ctx, objAttack, objArgs, targetType, apiUrl, endPointType);
         String attackDetails = getAttackDetails(ctx, apiUrl, attackGuid);
         ctx.setVariable(ATTACK_DETAILS, attackDetails);
         log.info("URL of Gremlin Attack report: " + appUrl + ctx.getVariable(ATTACK_GUID));
@@ -131,7 +133,8 @@ public class ResourceAttacks {
         int workers = getInt(ctx, ATTACK_WORKERS, 1);
         int blockSize = getInt(ctx, ATTACK_BLOCK_SIZE, 5);
         int blockCount = getInt(ctx, ATTACK_IO_BLOCK_COUNT, 5);
-        String targetType = getString(ctx, ATTACK_TARGET_TYPE, "Exact");
+        String targetType = getString(ctx, ATTACK_TARGET_TYPE, Constants.GREMLIN_DEFAULT_TARGET_TYPE);
+        String endPointType = getString(ctx, ATTACK_ENDPOINT_TYPE, Constants.GREMLIN_DEFAULT_ENDPOINT_TYPE);
 
         List<String> args = new ArrayList<>(Arrays.asList("-d", dir, "-l", Integer.toString(length),
                 "-m", mode, "-w", Integer.toString(workers), "-s", Integer.toString(blockSize), "-c", Integer.toString(blockCount)));
@@ -139,7 +142,7 @@ public class ResourceAttacks {
         Map<String, Object> objAttack = Collections.singletonMap("type", "io");
         Map<String, Object> objArgs = Collections.singletonMap("args", args);
 
-        String attackGuid = creatAttack(ctx, objAttack, objArgs, targetType, apiUrl);
+        String attackGuid = createAttack(ctx, objAttack, objArgs, targetType, apiUrl, endPointType);
         String attackDetails = getAttackDetails(ctx, apiUrl, attackGuid);
         ctx.setVariable(ATTACK_DETAILS, attackDetails);
         log.info("URL of Gremlin Attack report: " + appUrl + ctx.getVariable(ATTACK_GUID));
