@@ -42,6 +42,7 @@
         <module>tasks/jsonpath</module>
         <module>tasks/ldap</module>
         <module>tasks/puppet</module>
+        <module>tasks/s3</module>
         <module>tasks/terraform</module>
         <module>tasks/taurus</module>
         <module>tasks/confluence</module>

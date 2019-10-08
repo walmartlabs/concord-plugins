@@ -4,6 +4,7 @@
 
 ### Added
 
+- new plugin: `tasks/s3`;
 - new plugin: `tasks/zoom`;
 - gremlin: support for attacks on containers;
 - jira: new action `addAttachment`;

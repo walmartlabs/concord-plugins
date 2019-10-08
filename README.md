@@ -12,6 +12,7 @@ A collection of plugins for [Concord](https://concord.walmartlabs.com).
 - [jsonpath](./tasks/jsonpath) - [JSON path](https://github.com/json-path/JsonPath) plugin [[docs](https://concord.walmartlabs.com/docs/plugins/jsonpath.html)];
 - [ldap](./tasks/ldap) - LDAP query plugin [[docs](https://concord.walmartlabs.com/docs/plugins/ldap.html)];
 - [puppet](./tasks/puppet) - [Puppet](https://puppet.com) plugin [[docs](https://concord.walmartlabs.com/docs/plugins/puppet.html)]
+- [s3](./tasks/s3) - [S3](https://aws.amazon.com/s3/) plugin [[docs](https://concord.walmartlabs.com/docs/plugins/s3.html)]
 - [taurus](./tasks/taurus) - [Taurus](https://gettaurus.org/) plugin [[docs](https://concord.walmartlabs.com/docs/plugins/taurus.html)]
 - [terraform](./tasks/terraform) - [Terraform](https://www.terraform.io/) plugin [[docs](https://concord.walmartlabs.com/docs/plugins/terraform.html)].
 - [zoom](./tasks/zoom) - [Zoom](https://marketplace.zoom.us/docs/api-reference/zoom-api) plugin [[docs](https://concord.walmartlabs.com/docs/plugins/zoom.html)]

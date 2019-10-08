@@ -1,0 +1,34 @@
+configuration:
+  dependencies:
+    - "mvn://com.walmartlabs.concord.plugins:s3-task:1.18.0"
+
+flows:
+  # store an object
+  - task: s3
+    in:
+      action: "putObject"
+      endpoint: "http://s3.example.com" # optional
+      region: "some-region"
+      pathStyleAccess: true # optional, some S3 API implementations require it
+      auth:
+        basic:
+          accessKey: "..."
+          secretKey: "..."
+      bucketName: "myBucket"
+      objectKey: "myObject"
+      src: "local.file"
+
+  # retrieve an object
+  - task: s3
+    in:
+      action: "getObject"
+      region: "some-region"
+      pathStyleAccess: true # optional, some S3 API implementations require it
+      auth:
+        basic:
+          accessKey: "..."
+          secretKey: "..."
+      bucketName: "myBucket"
+      objectKey: "myObject"
+
+  - log: "Stored as ${result.path}"
