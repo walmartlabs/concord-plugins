@@ -31,8 +31,6 @@ import javax.inject.Named;
 import java.io.IOException;
 import java.util.*;
 
-import static com.walmartlabs.concord.sdk.ContextUtils.*;
-
 /**
  * Created by ppendha on 6/18/18.
  */
@@ -41,34 +39,64 @@ public class JiraTask implements Task {
 
     private static final Logger log = LoggerFactory.getLogger(JiraTask.class);
 
+    // IN params
     private static final String ACTION_KEY = "action";
-    private static final String JIRA_ASSIGNEE = "assignee";
-    private static final String JIRA_COMMENT = "comment";
+    private static final String JIRA_ASSIGNEE_KEY = "assignee";
+    private static final String JIRA_AUTH_KEY = "auth";
+    private static final String JIRA_COMMENT_KEY = "comment";
     private static final String JIRA_COMPONENTID = "componentId";
     private static final String JIRA_COMPONENTNAME = "componentName";
-    private static final String JIRA_CUSTOM_FIELDS_ATTR = "customFieldsTypeFieldAttr";
-    private static final String JIRA_CUSTOM_FIELDS_KV = "customFieldsTypeKv";
-    private static final String JIRA_DESCRIPTION = "description";
-    private static final String JIRA_ISSUE_COMPONENTS = "components";
-    private static final String JIRA_ISSUE_ID = "issueId";
+    private static final String JIRA_CUSTOM_FIELDS_ATTR_KEY = "customFieldsTypeFieldAttr";
+    private static final String JIRA_CUSTOM_FIELDS_KV_KEY = "customFieldsTypeKv";
+    private static final String JIRA_DESCRIPTION_KEY = "description";
+    private static final String JIRA_ISSUE_COMPONENTS_KEY = "components";
+    private static final String JIRA_ISSUE_ID_KEY = "issueId";
     private static final String JIRA_ISSUE_KEY = "issueKey";
-    private static final String JIRA_ISSUE_LABELS = "labels";
-    private static final String JIRA_ISSUE_PRIORITY = "priority";
-    private static final String JIRA_ISSUE_TYPE = "issueType";
+    private static final String JIRA_ISSUE_LABELS_KEY = "labels";
+    private static final String JIRA_ISSUE_PRIORITY_KEY = "priority";
+    private static final String JIRA_ISSUE_STATUS = "issueStatus";
+    private static final String JIRA_ISSUE_TYPE_KEY = "issueType";
     private static final String JIRA_PARENT_ISSUE_KEY = "parentIssueKey";
+    private static final String JIRA_PASSWORD_KEY = "password";
     private static final String JIRA_PROJECT_KEY = "projectKey";
-    private static final String JIRA_REQUESTOR_UID = "requestorUid";
-    private static final String JIRA_SUMMARY = "summary";
-    private static final String JIRA_TRANSITION_COMMENT = "transitionComment";
-    private static final String JIRA_TRANSITION_ID = "transitionId";
-    private static final String JIRA_URL = "apiUrl";
+    private static final String JIRA_REQUESTOR_UID_KEY = "requestorUid";
+    private static final String JIRA_SUMMARY_KEY = "summary";
+    private static final String JIRA_TRANSITION_COMMENT_KEY = "transitionComment";
+    private static final String JIRA_TRANSITION_ID_KEY = "transitionId";
+    private static final String JIRA_URL_KEY = "apiUrl";
+    private static final String JIRA_USER_ID_KEY = "userId";
 
-    private static final String AUTH_KEY = "auth";
+    private static final String[] ALL_IN_PARAMS = {
+            ACTION_KEY,
+            JIRA_ASSIGNEE_KEY,
+            JIRA_AUTH_KEY,
+            JIRA_COMMENT_KEY,
+            JIRA_COMPONENTID,
+            JIRA_COMPONENTNAME,
+            JIRA_CUSTOM_FIELDS_ATTR_KEY,
+            JIRA_CUSTOM_FIELDS_KV_KEY,
+            JIRA_DESCRIPTION_KEY,
+            JIRA_ISSUE_COMPONENTS_KEY,
+            JIRA_ISSUE_ID_KEY,
+            JIRA_ISSUE_KEY,
+            JIRA_ISSUE_LABELS_KEY,
+            JIRA_ISSUE_PRIORITY_KEY,
+            JIRA_ISSUE_STATUS,
+            JIRA_ISSUE_TYPE_KEY,
+            JIRA_PARENT_ISSUE_KEY,
+            JIRA_PASSWORD_KEY,
+            JIRA_PROJECT_KEY,
+            JIRA_REQUESTOR_UID_KEY,
+            JIRA_SUMMARY_KEY,
+            JIRA_TRANSITION_COMMENT_KEY,
+            JIRA_TRANSITION_ID_KEY,
+            JIRA_URL_KEY,
+            JIRA_USER_ID_KEY
+    };
+
     private static final String SECRET_NAME_KEY = "name";
     private static final String ORG_KEY = "org";
-    private static final String UID_KEY = "userId";
     private static final String USERNAME_KEY = "username";
-    private static final String PASSWORD_KEY = "password";
     private static final String BASIC_KEY = "basic";
     private static final String SECRET_KEY = "secret";
 
@@ -83,62 +111,57 @@ public class JiraTask implements Task {
     }
 
     @Override
-    public void execute(Context ctx) throws Exception {
-        Action action = getAction(ctx);
+    public void execute(Context ctx) {
+        Map<String, Object> cfg = createCfg(ctx);
+        Action action = getAction(cfg);
 
-        // add all defaults to ctx if not already present.  Useful to avoid having to set userId, password, projectKey, etc for each individual task call
-        if (defaults != null) {
-            Set<String> overrideVars = ctx.getVariableNames();
-            defaults.forEach((k, v) -> {
-                if (!overrideVars.contains(k)) {
-                    ctx.setVariable(k, v);
-                }
-            });
-        }
-
-        String jiraUri = assertString(ctx, JIRA_URL);
-
-        log.info("Using Jira Url {}", jiraUri);
+        String jiraUrl = formatUrl(MapUtils.assertString(cfg, JIRA_URL_KEY));
+        log.info("Using JIRA URL: {}", jiraUrl);
 
         switch (action) {
             case CREATEISSUE: {
                 log.info("Starting 'CreateIssue' Action");
-                createIssue(ctx, jiraUri);
+                createIssue(ctx, cfg, jiraUrl);
                 break;
             }
             case ADDCOMMENT: {
                 log.info("Starting 'AddComment' Action");
-                addComment(ctx, jiraUri);
+                addComment(cfg, jiraUrl);
                 break;
             }
             case CREATECOMPONENT: {
                 log.info("Starting 'CreateComponent' Action");
-                createComponent(ctx, jiraUri);
+                createComponent(cfg, jiraUrl);
                 break;
             }
             case DELETECOMPONENT: {
                 log.info("Starting 'DeleteComponent' Action");
-                deleteComponent(ctx, jiraUri);
+                deleteComponent(cfg, jiraUrl);
                 break;
             }
             case TRANSITION: {
                 log.info("Starting 'Transition' Action");
-                transition(ctx, jiraUri);
+                transition(cfg, jiraUrl);
                 break;
             }
             case DELETEISSUE: {
                 log.info("Starting 'DeleteIssue' Action");
-                deleteIssue(ctx, jiraUri);
+                deleteIssue(cfg, jiraUrl);
                 break;
             }
             case UPDATEISSUE: {
                 log.info("Starting 'UpdateIssue' Action");
-                updateIssue(ctx, jiraUri);
+                updateIssue(cfg, jiraUrl);
                 break;
             }
             case CREATESUBTASK: {
                 log.info("Starting 'CreateSubTask' Action");
-                createSubTask(ctx, jiraUri);
+                createSubTask(ctx, cfg, jiraUrl);
+                break;
+            }
+            case CURRENTSTATUS: {
+                log.info("Starting 'CurrentStatus' Action");
+                currentStatus(ctx, cfg, jiraUrl);
                 break;
             }
             default:
@@ -146,18 +169,35 @@ public class JiraTask implements Task {
         }
     }
 
-    public String createIssue(Context ctx, String url) {
-        String projectKey = assertString(ctx, JIRA_PROJECT_KEY);
-        String summary = assertString(ctx, JIRA_SUMMARY);
-        String description = assertString(ctx, JIRA_DESCRIPTION);
-        String requestorUid = getString(ctx, JIRA_REQUESTOR_UID);
-        String issueType = assertString(ctx, JIRA_ISSUE_TYPE);
-        String issuePriority = getString(ctx, JIRA_ISSUE_PRIORITY, null);
-        Map<String, Object> assignee = getMap(ctx, JIRA_ASSIGNEE, null);
-        List<String> labels = getList(ctx, JIRA_ISSUE_LABELS, null);
-        List<String> components = getList(ctx, JIRA_ISSUE_COMPONENTS, null);
-        Map<String, String> customFieldsTypeKv = getMap(ctx, JIRA_CUSTOM_FIELDS_KV, null);
-        Map<String, Object> customFieldsTypeAtt = getMap(ctx, JIRA_CUSTOM_FIELDS_ATTR, null);
+    public String getStatus(@InjectVariable("context") Context ctx, String issueKey) {
+        Map<String, Object> cfg = createCfg(ctx);
+        String jiraUrl = formatUrl(MapUtils.assertString(cfg, JIRA_URL_KEY));
+        return getStatus(ctx, cfg, jiraUrl, issueKey);
+    }
+
+    private Map<String, Object> createCfg(Context ctx) {
+        Map<String, Object> m = new HashMap<>(defaults != null ? defaults : Collections.emptyMap());
+
+        put(m, com.walmartlabs.concord.sdk.Constants.Context.WORK_DIR_KEY, ctx);
+        for (String k : ALL_IN_PARAMS) {
+            put(m, k, ctx);
+        }
+
+        return m;
+    }
+
+    private String createIssue(Context ctx, Map<String, Object> cfg, String url) {
+        String projectKey = MapUtils.assertString(cfg, JIRA_PROJECT_KEY);
+        String summary = MapUtils.assertString(cfg, JIRA_SUMMARY_KEY);
+        String description = MapUtils.assertString(cfg, JIRA_DESCRIPTION_KEY);
+        String requestorUid = MapUtils.getString(cfg, JIRA_REQUESTOR_UID_KEY);
+        String issueType = MapUtils.assertString(cfg, JIRA_ISSUE_TYPE_KEY);
+        String issuePriority = MapUtils.getString(cfg, JIRA_ISSUE_PRIORITY_KEY, null);
+        Map<String, Object> assignee = MapUtils.getMap(cfg, JIRA_ASSIGNEE_KEY, null);
+        List<String> labels = MapUtils.getList(cfg, JIRA_ISSUE_LABELS_KEY, null);
+        List<String> components = MapUtils.getList(cfg, JIRA_ISSUE_COMPONENTS_KEY, null);
+        Map<String, String> customFieldsTypeKv = MapUtils.getMap(cfg, JIRA_CUSTOM_FIELDS_KV_KEY, null);
+        Map<String, Object> customFieldsTypeAtt = MapUtils.getMap(cfg, JIRA_CUSTOM_FIELDS_ATTR_KEY, null);
 
         String issueId;
 
@@ -206,16 +246,15 @@ public class JiraTask implements Task {
 
             log.info("Creating new issue in '{}'...", projectKey);
 
-            Map<String, Object> results = new JiraClient(ctx)
+            Map<String, Object> results = new JiraClient(cfg)
                     .url(url + "issue/")
-                    .jiraAuth(buildAuth(ctx))
+                    .jiraAuth(buildAuth(ctx, cfg))
                     .successCode(201)
                     .post(objFields);
 
-            issueId = results.get("key").toString();
-            issueId = issueId.replaceAll("\"", "");
-            ctx.setVariable(JIRA_ISSUE_ID, issueId);
-            log.info("Issue #{} created in Project# '{}'", ctx.getVariable(JIRA_ISSUE_ID), projectKey);
+            issueId = results.get("key").toString().replaceAll("\"", "");
+            ctx.setVariable(JIRA_ISSUE_ID_KEY, issueId);
+            log.info("Issue #{} created in Project# '{}'", issueId, projectKey);
         } catch (Exception e) {
             throw new IllegalArgumentException("Error occurred while creating an issue", e);
         }
@@ -223,26 +262,29 @@ public class JiraTask implements Task {
         return issueId;
     }
 
-    public void createSubTask(Context ctx, String url) {
-        String parentKey = assertString(ctx, JIRA_PARENT_ISSUE_KEY);
-        Map<String, Object> customFieldsTypeAtt = new HashMap<>(getMap(ctx, JIRA_CUSTOM_FIELDS_ATTR, Collections.emptyMap()));
-        customFieldsTypeAtt.put("parent", Collections.singletonMap("key", parentKey));
-        ctx.setVariable(JIRA_CUSTOM_FIELDS_ATTR, customFieldsTypeAtt);
-        ctx.setVariable(JIRA_ISSUE_TYPE, "Sub-task");
+    private void createSubTask(Context ctx, Map<String, Object> cfg, String url) {
+        String parentKey = MapUtils.assertString(cfg, JIRA_PARENT_ISSUE_KEY);
 
-        createIssue(ctx, url);
+        Map<String, Object> customFieldsTypeAtt = new HashMap<>(MapUtils.getMap(cfg, JIRA_CUSTOM_FIELDS_ATTR_KEY, Collections.emptyMap()));
+        customFieldsTypeAtt.put("parent", Collections.singletonMap("key", parentKey));
+
+        Map<String, Object> newCfg = new HashMap<>(cfg);
+        newCfg.put(JIRA_CUSTOM_FIELDS_ATTR_KEY, customFieldsTypeAtt);
+        newCfg.put(JIRA_ISSUE_TYPE_KEY, "Sub-task");
+
+        createIssue(ctx, newCfg, url);
     }
 
-    public void createComponent(Context ctx, String url) {
-        String projectKey = assertString(ctx, JIRA_PROJECT_KEY);
-        String componentName = assertString(ctx, JIRA_COMPONENTNAME);
+    private void createComponent(Map<String, Object> cfg, String url) {
+        String projectKey = MapUtils.assertString(cfg, JIRA_PROJECT_KEY);
+        String componentName = MapUtils.assertString(cfg, JIRA_COMPONENTNAME);
 
         try {
             Map<String, Object> m = new HashMap<>();
             m.put("name", componentName);
             m.put("project", projectKey);
 
-            Map<String, Object> results = new JiraClient(ctx)
+            Map<String, Object> results = new JiraClient(cfg)
                     .url(url + "component/")
                     .successCode(201)
                     .post(m);
@@ -255,11 +297,11 @@ public class JiraTask implements Task {
         }
     }
 
-    public void deleteComponent(Context ctx, String url) {
-        int componentId = assertInt(ctx, JIRA_COMPONENTID);
+    private void deleteComponent(Map<String, Object> cfg, String url) {
+        int componentId = MapUtils.assertInt(cfg, JIRA_COMPONENTID);
 
         try {
-            new JiraClient(ctx)
+            new JiraClient(cfg)
                     .url(url + "component/" + componentId)
                     .successCode(204)
                     .delete();
@@ -270,14 +312,14 @@ public class JiraTask implements Task {
         }
     }
 
-    public void addComment(Context ctx, String url) {
-        String issueKey = assertString(ctx, JIRA_ISSUE_KEY);
-        String comment = assertString(ctx, JIRA_COMMENT);
+    private void addComment(Map<String, Object> cfg, String url) {
+        String issueKey = MapUtils.assertString(cfg, JIRA_ISSUE_KEY);
+        String comment = MapUtils.assertString(cfg, JIRA_COMMENT_KEY);
 
         try {
             Map<String, Object> m = Collections.singletonMap("body", comment);
 
-            new JiraClient(ctx)
+            new JiraClient(cfg)
                     .url(url + "issue/" + issueKey + "/comment")
                     .successCode(201)
                     .post(m);
@@ -288,12 +330,12 @@ public class JiraTask implements Task {
         }
     }
 
-    public void transition(Context ctx, String url) {
-        String issueKey = assertString(ctx, JIRA_ISSUE_KEY);
-        String transitionId = Integer.toString(getInt(ctx, JIRA_TRANSITION_ID, -1));
-        String transitionComment = assertString(ctx, JIRA_TRANSITION_COMMENT);
-        Map<String, String> transitionFieldsTypeKv = getMap(ctx, JIRA_CUSTOM_FIELDS_KV, null);
-        Map<String, String> transitionFieldsTypeAtt = getMap(ctx, JIRA_CUSTOM_FIELDS_ATTR, null);
+    private void transition(Map<String, Object> cfg, String url) {
+        String issueKey = MapUtils.assertString(cfg, JIRA_ISSUE_KEY);
+        String transitionId = Integer.toString(MapUtils.getInt(cfg, JIRA_TRANSITION_ID_KEY, -1));
+        String transitionComment = MapUtils.assertString(cfg, JIRA_TRANSITION_COMMENT_KEY);
+        Map<String, String> transitionFieldsTypeKv = MapUtils.getMap(cfg, JIRA_CUSTOM_FIELDS_KV_KEY, null);
+        Map<String, String> transitionFieldsTypeAtt = MapUtils.getMap(cfg, JIRA_CUSTOM_FIELDS_ATTR_KEY, null);
 
         try {
             //Build JSON data
@@ -322,7 +364,7 @@ public class JiraTask implements Task {
             Map<String, Object> objFields = Collections.singletonMap("fields", objMain);
             objupdate = ConfigurationUtils.deepMerge(objFields, ConfigurationUtils.deepMerge(objTransition, objupdate));
 
-            new JiraClient(ctx)
+            new JiraClient(cfg)
                     .url(url + "issue/" + issueKey + "/transitions")
                     .successCode(204)
                     .post(objupdate);
@@ -333,11 +375,11 @@ public class JiraTask implements Task {
         }
     }
 
-    public void deleteIssue(Context ctx, String url) {
-        String issueKey = assertString(ctx, JIRA_ISSUE_KEY);
+    private void deleteIssue(Map<String, Object> cfg, String url) {
+        String issueKey = MapUtils.assertString(cfg, JIRA_ISSUE_KEY);
 
         try {
-            new JiraClient(ctx)
+            new JiraClient(cfg)
                     .url(url + "issue/" + issueKey)
                     .successCode(204)
                     .delete();
@@ -348,14 +390,14 @@ public class JiraTask implements Task {
         }
     }
 
-    public void updateIssue(Context ctx, String url) {
-        String issueKey = assertString(ctx, JIRA_ISSUE_KEY);
-        Map<String, Object> fields = ContextUtils.assertMap(ctx, "fields");
+    private void updateIssue(Map<String, Object> cfg, String url) {
+        String issueKey = MapUtils.assertString(cfg, JIRA_ISSUE_KEY);
+        Map<String, Object> fields = MapUtils.assertMap(cfg, "fields");
 
         log.info("Updating {} fields for issue #{}", fields, issueKey);
 
         try {
-            new JiraClient(ctx)
+            new JiraClient(cfg)
                     .url(url + "issue/" + issueKey)
                     .successCode(204)
                     .put(Collections.singletonMap("fields", fields));
@@ -367,11 +409,11 @@ public class JiraTask implements Task {
         }
     }
 
-    private String buildAuth(Context ctx) throws Exception {
-        Map<String, Object> auth = getMap(ctx, AUTH_KEY);
+    private String buildAuth(Context ctx, Map<String, Object> cfg) throws Exception {
+        Map<String, Object> auth = MapUtils.getMap(cfg, JIRA_AUTH_KEY, null);
         if (auth == null) {
-            String uid = assertString(ctx, UID_KEY);
-            String pwd = assertString(ctx, PASSWORD_KEY);
+            String uid = MapUtils.assertString(cfg, JIRA_USER_ID_KEY);
+            String pwd = MapUtils.assertString(cfg, JIRA_PASSWORD_KEY);
 
             return Credentials.basic(uid, pwd);
         }
@@ -381,11 +423,11 @@ public class JiraTask implements Task {
             Map<String, Object> secret = MapUtils.assertMap(auth, SECRET_KEY);
             Map<String, String> credentials = getSecretData(ctx, secret);
 
-            return Credentials.basic(credentials.get(USERNAME_KEY), credentials.get(PASSWORD_KEY));
+            return Credentials.basic(credentials.get(USERNAME_KEY), credentials.get(JIRA_PASSWORD_KEY));
         }
 
         String username = MapUtils.assertString(basic, USERNAME_KEY);
-        String password = MapUtils.assertString(basic, PASSWORD_KEY);
+        String password = MapUtils.assertString(basic, JIRA_PASSWORD_KEY);
 
         return Credentials.basic(username, password);
     }
@@ -393,7 +435,7 @@ public class JiraTask implements Task {
     private Map<String, String> getSecretData(Context ctx, Map<String, Object> input) throws Exception {
         String secretName = MapUtils.assertString(input, SECRET_NAME_KEY);
         String org = MapUtils.getString(input, ORG_KEY);
-        String password = MapUtils.getString(input, PASSWORD_KEY);
+        String password = MapUtils.getString(input, JIRA_PASSWORD_KEY);
 
         String txId = (String) ctx.getVariable(Constants.Context.TX_ID_KEY);
         String workDir = (String) ctx.getVariable(Constants.Context.WORK_DIR_KEY);
@@ -401,8 +443,57 @@ public class JiraTask implements Task {
         return secretService.exportCredentials(ctx, txId, workDir, org, secretName, password);
     }
 
-    private static Action getAction(Context ctx) {
-        return Action.valueOf(assertString(ctx, ACTION_KEY).trim().toUpperCase());
+    private void currentStatus(Context ctx, Map<String, Object> cfg, String url) {
+        String issueKey = MapUtils.assertString(cfg, JIRA_ISSUE_KEY);
+        String currentStatus = getStatus(ctx, cfg, url, issueKey);
+        ctx.setVariable(JIRA_ISSUE_STATUS, currentStatus);
+    }
+
+    private String getStatus(Context ctx, Map<String, Object> cfg, String url, String issueKey) {
+        try {
+            Map<String, Object> results = new JiraClient(cfg)
+                    .url(url + "issue/" + issueKey + "?fields=status")
+                    .jiraAuth(buildAuth(ctx, cfg))
+                    .successCode(200)
+                    .get();
+
+            Map<String, Object> fields = MapUtils.get(results, "fields", null);
+            if (fields != null) {
+                Map<String, Object> statusInfo = MapUtils.get(fields, "status", null);
+                if (statusInfo != null) {
+                    return MapUtils.assertString(statusInfo, "name");
+                }
+            }
+
+            throw new RuntimeException("Unexpected data received from JIRA: " + fields);
+        } catch (Exception e) {
+            throw new RuntimeException("Error occurred while getting the current status: " + e.getMessage(), e);
+        }
+    }
+
+    private static void put(Map<String, Object> m, String k, Context ctx) {
+        Object v = ctx.getVariable(k);
+        if (v == null) {
+            return;
+        }
+
+        m.put(k, v);
+    }
+
+    private static Action getAction(Map<String, Object> cfg) {
+        return Action.valueOf(MapUtils.assertString(cfg, ACTION_KEY).trim().toUpperCase());
+    }
+
+    private static String formatUrl(String s) {
+        if (s == null) {
+            return null;
+        }
+
+        if (s.endsWith("/")) {
+            return s;
+        }
+
+        return s + "/";
     }
 
     private enum Action {
@@ -413,6 +504,7 @@ public class JiraTask implements Task {
         DELETEISSUE,
         TRANSITION,
         UPDATEISSUE,
-        CREATESUBTASK
+        CREATESUBTASK,
+        CURRENTSTATUS
     }
 }

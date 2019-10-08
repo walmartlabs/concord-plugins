@@ -22,12 +22,13 @@ package com.walmartlabs.concord.plugins.jira;
 
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 import com.walmartlabs.concord.sdk.Context;
 import com.walmartlabs.concord.sdk.SecretService;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 
@@ -55,6 +56,7 @@ public class JiraTaskTest {
     public void setup() {
         task = new JiraTask(secretService);
         stubForBasicAuth();
+        stubForCurrentStatus();
     }
 
     @After
@@ -93,11 +95,28 @@ public class JiraTaskTest {
         task.execute(mockContext);
     }
 
+    @Test
+    public void testCurrentStatus() {
+        when(mockContext.getVariable("action")).thenReturn("currentStatus");
+        when(mockContext.getVariable("apiUrl")).thenReturn(rule.baseUrl() + "/");
+        when(mockContext.getVariable("issueKey")).thenReturn("issueId");
+        when(mockContext.getVariable("userId")).thenReturn("userId");
+        when(mockContext.getVariable("password")).thenReturn("password");
+
+        doAnswer((Answer<Void>) invocation -> {
+            response = (String) invocation.getArguments()[1];
+            return null;
+        }).when(mockContext).setVariable(ArgumentMatchers.anyString(), ArgumentMatchers.any());
+
+        task.execute(mockContext);
+
+        Assert.assertNotNull(response);
+        Assert.assertEquals("Open", response);
+    }
 
 
-    private void initCxtForRequest(Context ctx, Object action, Object apiUrl,  Object projectKey, Object summary, Object description,
-                                        Object requestorUid, Object issueType, Object auth) throws Exception
-    {
+    private void initCxtForRequest(Context ctx, Object action, Object apiUrl, Object projectKey, Object summary, Object description,
+                                   Object requestorUid, Object issueType, Object auth) throws Exception {
         when(ctx.getVariable("action")).thenReturn(action);
         when(ctx.getVariable("apiUrl")).thenReturn(apiUrl);
         when(ctx.getVariable("projectKey")).thenReturn(projectKey);
@@ -113,11 +132,11 @@ public class JiraTaskTest {
         }).when(ctx).setVariable(anyString(), any());
 
         doReturn(getCredentials()).when(secretService)
-          .exportCredentials(any(), anyString(), anyString(), anyString(), anyString(), anyString());
+                .exportCredentials(any(), anyString(), anyString(), anyString(), anyString(), anyString());
 
     }
 
-    private Map<String, String> getCredentials(){
+    private Map<String, String> getCredentials() {
         Map<String, String> credentials = new HashMap<>();
         credentials.put("username", "user");
         credentials.put("password", "pwd");
@@ -131,11 +150,32 @@ public class JiraTaskTest {
                         .withHeader("Content-Type", "application/json")
                         //.withHeader("Accept", "application/json")
                         .withBody("{\n" +
-                                "  \"id\": \"123\",\n"+
+                                "  \"id\": \"123\",\n" +
                                 "  \"key\": \"key1\",\n" +
                                 "  \"self\": \"2\"\n" +
                                 "}"))
         );
     }
 
+    private void stubForCurrentStatus() {
+        JsonObject status = new JsonObject();
+        status.addProperty("name", "Open");
+
+        JsonObject fields = new JsonObject();
+        fields.add("status", status);
+
+        JsonObject response = new JsonObject();
+        response.add("fields", fields);
+
+        Gson gson = new GsonBuilder()
+                .setPrettyPrinting()
+                .create();
+
+        rule.stubFor(get(urlEqualTo("/issue/issueId?fields=status"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody(gson.toJson(response)))
+        );
+    }
 }
