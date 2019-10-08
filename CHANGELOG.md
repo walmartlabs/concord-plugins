@@ -6,6 +6,7 @@
 
 - new plugin: `tasks/zoom`;
 - gremlin: support for attacks on containers;
+- jira: new action `addAttachment`;
 - jira: authentication using Concord username/password secrets.
 
 

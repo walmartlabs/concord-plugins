@@ -9,9 +9,9 @@ package com.walmartlabs.concord.plugins.jira;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -57,6 +57,7 @@ public class JiraTaskTest {
         task = new JiraTask(secretService);
         stubForBasicAuth();
         stubForCurrentStatus();
+        stubForAddAttachment();
     }
 
     @After
@@ -66,7 +67,7 @@ public class JiraTaskTest {
 
 
     @Test
-    public void testJiraBasicAuth() throws Exception {
+    public void testCreateIssueWithBasicAuth() throws Exception {
         Map<String, Object> auth = new HashMap<>();
         Map<String, Object> basic = new HashMap<>();
         basic.put("username", "user");
@@ -96,6 +97,18 @@ public class JiraTaskTest {
     }
 
     @Test
+    public void testAddAttachment() {
+        when(mockContext.getVariable("apiUrl")).thenReturn(rule.baseUrl() + "/");
+        when(mockContext.getVariable("action")).thenReturn("addAttachment");
+        when(mockContext.getVariable("issueKey")).thenReturn("issueId");
+        when(mockContext.getVariable("userId")).thenReturn("userId");
+        when(mockContext.getVariable("password")).thenReturn("password");
+        when(mockContext.getVariable("filePath")).thenReturn("src/test/resources/sample.txt");
+
+        task.execute(mockContext);
+    }
+
+    @Test
     public void testCurrentStatus() {
         when(mockContext.getVariable("action")).thenReturn("currentStatus");
         when(mockContext.getVariable("apiUrl")).thenReturn(rule.baseUrl() + "/");
@@ -117,6 +130,7 @@ public class JiraTaskTest {
 
     private void initCxtForRequest(Context ctx, Object action, Object apiUrl, Object projectKey, Object summary, Object description,
                                    Object requestorUid, Object issueType, Object auth) throws Exception {
+
         when(ctx.getVariable("action")).thenReturn(action);
         when(ctx.getVariable("apiUrl")).thenReturn(apiUrl);
         when(ctx.getVariable("projectKey")).thenReturn(projectKey);
@@ -154,6 +168,19 @@ public class JiraTaskTest {
                                 "  \"key\": \"key1\",\n" +
                                 "  \"self\": \"2\"\n" +
                                 "}"))
+        );
+    }
+
+    private void stubForAddAttachment() {
+        rule.stubFor(post(urlEqualTo("/issue/issueId/attachments"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("[{\n" +
+                                "  \"id\": \"123\",\n" +
+                                "  \"key\": \"key1\",\n" +
+                                "  \"self\": \"2\"\n" +
+                                "}]"))
         );
     }
 

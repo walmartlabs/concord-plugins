@@ -22,9 +22,14 @@ package com.walmartlabs.concord.plugins.jira;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 import com.squareup.okhttp.*;
 
+import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Type;
+import java.nio.file.Files;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -34,6 +39,11 @@ public class JiraClient {
 
     private static final OkHttpClient client = new OkHttpClient();
     private static final Gson gson = new GsonBuilder().create();
+
+    private static final TypeToken<Map<String, Object>> MAP_TYPE_TOKEN = new TypeToken<Map<String, Object>>() {
+    };
+    private static final TypeToken<List<Map<String, Object>>> LIST_OF_MAPS_TYPE_TOKEN = new TypeToken<List<Map<String, Object>>>() {
+    };
 
     private static final String CLIENT_CONNECTTIMEOUT = "connectTimeout";
     private static final String CLIENT_READTIMEOUT = "readTimeout";
@@ -70,7 +80,7 @@ public class JiraClient {
                 .get()
                 .build();
 
-        return call(request);
+        return call(request, MAP_TYPE_TOKEN.getType());
     }
 
     public Map<String, Object> post(Map<String, Object> data) throws IOException {
@@ -81,7 +91,22 @@ public class JiraClient {
                 .post(body)
                 .build();
 
-        return call(request);
+        return call(request, MAP_TYPE_TOKEN.getType());
+    }
+
+    public void post(File file) throws IOException {
+        MultipartBuilder b = new MultipartBuilder().type(MultipartBuilder.FORM);
+        b.addFormDataPart("file", file.getName(),
+                RequestBody.create(MediaType.parse("application/octet-stream"), Files.readAllBytes(file.toPath())));
+
+        RequestBody body = b.build();
+        Request request = requestBuilder(auth)
+                .header("X-Atlassian-Token", "nocheck")
+                .url(url)
+                .post(body)
+                .build();
+
+        call(request, LIST_OF_MAPS_TYPE_TOKEN.getType());
     }
 
     public void put(Map<String, Object> data) throws IOException {
@@ -92,7 +117,7 @@ public class JiraClient {
                 .put(body)
                 .build();
 
-        call(request);
+        call(request, MAP_TYPE_TOKEN.getType());
     }
 
     public void delete() throws IOException {
@@ -101,7 +126,7 @@ public class JiraClient {
                 .delete()
                 .build();
 
-        call(request);
+        call(request, MAP_TYPE_TOKEN.getType());
     }
 
     private static Request.Builder requestBuilder(String auth) {
@@ -110,22 +135,22 @@ public class JiraClient {
                 .addHeader("Accept", "application/json");
     }
 
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> call(Request request) throws IOException {
+    private <T> T call(Request request, Type returnType) throws IOException {
         setClientTimeoutParams(cfg);
 
         Call call = client.newCall(request);
         Response response = call.execute();
-        int statusCode = response.code();
+
         try (ResponseBody responseBody = response.body()) {
             String results = null;
             if (responseBody != null) {
                 results = responseBody.string();
             }
 
+            int statusCode = response.code();
             assertResponseCode(statusCode, results, successCode);
 
-            return gson.fromJson(results, Map.class);
+            return gson.fromJson(results, returnType);
         }
     }
 
