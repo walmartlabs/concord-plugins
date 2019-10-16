@@ -1,5 +1,13 @@
 # Change log
 
+## [Unreleased]
+
+### Added
+
+- jira: new action `getIssues`.
+
+
+
 ## [1.18.0] - 2019-10-14
 
 ### Added

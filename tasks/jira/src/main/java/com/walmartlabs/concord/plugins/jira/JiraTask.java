@@ -31,6 +31,9 @@ import javax.inject.Named;
 import java.io.File;
 import java.util.*;
 
+import static com.walmartlabs.concord.sdk.ContextUtils.assertString;
+import static com.walmartlabs.concord.sdk.ContextUtils.getString;
+
 /**
  * Created by ppendha on 6/18/18.
  */
@@ -55,7 +58,8 @@ public class JiraTask implements Task {
     private static final String JIRA_ISSUE_KEY = "issueKey";
     private static final String JIRA_ISSUE_LABELS_KEY = "labels";
     private static final String JIRA_ISSUE_PRIORITY_KEY = "priority";
-    private static final String JIRA_ISSUE_STATUS = "issueStatus";
+    private static final String JIRA_ISSUE_STATUS_KEY = "issueStatus";
+    private static final String JIRA_ISSUE_STATUS_OPERATOR_KEY = "statusOperator";
     private static final String JIRA_ISSUE_TYPE_KEY = "issueType";
     private static final String JIRA_PARENT_ISSUE_KEY = "parentIssueKey";
     private static final String JIRA_PASSWORD_KEY = "password";
@@ -66,6 +70,9 @@ public class JiraTask implements Task {
     private static final String JIRA_TRANSITION_ID_KEY = "transitionId";
     private static final String JIRA_URL_KEY = "apiUrl";
     private static final String JIRA_USER_ID_KEY = "userId";
+    private static final int DEFAULT_START_AT = 0;
+    private static final int DEFAULT_MAX_RESULTS = 50;
+
 
     private static final String[] ALL_IN_PARAMS = {
             ACTION_KEY,
@@ -83,7 +90,8 @@ public class JiraTask implements Task {
             JIRA_ISSUE_KEY,
             JIRA_ISSUE_LABELS_KEY,
             JIRA_ISSUE_PRIORITY_KEY,
-            JIRA_ISSUE_STATUS,
+            JIRA_ISSUE_STATUS_KEY,
+            JIRA_ISSUE_STATUS_OPERATOR_KEY,
             JIRA_ISSUE_TYPE_KEY,
             JIRA_PARENT_ISSUE_KEY,
             JIRA_PASSWORD_KEY,
@@ -169,6 +177,11 @@ public class JiraTask implements Task {
             case CURRENTSTATUS: {
                 log.info("Starting 'CurrentStatus' Action");
                 currentStatus(ctx, cfg, jiraUrl);
+                break;
+            }
+            case GETISSUES: {
+                log.info("Starting 'GetIssues' Action");
+                getIssues(ctx, cfg, jiraUrl);
                 break;
             }
             default:
@@ -441,6 +454,66 @@ public class JiraTask implements Task {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    private void getIssues(Context ctx, Map<String, Object> cfg, String url) {
+        String projectKey = MapUtils.assertString(cfg, JIRA_PROJECT_KEY);
+        String issueType = MapUtils.assertString(cfg, JIRA_ISSUE_TYPE_KEY);
+        String issueStatus = MapUtils.getString(cfg, JIRA_ISSUE_STATUS_KEY, null);
+        String statusOperator = MapUtils.getString(cfg, JIRA_ISSUE_STATUS_OPERATOR_KEY, "=");
+
+
+        try {
+            String jqlQuery = configureStatus(projectKey, issueType, issueStatus, statusOperator);
+
+            log.info("Fetching full list of issue IDs from project '{}' of type '{}' and with status '{} {}'...",
+                    projectKey, issueType, statusOperator, issueStatus);
+
+            List<String> issueList = new LinkedList<>();
+            int startAt = DEFAULT_START_AT;
+            int maxResults = DEFAULT_MAX_RESULTS;
+
+            while (true) {
+                Map<String, Object> objMain = new HashMap<>();
+
+                objMain.put("jql", jqlQuery);
+                objMain.put("startAt", startAt);
+                objMain.put("maxResults", maxResults);
+
+                List<String> fieldList = Collections.singletonList("key");
+                objMain.put("fields", fieldList);
+
+                Map<String, Object> results = new JiraClient(cfg)
+                        .url(url + "search")
+                        .jiraAuth(buildAuth(ctx, cfg))
+                        .successCode(200)
+                        .post(objMain);
+
+                List<Map> issueMap = (List<Map>) results.get("issues");
+
+                for (Map issue : issueMap) {
+                    String key = (String) issue.get("key");
+                    issueList.add(key);
+                }
+                if (issueMap.size() < maxResults) {
+                    break;
+                }
+                startAt += maxResults;
+            }
+
+            if (!issueList.isEmpty()) {
+                ctx.setVariable("issueList", issueList);
+                ctx.setVariable("issueCount", issueList.size());
+
+            } else {
+                throw new RuntimeException("Zero Issues found in project '" + projectKey + "' of type '" + issueType + "' " +
+                        "and with status '" + statusOperator + " " + issueStatus + "'");
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("Exception occurred while fetching issue ids from project '" + projectKey + "'", e);
+        }
+    }
+
     private String buildAuth(Context ctx, Map<String, Object> cfg) throws Exception {
         Map<String, Object> auth = MapUtils.getMap(cfg, JIRA_AUTH_KEY, null);
         if (auth == null) {
@@ -478,7 +551,7 @@ public class JiraTask implements Task {
     private void currentStatus(Context ctx, Map<String, Object> cfg, String url) {
         String issueKey = MapUtils.assertString(cfg, JIRA_ISSUE_KEY);
         String currentStatus = getStatus(ctx, cfg, url, issueKey);
-        ctx.setVariable(JIRA_ISSUE_STATUS, currentStatus);
+        ctx.setVariable(JIRA_ISSUE_STATUS_KEY, currentStatus);
     }
 
     private String getStatus(Context ctx, Map<String, Object> cfg, String url, String issueKey) {
@@ -528,6 +601,20 @@ public class JiraTask implements Task {
         return s + "/";
     }
 
+    private String configureStatus(String projectKey, String issueType, String issueStatus, String statusOperator) {
+        String jqlQuery = "project = " + projectKey + " AND " + "issuetype = " + issueType;
+        if (issueStatus != null && !issueStatus.isEmpty()) {
+            if ("=".equals(statusOperator)) {
+                jqlQuery = jqlQuery + " AND " + "status = " + issueStatus;
+            } else if ("!=".equals(statusOperator)) {
+                jqlQuery = jqlQuery + " AND " + "status != " + issueStatus;
+            } else {
+                throw new IllegalArgumentException("Invalid statusOperator. Allowed values are only '=', '!=' ");
+            }
+        }
+        return jqlQuery;
+    }
+
     private enum Action {
         ADDCOMMENT,
         CREATECOMPONENT,
@@ -538,6 +625,7 @@ public class JiraTask implements Task {
         UPDATEISSUE,
         CREATESUBTASK,
         CURRENTSTATUS,
-        ADDATTACHMENT
+        ADDATTACHMENT,
+        GETISSUES
     }
 }
