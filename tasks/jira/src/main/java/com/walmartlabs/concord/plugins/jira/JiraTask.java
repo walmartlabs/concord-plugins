@@ -31,9 +31,6 @@ import javax.inject.Named;
 import java.io.File;
 import java.util.*;
 
-import static com.walmartlabs.concord.sdk.ContextUtils.assertString;
-import static com.walmartlabs.concord.sdk.ContextUtils.getString;
-
 /**
  * Created by ppendha on 6/18/18.
  */
@@ -70,6 +67,7 @@ public class JiraTask implements Task {
     private static final String JIRA_TRANSITION_ID_KEY = "transitionId";
     private static final String JIRA_URL_KEY = "apiUrl";
     private static final String JIRA_USER_ID_KEY = "userId";
+    private static final String JIRA_FIELDS_KEY = "fields";
     private static final int DEFAULT_START_AT = 0;
     private static final int DEFAULT_MAX_RESULTS = 50;
 
@@ -101,7 +99,8 @@ public class JiraTask implements Task {
             JIRA_TRANSITION_COMMENT_KEY,
             JIRA_TRANSITION_ID_KEY,
             JIRA_URL_KEY,
-            JIRA_USER_ID_KEY
+            JIRA_USER_ID_KEY,
+            JIRA_FIELDS_KEY
     };
 
     private static final String SECRET_NAME_KEY = "name";
@@ -437,7 +436,7 @@ public class JiraTask implements Task {
 
     private void updateIssue(Context ctx, Map<String, Object> cfg, String url) {
         String issueKey = MapUtils.assertString(cfg, JIRA_ISSUE_KEY);
-        Map<String, Object> fields = MapUtils.assertMap(cfg, "fields");
+        Map<String, Object> fields = MapUtils.assertMap(cfg, JIRA_FIELDS_KEY);
 
         log.info("Updating {} fields for issue #{}", fields, issueKey);
 

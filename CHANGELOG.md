@@ -1,5 +1,14 @@
 # Change log
 
+## [Unreleased]
+
+### Changed
+
+- jira: fixed an issue with the `fields` parameter not being passed
+correctly.
+
+
+
 ## [1.19.0] - 2019-10-16
 
 ### Added
