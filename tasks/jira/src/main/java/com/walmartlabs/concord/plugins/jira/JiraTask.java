@@ -52,6 +52,7 @@ public class JiraTask implements Task {
     private static final String JIRA_FILE_PATH_KEY = "filePath";
     private static final String JIRA_ISSUE_COMPONENTS_KEY = "components";
     private static final String JIRA_ISSUE_ID_KEY = "issueId";
+    private static final String JIRA_COMPONENT_ID_KEY = "componentId";
     private static final String JIRA_ISSUE_KEY = "issueKey";
     private static final String JIRA_ISSUE_LABELS_KEY = "labels";
     private static final String JIRA_ISSUE_PRIORITY_KEY = "priority";
@@ -68,6 +69,7 @@ public class JiraTask implements Task {
     private static final String JIRA_URL_KEY = "apiUrl";
     private static final String JIRA_USER_ID_KEY = "userId";
     private static final String JIRA_FIELDS_KEY = "fields";
+    private static final String DEBUG_KEY = "debug";
     private static final int DEFAULT_START_AT = 0;
     private static final int DEFAULT_MAX_RESULTS = 50;
 
@@ -100,7 +102,8 @@ public class JiraTask implements Task {
             JIRA_TRANSITION_ID_KEY,
             JIRA_URL_KEY,
             JIRA_USER_ID_KEY,
-            JIRA_FIELDS_KEY
+            JIRA_FIELDS_KEY,
+            DEBUG_KEY
     };
 
     private static final String SECRET_NAME_KEY = "name";
@@ -311,6 +314,7 @@ public class JiraTask implements Task {
 
             String componentId = results.get("id").toString();
             componentId = componentId.replaceAll("\"", "");
+            ctx.setVariable(JIRA_COMPONENT_ID_KEY, componentId);
             log.info("Component '{}' created successfully and its Id is '{}'", componentName, componentId);
         } catch (Exception e) {
             throw new RuntimeException("Exception occurred while creating a component: " + e.getMessage(), e);
@@ -356,6 +360,7 @@ public class JiraTask implements Task {
     private void addComment(Context ctx, Map<String, Object> cfg, String url) {
         String issueKey = MapUtils.assertString(cfg, JIRA_ISSUE_KEY);
         String comment = MapUtils.assertString(cfg, JIRA_COMMENT_KEY);
+        boolean debug = MapUtils.getBoolean(cfg, DEBUG_KEY, false);
 
         try {
             Map<String, Object> m = Collections.singletonMap("body", comment);
@@ -366,7 +371,12 @@ public class JiraTask implements Task {
                     .successCode(201)
                     .post(m);
 
-            log.info("Comment '{}' added to Issue #{}", comment, issueKey);
+            if (debug) {
+                log.info("Comment '{}' added to Issue #{}", comment, issueKey);
+            } else {
+                log.info("Comment added to Issue #{}", issueKey);
+            }
+
         } catch (Exception e) {
             throw new RuntimeException("Error occurred while adding a comment: " + e.getMessage(), e);
         }

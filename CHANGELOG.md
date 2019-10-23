@@ -1,5 +1,13 @@
 # Change log
 
+## [Unreleased]
+
+### Added
+
+- jira: new `debug` option.
+
+
+
 ## [1.19.1] - 2019-10-18
 
 ### Changed
