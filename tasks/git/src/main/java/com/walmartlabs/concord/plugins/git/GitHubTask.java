@@ -26,6 +26,7 @@ import com.walmartlabs.concord.sdk.InjectVariable;
 import com.walmartlabs.concord.sdk.Task;
 import org.eclipse.egit.github.core.*;
 import org.eclipse.egit.github.core.client.GitHubClient;
+import org.eclipse.egit.github.core.client.RequestException;
 import org.eclipse.egit.github.core.service.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,6 +73,8 @@ public class GitHubTask implements Task {
     private static final String STATUS_CHECK_TARGET_URL = "targetUrl";
     private static final String STATUS_CHECK_DESCRIPTION = "description";
     private static final String STATUS_CHECK_CONTEXT = "context";
+
+    private static final int STATUS_GITHUB_REPO_NOT_FOUND = 404;
 
     @InjectVariable("githubParams")
     private Map<String, Object> defaults;
@@ -142,6 +145,10 @@ public class GitHubTask implements Task {
             }
             case GETLATESTSHA: {
                 getLatestSHA(ctx, gitHubUri);
+                break;
+            }
+            case CREATEREPO: {
+                createGithubRepo(ctx, gitHubUri);
                 break;
             }
             default:
@@ -558,6 +565,53 @@ public class GitHubTask implements Task {
         }
     }
 
+    private static void createGithubRepo(Context ctx, String gitHubUri) {
+        String gitHubAccessToken = assertString(ctx, GITHUB_ACCESSTOKEN);
+        String gitHubOrgName = assertString(ctx, GITHUB_ORGNAME);
+        String gitHubRepoName = assertString(ctx, GITHUB_REPONAME);
+
+        GitHubClient client = GitHubClient.createClient(gitHubUri);
+
+        log.info("Creating repository " + gitHubRepoName + " in " + gitHubOrgName + " organization.");
+
+        try {
+            client.setOAuth2Token(gitHubAccessToken);
+
+            RepositoryService repositoryService = new RepositoryService(client);
+            Repository repo;
+
+            try {
+                repo = repositoryService.getRepository(gitHubOrgName, gitHubRepoName);
+                log.warn("Repository " + repo.generateId() + " already exists. Skipping creation ...");
+
+            } catch (RequestException rexp) {
+                // If the message points to repository not being found, we will create a new repository
+                // Otherwise re-throw the exception, as we don't want to handle other errors.
+                // Outer catch block will catch it and raise a `RuntimeException`
+
+                if (rexp.getStatus() != STATUS_GITHUB_REPO_NOT_FOUND) {
+                    throw rexp;
+                }
+
+                log.debug("Repository " + gitHubRepoName + " does not exist in " + gitHubOrgName +
+                        " organization. " + "Proceeding with repo creation");
+
+                Repository newRepo = new Repository();
+                newRepo.setName(gitHubRepoName);
+                repo = repositoryService.createRepository(gitHubOrgName, newRepo);
+
+                log.info("Repository " + gitHubRepoName + " created successfully in " +
+                        gitHubOrgName + " organization.");
+            }
+
+            ctx.setVariable("cloneUrl", repo.getCloneUrl());
+            ctx.setVariable("scmUrl", repo.getUrl());
+
+        } catch (Exception e) {
+            throw new RuntimeException("Error occured while creating repository: ", e);
+        }
+    }
+
     private static void getLatestSHA(Context ctx, String gitHubUri) {
         String gitHubAccessToken = assertString(ctx, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(ctx, GITHUB_ORGNAME);
@@ -630,6 +684,7 @@ public class GitHubTask implements Task {
         FORKREPO,
         GETBRANCHLIST,
         GETTAGLIST,
-        GETLATESTSHA
+        GETLATESTSHA,
+        CREATEREPO
     }
 }
