@@ -5,7 +5,7 @@
 ### Added
 
 - jira: new `debug` option.
-- github: new action `createRepo`.
+- github: new actions `createRepo` and `deleteRepo`.
 
 
 

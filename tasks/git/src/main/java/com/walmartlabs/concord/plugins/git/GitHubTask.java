@@ -148,7 +148,11 @@ public class GitHubTask implements Task {
                 break;
             }
             case CREATEREPO: {
-                createGithubRepo(ctx, gitHubUri);
+                createRepo(ctx, gitHubUri);
+                break;
+            }
+            case DELETEREPO: {
+                deleteRepo(ctx, gitHubUri);
                 break;
             }
             default:
@@ -565,7 +569,7 @@ public class GitHubTask implements Task {
         }
     }
 
-    private static void createGithubRepo(Context ctx, String gitHubUri) {
+    private static void createRepo(Context ctx, String gitHubUri) {
         String gitHubAccessToken = assertString(ctx, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(ctx, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(ctx, GITHUB_REPONAME);
@@ -578,21 +582,9 @@ public class GitHubTask implements Task {
             client.setOAuth2Token(gitHubAccessToken);
 
             RepositoryService repositoryService = new RepositoryService(client);
-            Repository repo;
+            Repository repo = getRepository(repositoryService, gitHubOrgName, gitHubRepoName);
 
-            try {
-                repo = repositoryService.getRepository(gitHubOrgName, gitHubRepoName);
-                log.warn("Repository " + repo.generateId() + " already exists. Skipping creation ...");
-
-            } catch (RequestException rexp) {
-                // If the message points to repository not being found, we will create a new repository
-                // Otherwise re-throw the exception, as we don't want to handle other errors.
-                // Outer catch block will catch it and raise a `RuntimeException`
-
-                if (rexp.getStatus() != STATUS_GITHUB_REPO_NOT_FOUND) {
-                    throw rexp;
-                }
-
+            if (repo == null) {
                 log.debug("Repository " + gitHubRepoName + " does not exist in " + gitHubOrgName +
                         " organization. " + "Proceeding with repo creation");
 
@@ -602,6 +594,8 @@ public class GitHubTask implements Task {
 
                 log.info("Repository " + gitHubRepoName + " created successfully in " +
                         gitHubOrgName + " organization.");
+            } else {
+                log.warn("Repository " + repo.generateId() + " already exists. Skipping creation ...");
             }
 
             ctx.setVariable("cloneUrl", repo.getCloneUrl());
@@ -609,6 +603,38 @@ public class GitHubTask implements Task {
 
         } catch (Exception e) {
             throw new RuntimeException("Error occured while creating repository: ", e);
+        }
+    }
+
+    private static void deleteRepo(Context ctx, String gitHubUri) {
+        String gitHubAccessToken = assertString(ctx, GITHUB_ACCESSTOKEN);
+        String gitHubOrgName = assertString(ctx, GITHUB_ORGNAME);
+        String gitHubRepoName = assertString(ctx, GITHUB_REPONAME);
+
+        GitHubClient client = GitHubClient.createClient(gitHubUri);
+
+        log.info("Deleting repository " + gitHubRepoName + " from " + gitHubOrgName + " organization.");
+
+        try {
+            client.setOAuth2Token(gitHubAccessToken);
+
+            RepositoryService repositoryService = new RepositoryService(client);
+            Repository repo = getRepository(repositoryService, gitHubOrgName, gitHubRepoName);
+
+            if (repo == null) {
+                log.warn("Repository " + gitHubOrgName + "/" + gitHubRepoName + " does not exist. " +
+                        "Looks like it is already deleted. Skipping deletion ...");
+            } else {
+                log.debug("Repository " + gitHubRepoName + " exists in " + gitHubOrgName +
+                        " organization. " + "Proceeding with repo deletion");
+
+                repositoryService.deleteRepository(repo);
+                log.info("Repository " + gitHubRepoName + " deleted successfully from " +
+                        gitHubOrgName + " organization.");
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("Error occured while deleting repository: ", e);
         }
     }
 
@@ -641,6 +667,25 @@ public class GitHubTask implements Task {
         } catch (Exception e) {
             throw new RuntimeException("Error occured while getting latest commit SHA: " + e.getMessage());
         }
+    }
+
+    private static Repository getRepository(RepositoryService repositoryService, String githubOrgName,
+                                            String gitHubRepoName) throws Exception {
+        Repository repository = null;
+
+        try {
+            repository = repositoryService.getRepository(githubOrgName, gitHubRepoName);
+        } catch (RequestException rexp) {
+            // If the status code of the request exception does not point to repository not being found,
+            // throw the exception, as we don't want to handle other errors.
+            // If the status code is 404, set repository to null (set by default).
+
+            if (rexp.getStatus() != STATUS_GITHUB_REPO_NOT_FOUND) {
+                throw rexp;
+            }
+        }
+
+        return repository;
     }
 
     private static Action getAction(Context ctx) {
@@ -685,6 +730,7 @@ public class GitHubTask implements Task {
         GETBRANCHLIST,
         GETTAGLIST,
         GETLATESTSHA,
-        CREATEREPO
+        CREATEREPO,
+        DELETEREPO
     }
 }
