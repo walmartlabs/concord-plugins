@@ -1,5 +1,14 @@
 # Change log
 
+## [Unreleased]
+
+### Changed
+
+- github: fixed a potential NPE when using the `git` task's `commit`
+action and an invalid `baseBranch` value.
+
+
+
 ## [1.20.0] - 2019-10-30
 
 ### Added

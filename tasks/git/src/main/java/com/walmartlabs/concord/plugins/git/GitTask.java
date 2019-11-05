@@ -95,6 +95,8 @@ public class GitTask implements Task {
     @Override
     public void execute(Context ctx) throws Exception {
         Action action = getAction(ctx);
+        log.info("Starting '{}' action...", action);
+
         switch (action) {
             case CLONE: {
                 doClone(ctx);
@@ -171,7 +173,6 @@ public class GitTask implements Task {
             MergeStatus mergeStatus = mergeResult.getMergeStatus();
 
             if (result.isSuccessful()) {
-
                 if (!fetchResult.isEmpty()) {
                     log.info("Fetch result: '{}'", fetchResult);
                 }
@@ -271,6 +272,13 @@ public class GitTask implements Task {
 
             for (PushResult result : results) {
                 RemoteRefUpdate ref = result.getRemoteUpdate(refName);
+                if (ref == null) {
+                    throw new IllegalArgumentException("Got invalid input for '" + GIT_BASE_BRANCH + "' param: '" + baseBranch +
+                            "'.\n hint: 1) Check if the input params passed for 'commit' action are valid.\n" +
+                            " hint: 2) 'baseBranch' parameter should be plain branch name.\n" +
+                            " hint: 3) Make sure you are pushing the changes to the same 'baseBranch', that's checked out as part of your 'clone' operation");
+                }
+
                 Status pushStatus = ref.getStatus();
                 switch (pushStatus) {
                     case REJECTED_NODELETE:
