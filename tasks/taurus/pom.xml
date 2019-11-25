@@ -14,8 +14,8 @@
     <properties>
         <cmdRunnerVersion>2.2</cmdRunnerVersion>
         <jmeterRepo>https://www.apache.org/dist</jmeterRepo>
-        <jmeterVersion>5.1.1</jmeterVersion>
-        <pluginsCasutgVersion>2.8</pluginsCasutgVersion>
+        <jmeterVersion>5.2.1</jmeterVersion>
+        <pluginsCasutgVersion>2.9</pluginsCasutgVersion>
         <pluginsMgrVersion>1.3</pluginsMgrVersion>
         <pluginsPrmctlVersion>0.4</pluginsPrmctlVersion>
     </properties>
