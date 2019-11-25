@@ -36,7 +36,9 @@ import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
 import javax.naming.ldap.InitialLdapContext;
 import javax.naming.ldap.LdapContext;
+import javax.net.ssl.SSLHandshakeException;
 import java.util.*;
+import java.util.concurrent.Callable;
 
 import static com.walmartlabs.concord.sdk.ContextUtils.assertString;
 
@@ -47,6 +49,9 @@ import static com.walmartlabs.concord.sdk.ContextUtils.assertString;
 public class LdapTask implements Task {
 
     private static final Logger log = LoggerFactory.getLogger(LdapTask.class);
+
+    private static final int MAX_RETRIES = 3;
+    private static final long RETRY_DELAY = 3000;
 
     private static final String ACTION_KEY = "action";
 
@@ -128,7 +133,7 @@ public class LdapTask implements Task {
             String searchFilter = "(distinguishedName=" + dn + ")";
 
             // use private method search
-            NamingEnumeration<SearchResult> results = search(ctx, searchFilter);
+            NamingEnumeration<SearchResult> results = withRetry(MAX_RETRIES, RETRY_DELAY, () -> search(ctx, searchFilter));
 
             if (results.hasMoreElements()) {
                 result = results.nextElement();
@@ -159,7 +164,7 @@ public class LdapTask implements Task {
                     + ")";
 
             // use private method search
-            NamingEnumeration<SearchResult> results = search(ctx, searchFilter);
+            NamingEnumeration<SearchResult> results = withRetry(MAX_RETRIES, RETRY_DELAY, () -> search(ctx, searchFilter));
 
             if (results.hasMoreElements()) {
                 result = results.nextElement();
@@ -185,7 +190,7 @@ public class LdapTask implements Task {
             String searchFilter = "(name=" + group + ")";
 
             // use private method search
-            NamingEnumeration<SearchResult> results = search(ctx, searchFilter);
+            NamingEnumeration<SearchResult> results = withRetry(MAX_RETRIES, RETRY_DELAY, () -> search(ctx, searchFilter));
 
             while (results.hasMoreElements()) {
                 result = results.nextElement();
@@ -334,6 +339,46 @@ public class LdapTask implements Task {
         return rMap;
     }
 
+    /**
+     * Executes a Callable until successful, up to a given number of retries
+     *
+     * @param retryCount    Number of allowed retry attempts
+     * @param retryInterval Milliseconds to wait between retries
+     * @param c             Callable to execute
+     * @param <T>           Type of Callable
+     * @throws RuntimeException when api call can't be made successfully
+     */
+    private static <T> T withRetry(int retryCount, long retryInterval, Callable<T> c) throws Exception {
+        Exception exception = null;
+        int tryCount = 0;
+        while (!Thread.currentThread().isInterrupted() && tryCount <= retryCount) {
+            if (tryCount > 0) {
+                log.info("Retry after {} sec", retryInterval / 1000);
+                sleep(retryInterval);
+                log.info("Retrying...");
+            }
+            try {
+                return c.call(); // execute it
+            } catch (SSLHandshakeException e) {
+                // probably due to self-signed cert that isn't trusted
+                log.error("Error during SSL handshake; possibly due to untrusted self-signed certificate." + e.getMessage());
+                throw e;
+            } catch (Exception e) {
+                exception = e;
+                log.error("call error", e);
+            }
+            tryCount++;
+        }
+
+        if (Thread.currentThread().isInterrupted()) {
+            throw new InterruptedException();
+        }
+
+        // too many attempts, time to give up
+        throw new RuntimeException(exception);
+    }
+
+
     private static Set<String> getAllAttributesValues(Attribute attribute) throws NamingException {
         Set<String> values = new HashSet<>();
 
@@ -384,6 +429,14 @@ public class LdapTask implements Task {
         }
 
         return v;
+    }
+
+    static void sleep(long t) {
+        try {
+            Thread.sleep(t);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     private enum Action {

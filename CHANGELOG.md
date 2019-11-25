@@ -4,6 +4,7 @@
 
 ### Changed
 
+- ldap: automatically retry the query in case of errors;
 - github: fixed a potential NPE when using the `git` task's `commit`
 action and an invalid `baseBranch` value.
 
