@@ -1,0 +1,20 @@
+configuration:
+  dependencies:
+    - "mvn://com.walmartlabs.concord.plugins:msteams-task:1.21.0"
+
+flows:
+  default:
+    - task: msteams
+      in:
+        action: sendMessage
+        teamId: "6d97d054-8882-48f8-be19-052934402f06"
+        webhookId: "ec83079e7d2b480886b1138966c25d9c"
+        title: "My Message title"
+        text: "My Message text"
+        ignoreErrors: true
+    - log: "Result status: ${result.ok}"
+    - if: "${!result.ok}"
+      then:
+        - throw: "Error occured while sending a message: ${result.error}"
+      else:
+        - log: "Data: ${result.data}"

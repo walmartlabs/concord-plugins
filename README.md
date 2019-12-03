@@ -11,6 +11,7 @@ A collection of plugins for [Concord](https://concord.walmartlabs.com).
 - [jira](./tasks/jira) - a plugin to work with JIRA tickets [[docs](https://concord.walmartlabs.com/docs/plugins/jira.html)]
 - [jsonpath](./tasks/jsonpath) - [JSON path](https://github.com/json-path/JsonPath) plugin [[docs](https://concord.walmartlabs.com/docs/plugins/jsonpath.html)];
 - [ldap](./tasks/ldap) - LDAP query plugin [[docs](https://concord.walmartlabs.com/docs/plugins/ldap.html)];
+- [msteams](./tasks/msteams) - [Microsoft Teams](https://docs.microsoft.com/en-us/graph/teams-concept-overview) plugin [[docs](https://concord.walmartlabs.com/docs/plugins/msteams.html)];
 - [puppet](./tasks/puppet) - [Puppet](https://puppet.com) plugin [[docs](https://concord.walmartlabs.com/docs/plugins/puppet.html)]
 - [s3](./tasks/s3) - [S3](https://aws.amazon.com/s3/) plugin [[docs](https://concord.walmartlabs.com/docs/plugins/s3.html)]
 - [taurus](./tasks/taurus) - [Taurus](https://gettaurus.org/) plugin [[docs](https://concord.walmartlabs.com/docs/plugins/taurus.html)]

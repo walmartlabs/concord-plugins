@@ -1,0 +1,73 @@
+configuration:
+  dependencies:
+    - "mvn://com.walmartlabs.concord.plugins:msteams-task:1.21.0"
+
+flows:
+  default:
+    - task: msteams
+      in:
+        action: sendMessage
+        webhookUrl: "https://outlook.office.com/webhook/{teamID}@{tenantID}/IncomingWebhook/{webhookID}/{webhookTypeID}"
+        title: "My Message title"
+        text: "My Message text"
+        ignoreErrors: true
+        sections:
+          - title: "**Pending approval**"
+            activityTitle: "Requested by **Concord Team**"
+            activitySubtitle: "noreply@concord.com"
+            activityText: "waiting for approval"
+            activityImage: "https://concord.walmartlabs.com/assets/img/logo.png"
+            facts:
+              - name: "START_DATE"
+                value: "2019-11-21"
+              - name: "END_DATE"
+                value: "2019-11-22"
+              - name: "APPROVER"
+                value: "Concord Team"
+        potentialAction:
+          - "@type": "ActionCard"
+            name: "Add a comment"
+            inputs:
+              - "@type": "TextInput"
+                id: "comment"
+                isMultiline: false
+                title: "Add a comment here for this task"
+            actions:
+              - "@type": "HttpPOST"
+                name: "Add comment"
+                target": "http://..."
+          - "@type": "ActionCard"
+            name: "Set due date"
+            inputs:
+              - "@type": "DateInput"
+                id: "dueDate"
+                title: "Enter a due date for this task"
+            actions:
+              - "@type": "HttpPOST"
+                name: "Save"
+                target": "http://..."
+          - "@type": "ActionCard"
+            name: "Change status"
+            inputs:
+              - "@type": "MultichoiceInput"
+                id: "list"
+                title: "Select a status"
+                isMultiSelect: "false"
+                choices:
+                  - display: "In Progress"
+                    value: "1"
+                  - display: "Active"
+                    value: "2"
+                  - display: "Closed"
+                    value: "3"
+            actions:
+              - "@type": "HttpPOST"
+                name: "Save"
+                target": "http://..."
+
+    - log: "Result status: ${result.ok}"
+    - if: "${!result.ok}"
+      then:
+        - throw: "Error occured while sending a message: ${result.error}"
+      else:
+        - log: "Data: ${result.data}"

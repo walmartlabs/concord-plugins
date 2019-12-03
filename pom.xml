@@ -35,17 +35,18 @@
     </developers>
 
     <modules>
+        <module>tasks/confluence</module>
         <module>tasks/git</module>
         <module>tasks/gremlin</module>
         <module>tasks/jenkins</module>
         <module>tasks/jira</module>
         <module>tasks/jsonpath</module>
         <module>tasks/ldap</module>
+        <module>tasks/msteams</module>
         <module>tasks/puppet</module>
         <module>tasks/s3</module>
-        <module>tasks/terraform</module>
         <module>tasks/taurus</module>
-        <module>tasks/confluence</module>
+        <module>tasks/terraform</module>
         <module>tasks/zoom</module>
     </modules>
 
