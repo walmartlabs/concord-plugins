@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- new plugin: `tasks/msteams`.
+
 ### Changed
 
 - ldap: automatically retry the query in case of errors;
