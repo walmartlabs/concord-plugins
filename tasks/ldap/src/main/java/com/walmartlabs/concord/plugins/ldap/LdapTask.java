@@ -240,7 +240,7 @@ public class LdapTask implements Task {
             searchControls.setSearchScope(SearchControls.SUBTREE_SCOPE);
 
             // create SearchRequest
-            return connection.search(searchBase, searchFilter, searchControls);
+            return withRetry(MAX_RETRIES, RETRY_DELAY, () -> establishConnection(ctx).search(searchBase, searchFilter, searchControls));
         } catch (Exception e) {
             throw new IllegalArgumentException("Error occurred while searching " + e);
         } finally {
