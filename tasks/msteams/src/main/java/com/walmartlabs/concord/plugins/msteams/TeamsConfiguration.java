@@ -31,15 +31,15 @@ public class TeamsConfiguration {
 
     @SuppressWarnings("unchecked")
     public static TeamsConfiguration from(Context ctx) {
-        Map<String, Object> TeamsParams = (Map<String, Object>) ctx.getVariable(Constants.VAR_TEAMS_PARAMS);
+        Map<String, Object> msteamsParams = (Map<String, Object>) ctx.getVariable(Constants.MSTEAMS_PARAMS_KEY);
 
 
-        return from(getString(TeamsParams, Constants.VAR_TEAM_ID), getString(TeamsParams, Constants.VAR_TENANT_ID),
-                getString(TeamsParams, Constants.VAR_WEBHOOKTYPE_ID), getString(TeamsParams, Constants.VAR_WEBHOOK_ID), getString(TeamsParams, Constants.VAR_ROOT_WEBHOOK_URL),
-                getString(TeamsParams, Constants.VAR_PROXY_ADDRESS), getInt(TeamsParams, Constants.VAR_PROXY_PORT, Constants.DEFAULT_PROXY_PORT),
-                getInt(TeamsParams, Constants.VAR_CONNECTION_TIMEOUT, Constants.DEFAULT_CONNECT_TIMEOUT),
-                getInt(TeamsParams, Constants.VAR_SO_TIMEOUT, Constants.DEFAULT_SO_TIMEOUT),
-                getInt(TeamsParams, Constants.VAR_RETRY_COUNT, Constants.DEFAULT_RETRY_COUNT));
+        return from(getString(msteamsParams, Constants.TEAM_ID_KEY), getString(msteamsParams, Constants.TENANT_ID_KEY),
+                getString(msteamsParams, Constants.WEBHOOKTYPE_ID_KEY), getString(msteamsParams, Constants.WEBHOOK_ID_KEY), getString(msteamsParams, Constants.ROOT_WEBHOOK_URL_KEY),
+                getString(msteamsParams, Constants.PROXY_ADDRESS_KEY), getInt(msteamsParams, Constants.PROXY_PORT_KEY, Constants.DEFAULT_PROXY_PORT),
+                getInt(msteamsParams, Constants.CONNECTION_TIMEOUT_KEY, Constants.DEFAULT_CONNECT_TIMEOUT),
+                getInt(msteamsParams, Constants.SO_TIMEOUT_KEY, Constants.DEFAULT_SO_TIMEOUT),
+                getInt(msteamsParams, Constants.RETRY_COUNT_KEY, Constants.DEFAULT_RETRY_COUNT));
     }
 
 

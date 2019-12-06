@@ -22,45 +22,44 @@ package com.walmartlabs.concord.plugins.msteams;
 
 import com.walmartlabs.concord.sdk.Context;
 import com.walmartlabs.concord.sdk.InjectVariable;
+import com.walmartlabs.concord.sdk.MapUtils;
 import com.walmartlabs.concord.sdk.Task;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Named;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.walmartlabs.concord.sdk.ContextUtils.*;
+import static com.walmartlabs.concord.sdk.ContextUtils.assertString;
 
 @Named("msteams")
 public class TeamsTask implements Task {
 
     private static final Logger log = LoggerFactory.getLogger(TeamsTask.class);
-    private static final String ACTION_KEY = "action";
-    private static final String TEAMS_MESSAGE_TITLE = "title";
-    private static final String TEAMS_MESSAGE_TEXT = "text";
-    private static final String TEAMS_MESSAGE_THEME_COLOR = "themeColor";
-    private static final String TEAMS_MESSAGE_SECTIONS = "sections";
-    private static final String TEAMS_MESSAGE_POTENTIAL_ACTION = "potentialAction";
-    private static final String IGNORE_ERRORS_KEY = "ignoreErrors";
+
+    @InjectVariable("msteamsParams")
+    private static Map<String, Object> defaults;
 
     @Override
     public void execute(Context ctx) {
         Action action = getAction(ctx);
+        Map<String, Object> cfg = createCfg(ctx);
 
-        String title = getString(ctx, TEAMS_MESSAGE_TITLE, null);
-        String text = assertString(ctx, TEAMS_MESSAGE_TEXT);
-        String themeColor = getString(ctx, TEAMS_MESSAGE_THEME_COLOR, Constants.VARS_DEFAULT_THEME_COLOR);
-        List<Object> sections = getList(ctx, TEAMS_MESSAGE_SECTIONS, null);
-        List<Object> potentialAction = getList(ctx, TEAMS_MESSAGE_POTENTIAL_ACTION, null);
-        boolean ignoreErrors = getBoolean(ctx, IGNORE_ERRORS_KEY, false);
+        String title = MapUtils.getString(cfg, Constants.MESSAGE_TITLE_KEY, null);
+        String text = MapUtils.assertString(cfg, Constants.MESSAGE_TEXT_KEY);
+        String themeColor = MapUtils.getString(cfg, Constants.MESSAGE_THEME_COLOR_KEY, Constants.DEFAULT_THEME_COLOR);
+        List<Object> sections = MapUtils.getList(cfg, Constants.MESSAGE_SECTIONS_KEY, null);
+        List<Object> potentialAction = MapUtils.getList(cfg, Constants.MESSAGE_POTENTIAL_ACTION_KEY, null);
+        boolean ignoreErrors = MapUtils.getBoolean(cfg, Constants.IGNORE_ERRORS_KEY, false);
 
         log.info("Starting '{}' action...", action);
 
         switch (action) {
             case SENDMESSAGE: {
-                sendMessage(ctx, title, text, themeColor, sections, potentialAction, ignoreErrors);
+                sendMessage(ctx, cfg, title, text, themeColor, sections, potentialAction, ignoreErrors);
                 break;
             }
             default:
@@ -68,14 +67,14 @@ public class TeamsTask implements Task {
         }
     }
 
-    private void sendMessage(@InjectVariable("context") Context ctx, String title, String text, String themeColor, List<Object> sections,
+    private void sendMessage(@InjectVariable("context") Context ctx, Map<String, Object> cfg, String title, String text, String themeColor, List<Object> sections,
                              List<Object> potentialAction, boolean ignoreErrors) {
-        TeamsConfiguration cfg = TeamsConfiguration.from(ctx);
+        TeamsConfiguration teamsConfiguration = TeamsConfiguration.from(ctx);
         Map<String, Object> result = new HashMap<>();
         Result r;
 
-        try (TeamsClient client = new TeamsClient(cfg)) {
-            r = client.message(ctx, title, text, themeColor, sections, potentialAction);
+        try (TeamsClient client = new TeamsClient(teamsConfiguration)) {
+            r = client.message(cfg, title, text, themeColor, sections, potentialAction);
 
             if (!r.isOk()) {
                 log.warn("Error sending message to msteams channel: {}", r.getError());
@@ -95,8 +94,19 @@ public class TeamsTask implements Task {
         }
     }
 
+    private static Map<String, Object> createCfg(Context ctx) {
+        Map<String, Object> m = new HashMap<>(defaults != null ? defaults : Collections.emptyMap());
+        for (String k : Constants.ALL_IN_PARAMS) {
+            Object v = ctx.getVariable(k);
+            if (v != null) {
+                m.put(k, v);
+            }
+        }
+        return m;
+    }
+
     private static Action getAction(Context ctx) {
-        return Action.valueOf(assertString(ctx, ACTION_KEY).trim().toUpperCase());
+        return Action.valueOf(assertString(ctx, Constants.ACTION_KEY).trim().toUpperCase());
     }
 
     private void setResult(Context ctx, Map<String, Object> result, Result r) {

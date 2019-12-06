@@ -1,5 +1,14 @@
 # Change log
 
+## [Unreleased]
+
+## Breaking
+
+- msteams: the default parameters name changed from `teamsParams` to
+`msteamsParams`.
+
+
+
 ## [1.21.0] - 2019-12-04
 
 ### Added

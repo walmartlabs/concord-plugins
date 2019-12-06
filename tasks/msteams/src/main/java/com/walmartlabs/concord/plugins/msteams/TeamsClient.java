@@ -21,7 +21,7 @@ package com.walmartlabs.concord.plugins.msteams;
  */
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.walmartlabs.concord.sdk.Context;
+import com.walmartlabs.concord.sdk.MapUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
@@ -33,7 +33,6 @@ import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.HttpClientConnectionManager;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
 import org.apache.http.conn.socket.PlainConnectionSocketFactory;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
@@ -56,8 +55,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.walmartlabs.concord.sdk.ContextUtils.getString;
-
 public class TeamsClient implements AutoCloseable {
 
     private static final Logger log = LoggerFactory.getLogger(TeamsClient.class);
@@ -79,7 +76,7 @@ public class TeamsClient implements AutoCloseable {
         connManager.close();
     }
 
-    public Result message(Context ctx, String title, String text, String themeColor,
+    public Result message(Map<String, Object> cfg, String title, String text, String themeColor,
                           List<Object> sections, List<Object> potentialAction) throws IOException {
 
         Map<String, Object> params = new HashMap<>();
@@ -93,24 +90,24 @@ public class TeamsClient implements AutoCloseable {
         if (potentialAction != null && !potentialAction.isEmpty()) {
             params.put("potentialAction", potentialAction);
         }
-        return exec(ctx, params);
+        return exec(cfg, params);
     }
 
-    private Result exec(Context ctx, Map<String, Object> params) throws IOException {
-        TeamsConfiguration cfg = TeamsConfiguration.from(ctx);
-        String teamId = getString(ctx, Constants.VAR_TEAM_ID, null);
-        String webhookId = getString(ctx, Constants.VAR_WEBHOOK_ID, null);
-        String webhookUrl = getString(ctx, Constants.VAR_WEBHOOK_URL, null);
+    private Result exec(Map<String, Object> cfg, Map<String, Object> params) throws IOException {
+
+        String teamId = MapUtils.getString(cfg, Constants.TEAM_ID_KEY, null);
+        String webhookId = MapUtils.getString(cfg, Constants.WEBHOOK_ID_KEY, null);
+        String webhookUrl = MapUtils.getString(cfg, Constants.WEBHOOK_URL_KEY, null);
 
         HttpPost request;
 
         if ((teamId != null && !teamId.isEmpty()) && (webhookId != null && !webhookId.isEmpty())) {
-            webhookUrl = cfg.getRootWebhookUrl() + teamId + "@" + cfg.getTenantId() + "/IncomingWebhook/" + webhookId + "/" + cfg.getWebhookTypeId();
+            webhookUrl = cfg.get(Constants.ROOT_WEBHOOK_URL_KEY) + teamId + "@" + cfg.get(Constants.TENANT_ID_KEY) + "/IncomingWebhook/" + webhookId + "/" + cfg.get(Constants.WEBHOOKTYPE_ID_KEY);
             request = new HttpPost(webhookUrl);
         } else if (webhookUrl != null && !webhookUrl.isEmpty()) {
             request = new HttpPost(webhookUrl);
         } else {
-            throw new IllegalArgumentException("Mandatory parameters 'teamId & webhookId' or 'webhookUrl' is required for the execution of 'msteams' task...");
+            throw new IllegalArgumentException("Mandatory parameters 'teamId & webhookId' or 'webhookUrl' is required for the execution of 'msteams' task");
         }
         request.setEntity(new StringEntity(objectMapper.writeValueAsString(params), ContentType.APPLICATION_JSON));
 
@@ -167,12 +164,12 @@ public class TeamsClient implements AutoCloseable {
     @SuppressWarnings("Duplicates")
     private static PoolingHttpClientConnectionManager createConnManager() {
         try {
-            SSLContext sslContext = SSLContext.getInstance("TLS");
+            SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
             sslContext.init(new KeyManager[0], new TrustManager[]{new DefaultTrustManager()}, new SecureRandom());
 
             Registry<ConnectionSocketFactory> registry = RegistryBuilder.<ConnectionSocketFactory>create()
                     .register("http", PlainConnectionSocketFactory.INSTANCE)
-                    .register("https", new SSLConnectionSocketFactory(sslContext, NoopHostnameVerifier.INSTANCE))
+                    .register("https", new SSLConnectionSocketFactory(sslContext, SSLConnectionSocketFactory.getDefaultHostnameVerifier()))
                     .build();
 
             return new PoolingHttpClientConnectionManager(registry);
