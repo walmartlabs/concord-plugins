@@ -1,5 +1,13 @@
 # Change log
 
+## [Unreleased]
+
+### Changed
+
+- terraform: enable support for the `remote` backend.
+
+
+
 ## [1.22.0] - 2019-12-06
 
 ## Breaking

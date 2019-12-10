@@ -79,7 +79,7 @@ public class BackendManager {
         // TF Enterprise to Concord you might want to use TFE's remote state engine as part
         // of a transition.
         //
-        // supportedBackends.add("remote"); //https://www.terraform.io/docs/backends/types/remote.html
+        supportedBackends.add("remote"); //https://www.terraform.io/docs/backends/types/remote.html
         //
         return supportedBackends;
     }
