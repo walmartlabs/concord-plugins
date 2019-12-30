@@ -1,0 +1,18 @@
+configuration:
+  dependencies:
+    - mvn://com.walmartlabs.concord.plugins:terraform-task:1.22.0
+
+flows:
+  default:
+    - task: terraform
+      in:
+        action: plan
+        extraVars:
+          # myGcpCreds contains the service account's credentials - refer to README.md for more details.
+          credentials: "${crypto.exportAsFile('myOrg', 'myGcpCreds', 'myPassword')}"
+          projectName: "concord-test"
+
+    - task: terraform
+      in:
+        action: apply
+        plan: "${result.planPath}"
