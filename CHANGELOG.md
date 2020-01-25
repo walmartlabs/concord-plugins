@@ -4,6 +4,8 @@
 
 ### Changed
 
+- git: save the list of uncommitted changes as `result.changeList`
+variable;
 - terraform: enable support for the `remote` backend.
 
 

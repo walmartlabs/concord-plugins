@@ -42,10 +42,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 import static com.walmartlabs.concord.plugins.git.Utils.getBoolean;
 import static com.walmartlabs.concord.sdk.ContextUtils.assertString;
@@ -81,6 +78,7 @@ public class GitTask implements Task {
     private static final String OUT_KEY = "out";
     private static final String IGNORE_ERRORS_KEY = "ignoreErrors";
     private static final String DEFAULT_OUT_VAR_KEY = "result";
+    private static final String CHANGE_LIST_KEY = "changeList";
     private static final String STATUS_KEY = "status";
     private static final String OK_KEY = "ok";
     private static final String ERROR_KEY = "error";
@@ -138,7 +136,7 @@ public class GitTask implements Task {
         log.info("Cloning {} to {}...", uri, dstDir);
         try {
             cloneRepo(uri, baseBranch, dstDir, transportCallback);
-            setOutVariable(ctx, true, ResultStatus.SUCCESS, "");
+            setOutVariable(ctx, true, ResultStatus.SUCCESS, "", Collections.emptySet());
         } catch (Exception e) {
             String error = "Error while cloning the repository.\n" + e.getMessage();
 
@@ -233,8 +231,8 @@ public class GitTask implements Task {
             git.add().setUpdate(true).addFilepattern(".").call();
             org.eclipse.jgit.api.Status status = git.status().call();
             if (status.getUncommittedChanges().isEmpty()) {
-                setOutVariable(ctx, true, ResultStatus.NO_CHANGES, "");
                 log.warn("No changes detected on your local git repo.Skipping git commit and git push actions.");
+                setOutVariable(ctx, true, ResultStatus.NO_CHANGES, "", Collections.emptySet());
                 return;
             }
 
@@ -245,13 +243,13 @@ public class GitTask implements Task {
             try {
                 commitCommand.call();
                 log.info("Committer userid and email are '{}', '{}'", committerUId, committerEmail);
+                setOutVariable(ctx, true, ResultStatus.SUCCESS, "", status.getUncommittedChanges());
             } catch (Exception e) {
                 String error = "Problem committing changes.\n" + e.getMessage();
                 if (!ignoreErrors) {
                     throw new IllegalArgumentException(error, e);
                 }
-
-                setOutVariable(ctx, false, ResultStatus.FAILURE, error);
+                setOutVariable(ctx, false, ResultStatus.FAILURE, error, status.getUncommittedChanges());
                 return;
             }
 
@@ -291,7 +289,7 @@ public class GitTask implements Task {
                             throw new IllegalArgumentException(error);
                         }
 
-                        setOutVariable(ctx, false, ResultStatus.FAILURE, error);
+                        setOutVariable(ctx, false, ResultStatus.FAILURE, error, status.getUncommittedChanges());
                         break;
                     }
                     case REJECTED_NONFASTFORWARD: {
@@ -304,7 +302,7 @@ public class GitTask implements Task {
                             throw new IllegalArgumentException(error);
                         }
 
-                        setOutVariable(ctx, false, ResultStatus.FAILURE, error);
+                        setOutVariable(ctx, false, ResultStatus.FAILURE, error, status.getUncommittedChanges());
                         break;
                     }
                     case UP_TO_DATE: {
@@ -313,12 +311,12 @@ public class GitTask implements Task {
                             throw new IllegalArgumentException(error);
                         }
 
-                        setOutVariable(ctx, false, ResultStatus.FAILURE, error);
+                        setOutVariable(ctx, false, ResultStatus.FAILURE, error, status.getUncommittedChanges());
                         break;
                     }
                     case OK: {
                         log.info("Successfully pushed the changes to origin");
-                        setOutVariable(ctx, true, ResultStatus.SUCCESS, "");
+                        setOutVariable(ctx, true, ResultStatus.SUCCESS, "", status.getUncommittedChanges());
                         break;
                     }
                 }
@@ -329,7 +327,7 @@ public class GitTask implements Task {
                 throw new IllegalArgumentException(error, e);
             }
 
-            setOutVariable(ctx, false, ResultStatus.FAILURE, error);
+            setOutVariable(ctx, false, ResultStatus.FAILURE, error, Collections.emptySet());
         }
     }
 
@@ -367,7 +365,7 @@ public class GitTask implements Task {
             } else {
                 log.warn("Skipping push operation as 'pushBranch' parameter is set to 'false' by default. If you want to push your new branch to origin, set it to 'true' in your git createBranch action");
             }
-            setOutVariable(ctx, true, ResultStatus.SUCCESS, "");
+            setOutVariable(ctx, true, ResultStatus.SUCCESS, "", Collections.emptySet());
         } catch (Exception e) {
             String error = "Error while cloning the repository.\n" + e.getMessage();
             handleError(error, e, ctx, dstDir);
@@ -412,13 +410,12 @@ public class GitTask implements Task {
                     if (!isIgnoreErrors(ctx)) {
                         throw new IllegalAccessException(error);
                     }
-
-                    setOutVariable(ctx, false, ResultStatus.FAILURE, error);
+                    setOutVariable(ctx, false, ResultStatus.FAILURE, error, Collections.emptySet());
                     break;
                 }
 
                 case ALREADY_UP_TO_DATE: {
-                    setOutVariable(ctx, true, ResultStatus.NO_CHANGES, "");
+                    setOutVariable(ctx, true, ResultStatus.NO_CHANGES, "", Collections.emptySet());
                     log.info("Branch already up-to-date. No merging required");
                     break;
                 }
@@ -430,7 +427,7 @@ public class GitTask implements Task {
                             .setRemote("origin")
                             .setRefSpecs(new RefSpec(destinationBranch))
                             .call();
-                    setOutVariable(ctx, true, ResultStatus.SUCCESS, "");
+                    setOutVariable(ctx, true, ResultStatus.SUCCESS, "", Collections.emptySet());
                     log.info("Pushed '{}' to the remote's origin", destinationBranch);
                     break;
                 }
@@ -646,10 +643,10 @@ public class GitTask implements Task {
             throw new IllegalArgumentException(error, e);
         }
 
-        setOutVariable(ctx, false, ResultStatus.FAILURE, error);
+        setOutVariable(ctx, false, ResultStatus.FAILURE, error, Collections.emptySet());
     }
 
-    private static void setOutVariable(Context ctx, boolean ok, ResultStatus resultStatus, String error) {
+    private static void setOutVariable(Context ctx, boolean ok, ResultStatus resultStatus, String error, Set<String> changeList) {
         String key = (String) ctx.getVariable(OUT_KEY);
         if (key == null) {
             key = DEFAULT_OUT_VAR_KEY;
@@ -659,6 +656,7 @@ public class GitTask implements Task {
         result.put(OK_KEY, ok);
         result.put(STATUS_KEY, resultStatus);
         result.put(ERROR_KEY, error);
+        result.put(CHANGE_LIST_KEY, changeList);
 
         ctx.setVariable(key, result);
     }
