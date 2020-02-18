@@ -22,12 +22,15 @@ package com.walmartlabs.concord.plugins.terraform;
 
 import com.walmartlabs.concord.sdk.MapUtils;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import static com.walmartlabs.concord.plugins.terraform.Constants.*;
 
 public final class Utils {
 
@@ -54,6 +57,30 @@ public final class Utils {
         }
 
         return paths.stream().map(dir::resolve).collect(Collectors.toList());
+    }
+
+    public static String getRemoteBackendTfCfgFile(Map<String, Object> backend, Path baseDir) throws Exception {
+        Map<String, Object> backendParameters = MapUtils.getMap(backend, BACKEND_REMOTE_KEY, null);
+        if (!backendParameters.containsKey(HOSTNAME_KEY) || !backendParameters.containsKey(TOKEN_KEY)) {
+            return null;
+        }
+
+        String host = MapUtils.assertString(backendParameters, HOSTNAME_KEY);
+        String token = MapUtils.assertString(backendParameters, TOKEN_KEY);
+        String tfCliConfig = String.format("credentials \"%s\" { \ntoken = \"%s\" \n}", host, token);
+
+        Path tmpDir = assertTempDir(baseDir);
+        Path tfCliConfigFile = Files.createTempFile(tmpDir, "terraformrc", ".bin");
+        Files.write(tfCliConfigFile, tfCliConfig.getBytes());
+        return baseDir.relativize(tfCliConfigFile).toString();
+    }
+
+    private static Path assertTempDir(Path baseDir) throws Exception {
+        Path p = baseDir.resolve(".tmp");
+        if (!Files.exists(p)) {
+            Files.createDirectories(p);
+        }
+        return p;
     }
 
     private Utils() {

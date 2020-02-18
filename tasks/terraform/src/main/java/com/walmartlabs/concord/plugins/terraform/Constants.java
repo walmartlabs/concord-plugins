@@ -41,6 +41,10 @@ public final class Constants {
     public static final String VERBOSE_KEY = "verbose";
     public static final String TOOL_VERSION_KEY = "toolVersion";
     public static final String TOOL_URL_KEY = "toolUrl";
+    public static final String TOKEN_KEY = "token";
+    public static final String HOSTNAME_KEY = "hostname";
+    public static final String BACKEND_REMOTE_KEY = "remote";
+    public static final String TF_CLI_CONFIG_FILE_KEY = "TF_CLI_CONFIG_FILE";
 
     public static final String[] ALL_IN_PARAMS = {ACTION_KEY, BACKEND_KEY, DEBUG_KEY, DEFAULT_ENV_KEY, DESTROY_KEY,
             DIR_KEY, EXTRA_ENV_KEY, EXTRA_VARS_KEY, VARS_FILES, GIT_SSH_KEY, IGNORE_ERRORS_KEY, MODULE_KEY, PLAN_KEY,
