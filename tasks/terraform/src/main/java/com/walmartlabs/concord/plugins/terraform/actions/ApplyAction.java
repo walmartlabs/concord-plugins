@@ -39,7 +39,6 @@ public class ApplyAction extends Action {
 
     private final Context ctx;
     private final Map<String, Object> cfg;
-    private final boolean debug;
     private final boolean verbose;
     private final Path workDir;
     private final Path dir;
@@ -57,7 +56,6 @@ public class ApplyAction extends Action {
         this.cfg = cfg;
         this.env = env;
 
-        this.debug = MapUtils.get(cfg, Constants.DEBUG_KEY, false, Boolean.class);
         this.verbose = MapUtils.get(cfg, Constants.VERBOSE_KEY, false, Boolean.class);
 
         // the process' working directory (aka the payload directory)
@@ -82,18 +80,16 @@ public class ApplyAction extends Action {
     public ApplyResult exec(Terraform terraform, Backend backend) throws Exception {
         try {
             init(ctx, workDir, dir, !verbose, env, terraform, backend);
-
-            Path dirOrPlanAbsolute = workDir.resolve(plan != null ? plan : dir);
-
-            Path varsFile = null;
             if (plan == null) {
                 // running without a previously created plan file
-                varsFile = createVarsFile(workDir, objectMapper, extraVars);
+                // save 'extraVars' into a file that can be automatically picked up by TF
+                createVarsFile(workDir, objectMapper, extraVars);
             }
 
+            Path dirOrPlanAbsolute = workDir.resolve(plan != null ? plan : dir);
             List<Path> userSuppliedVarFiles = Utils.resolve(workDir, userSuppliedVarFileNames);
 
-            Terraform.Result r = new ApplyCommand(debug, workDir, dirOrPlanAbsolute, varsFile, userSuppliedVarFiles, env).exec(terraform);
+            Terraform.Result r = new ApplyCommand(workDir, dirOrPlanAbsolute, userSuppliedVarFiles, env).exec(terraform);
             if (r.getCode() != 0) {
                 throw new RuntimeException("Process finished with code " + r.getCode() + ": " + r.getStderr());
             }

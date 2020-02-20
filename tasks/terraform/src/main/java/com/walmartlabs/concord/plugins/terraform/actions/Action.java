@@ -40,17 +40,20 @@ public abstract class Action {
 
     private static final Logger log = LoggerFactory.getLogger(Action.class);
 
-    protected static Path createVarsFile(Path dir, ObjectMapper objectMapper, Map<String, Object> m) throws IOException {
+    /**
+     * Saves the provided map object as a JSON file. The resulting file name uses the TF naming convention for
+     * variable files: *.auto.tfvars.json.
+     */
+    protected static void createVarsFile(Path dir, ObjectMapper objectMapper, Map<String, Object> m) throws IOException {
         if (m == null || m.isEmpty()) {
-            return null;
+            return;
         }
 
-        Path p = Files.createTempFile(dir, ".vars", ".json");
+        Path p = Files.createTempFile(dir, ".vars", ".auto.tfvars.json");
+        log.info("Saving 'extraVars' as {}...", p);
         try (OutputStream out = Files.newOutputStream(p, StandardOpenOption.TRUNCATE_EXISTING)) {
             objectMapper.writeValue(out, m);
         }
-
-        return p;
     }
 
     protected static void init(Context ctx, Path workDir, Path dir, boolean silent, Map<String, String> env, Terraform terraform, Backend backend) throws Exception {

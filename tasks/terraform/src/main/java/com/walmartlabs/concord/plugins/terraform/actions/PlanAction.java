@@ -84,14 +84,14 @@ public class PlanAction extends Action {
         try {
             init(ctx, workDir, dir, !verbose, env, terraform, backend);
 
+            // save 'extraVars' into a file that can be automatically picked up by TF
+            createVarsFile(workDir, objectMapper, extraVars);
+
             Path dirOrPlanAbsolute = workDir.resolve(plan != null ? plan : dir);
-
-            Path varsFile = createVarsFile(workDir, objectMapper, extraVars);
             Path outFile = getOutFile(workDir);
-
             List<Path> userSuppliedVarFiles = Utils.resolve(workDir, userSuppliedVarFileNames);
 
-            Terraform.Result r = new PlanCommand(debug, destroy, workDir, dirOrPlanAbsolute, varsFile, userSuppliedVarFiles, outFile, env).exec(terraform);
+            Terraform.Result r = new PlanCommand(debug, destroy, workDir, dirOrPlanAbsolute, userSuppliedVarFiles, outFile, env).exec(terraform);
             switch (r.getCode()) {
                 case 0: {
                     return PlanResult.noChanges(r.getStdout(), workDir.relativize(outFile).toString());

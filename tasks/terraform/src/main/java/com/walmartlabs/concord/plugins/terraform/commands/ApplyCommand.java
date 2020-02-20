@@ -34,16 +34,12 @@ public class ApplyCommand {
 
     private static final Logger log = LoggerFactory.getLogger(ApplyCommand.class);
 
-    private final boolean debug;
     private final Path pwd;
     private final Path dirOrPlan;
-    private final Path varFile;
     private final List<Path> userSuppliedVarFiles;
     private final Map<String, String> env;
 
-    public ApplyCommand(boolean debug, Path pwd, Path dirOrPlan, Path varFile, List<Path> userSuppliedVarFiles, Map<String, String> env) {
-        this.debug = debug;
-
+    public ApplyCommand(Path pwd, Path dirOrPlan, List<Path> userSuppliedVarFiles, Map<String, String> env) {
         if (!pwd.isAbsolute()) {
             throw new IllegalArgumentException("'pwd' must be an absolute path, got: " + pwd);
         }
@@ -54,8 +50,6 @@ public class ApplyCommand {
         }
         this.dirOrPlan = dirOrPlan;
 
-
-        this.varFile = varFile;
         this.userSuppliedVarFiles = userSuppliedVarFiles;
         this.env = env;
     }
@@ -65,13 +59,6 @@ public class ApplyCommand {
         args.add("apply");
         args.add("-input=false");
         args.add("-auto-approve");
-
-        if (varFile != null) {
-            if (debug) {
-                log.info("exec -> using var file: {}", varFile);
-            }
-            args.add("-var-file=" + varFile.toAbsolutePath().toString());
-        }
 
         userSuppliedVarFiles.forEach(f -> args.add("-var-file=" + f.toAbsolutePath().toString()));
 
