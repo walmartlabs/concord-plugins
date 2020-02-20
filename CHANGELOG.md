@@ -1,5 +1,14 @@
 # Change log
 
+## [Unreleased]
+
+### Changed
+
+- terraform: `extraVars` now saved as `*.auto.tfvars.json` files to
+improve compatibility with Terraform Enterprise.
+
+
+
 ## [1.23.0] - 2020-01-25
 
 ### Added
