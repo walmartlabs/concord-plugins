@@ -26,6 +26,10 @@ import java.nio.file.Path;
 
 public class DummyBackend implements Backend {
 
+    public String getId() {
+        return "dummy";
+    }
+
     @Override
     public void lock(Context ctx) {
         // do nothing

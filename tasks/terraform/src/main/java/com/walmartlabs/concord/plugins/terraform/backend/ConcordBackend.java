@@ -50,6 +50,10 @@ public class ConcordBackend implements Backend {
         this.objectMapper = objectMapper;
     }
 
+    public String getId() {
+        return "concord";
+    }
+
     @Override
     public void lock(Context ctx) throws Exception {
         lockService.projectLock(ctx, getStateId(ctx));

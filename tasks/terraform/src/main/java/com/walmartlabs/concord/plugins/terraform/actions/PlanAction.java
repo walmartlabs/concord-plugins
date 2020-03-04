@@ -88,19 +88,25 @@ public class PlanAction extends Action {
             createVarsFile(workDir, objectMapper, extraVars);
 
             Path dirOrPlanAbsolute = workDir.resolve(plan != null ? plan : dir);
-            Path outFile = getOutFile(workDir);
             List<Path> userSuppliedVarFiles = Utils.resolve(workDir, userSuppliedVarFileNames);
+
+            Path outFile = null;
+            String outFileStr = null;
+            if (backend.supportsOutFiles()) {
+                outFile = getOutFile(workDir);
+                outFileStr = workDir.relativize(outFile).toString();
+            }
 
             Terraform.Result r = new PlanCommand(debug, destroy, workDir, dirOrPlanAbsolute, userSuppliedVarFiles, outFile, env).exec(terraform);
             switch (r.getCode()) {
                 case 0: {
-                    return PlanResult.noChanges(r.getStdout(), workDir.relativize(outFile).toString());
+                    return PlanResult.noChanges(r.getStdout(), outFileStr);
                 }
                 case 1: {
                     throw new RuntimeException("Process finished with code " + r.getCode() + ": " + r.getStderr());
                 }
                 case 2: {
-                    return PlanResult.hasChanges(r.getStdout(), workDir.relativize(outFile).toString());
+                    return PlanResult.hasChanges(r.getStdout(), outFileStr);
                 }
                 default:
                     throw new IllegalStateException("Unsupported Terraform exit code: " + r.getCode());

@@ -26,6 +26,8 @@ import java.nio.file.Path;
 
 public interface Backend {
 
+    String getId();
+
     void lock(Context ctx) throws Exception;
 
     void unlock(Context ctx) throws Exception;
@@ -36,4 +38,12 @@ public interface Backend {
      * @throws Exception
      */
     void init(Context ctx, Path tfDir) throws Exception;
+
+    /**
+     * @return if {@code true} the backend supports {@code -out} parameter
+     * (can save output variables). Default is {@code true}.
+     */
+    default boolean supportsOutFiles() {
+        return true;
+    }
 }

@@ -97,7 +97,7 @@ public class BackendManager {
                 backendId = backend.keySet().iterator().next();
                 if (isSupported(backendId)) {
                     // Retrieve the backend configuration parameters
-                    return new SupportedBackend(debug, backendId, MapUtils.getMap(backend, backendId, null), objectMapper);
+                    return new SupportedBackend(backendId, debug, MapUtils.getMap(backend, backendId, null), objectMapper);
                 }
             } else {
                 backendId = MapUtils.getString(cfg, Constants.BACKEND_KEY, DEFAULT_BACKEND);

@@ -21,6 +21,7 @@ package com.walmartlabs.concord.plugins.terraform.backend;
  */
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.walmartlabs.concord.plugins.terraform.Constants;
 import com.walmartlabs.concord.sdk.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,15 +38,25 @@ public class SupportedBackend implements Backend {
     private static final Logger log = LoggerFactory.getLogger(SupportedBackend.class);
 
     private final boolean debug;
-    private final String backendId;
+    private final String id;
     private final Map<String, Object> backendParameters;
     private final ObjectMapper objectMapper;
 
-    public SupportedBackend(boolean debug, String backendId, Map<String, Object> backendParameters, ObjectMapper objectMapper) {
+    public SupportedBackend(String id, boolean debug, Map<String, Object> backendParameters, ObjectMapper objectMapper) {
         this.debug = debug;
-        this.backendId = backendId;
+        this.id = id;
         this.backendParameters = backendParameters;
         this.objectMapper = objectMapper;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    @Override
+    public boolean supportsOutFiles() {
+        // the "remote" backend doesn't support "out" files
+        return !Constants.BACKEND_REMOTE_KEY.equals(id);
     }
 
     @Override
@@ -79,7 +90,7 @@ public class SupportedBackend implements Backend {
         //
         Map<String, Object> cfg = Collections.singletonMap("terraform",
                 Collections.singletonMap("backend",
-                        Collections.singletonMap(backendId, backendParameters)));
+                        Collections.singletonMap(id, backendParameters)));
 
         Path p = tfDir.resolve("concord_override.tf.json");
         try (OutputStream out = Files.newOutputStream(p, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {

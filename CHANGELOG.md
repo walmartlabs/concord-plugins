@@ -1,5 +1,14 @@
 # Change log
 
+## [Unreleased]
+
+### Changed
+
+- terraform: fixed the `plan` action when the `remote` backend is
+used - `out` files are no longer supported by the `remote` backend.
+
+
+
 ## [1.23.1] - 2020-02-19
 
 ### Changed
