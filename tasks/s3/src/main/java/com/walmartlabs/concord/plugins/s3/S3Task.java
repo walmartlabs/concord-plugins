@@ -116,17 +116,19 @@ public class S3Task implements Task {
 
     private Result getObject(Context ctx) throws IOException {
         Path baseDir = Paths.get(assertString(ctx, com.walmartlabs.concord.sdk.Constants.Context.WORK_DIR_KEY));
-        Path dst = createTempFile(baseDir);
+        // If a dest has been specified we will use that as the name of the local path for the object that
+        // is being retrieved, otherwise we will use the key of the object
+        String key = assertString(ctx, Constants.OBJECT_KEY);
+        Path dst = baseDir.resolve(ContextUtils.getString(ctx, Constants.DST_KEY, key));
         String relativePath = baseDir.relativize(dst).toString();
 
         String bucketName = assertString(ctx, Constants.BUCKET_NAME_KEY);
-        String key = assertString(ctx, Constants.OBJECT_KEY);
         log.info("Getting an object from {}/{} into {}...", bucketName, key, relativePath);
 
         AmazonS3 s3 = createClient(ctx);
 
         S3Object o = s3.getObject(bucketName, key);
-        try (OutputStream out = Files.newOutputStream(dst, StandardOpenOption.TRUNCATE_EXISTING);
+        try (OutputStream out = Files.newOutputStream(dst);
              InputStream in = o.getObjectContent()) {
             IOUtils.copy(in, out);
         }
