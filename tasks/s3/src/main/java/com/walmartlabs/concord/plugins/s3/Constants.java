@@ -26,6 +26,7 @@ public final class Constants {
     public static final String AUTH_KEY = "auth";
     public static final String AUTO_CREATE_BUCKET_KEY = "autoCreateBucket";
     public static final String BUCKET_NAME_KEY = "bucketName";
+    public static final String DEST_KEY = "dest";
     public static final String ENDPOINT_KEY = "endpoint";
     public static final String IGNORE_ERRORS_KEY = "ignoreErrors";
     public static final String OBJECT_KEY = "objectKey";
@@ -33,7 +34,6 @@ public final class Constants {
     public static final String REGION_KEY = "region";
     public static final String RESULT_KEY = "result";
     public static final String SRC_KEY = "src";
-    public static final String DST_KEY = "dest";
 
     private Constants() {
     }

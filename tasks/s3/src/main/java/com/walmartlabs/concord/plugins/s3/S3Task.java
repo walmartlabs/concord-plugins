@@ -30,7 +30,6 @@ import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.util.IOUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.walmartlabs.concord.sdk.Context;
-import com.walmartlabs.concord.sdk.ContextUtils;
 import com.walmartlabs.concord.sdk.MapUtils;
 import com.walmartlabs.concord.sdk.Task;
 import org.slf4j.Logger;
@@ -43,7 +42,6 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.Map;
 
 import static com.walmartlabs.concord.sdk.ContextUtils.*;
@@ -100,7 +98,7 @@ public class S3Task implements Task {
 
         AmazonS3 s3 = createClient(ctx);
 
-        boolean autoCreateBucket = ContextUtils.getBoolean(ctx, Constants.AUTO_CREATE_BUCKET_KEY, false);
+        boolean autoCreateBucket = getBoolean(ctx, Constants.AUTO_CREATE_BUCKET_KEY, false);
         if (autoCreateBucket) {
             if (!s3.doesBucketExistV2(bucketName)) {
                 log.info("Creating the bucket: {}", bucketName);
@@ -119,7 +117,7 @@ public class S3Task implements Task {
         // If a dest has been specified we will use that as the name of the local path for the object that
         // is being retrieved, otherwise we will use the key of the object
         String key = assertString(ctx, Constants.OBJECT_KEY);
-        Path dst = baseDir.resolve(ContextUtils.getString(ctx, Constants.DST_KEY, key));
+        Path dst = baseDir.resolve(getString(ctx, Constants.DEST_KEY, key));
         String relativePath = baseDir.relativize(dst).toString();
 
         String bucketName = assertString(ctx, Constants.BUCKET_NAME_KEY);
@@ -146,7 +144,7 @@ public class S3Task implements Task {
     private static AmazonS3 createClient(Context ctx) {
         AmazonS3ClientBuilder clientBuilder = AmazonS3ClientBuilder.standard();
 
-        boolean pathStyleAccess = ContextUtils.getBoolean(ctx, Constants.PATH_STYLE_ACCESS_KEY, false);
+        boolean pathStyleAccess = getBoolean(ctx, Constants.PATH_STYLE_ACCESS_KEY, false);
         if (pathStyleAccess) {
             clientBuilder.enablePathStyleAccess();
         }
@@ -169,7 +167,7 @@ public class S3Task implements Task {
     }
 
     private static void configureCredentials(AmazonS3ClientBuilder b, Context ctx) {
-        Map<String, Object> m = ContextUtils.getMap(ctx, Constants.AUTH_KEY);
+        Map<String, Object> m = getMap(ctx, Constants.AUTH_KEY);
         if (m == null || m.isEmpty()) {
             return;
         }
@@ -186,15 +184,6 @@ public class S3Task implements Task {
         AWSCredentials credentials = new BasicAWSCredentials(accessKey, secretKey);
 
         b.withCredentials(new AWSStaticCredentialsProvider(credentials));
-    }
-
-    private static Path createTempFile(Path baseDir) throws IOException {
-        Path p = baseDir.resolve(".s3");
-        if (!Files.exists(p)) {
-            Files.createDirectories(p);
-        }
-
-        return Files.createTempFile(p, "s3", ".blob");
     }
 
     public enum Action {
