@@ -33,16 +33,19 @@ import java.nio.file.StandardOpenOption;
 import java.util.Collections;
 import java.util.Map;
 
-public class SupportedBackend implements Backend {
+/**
+ * Backend that doesn't require any additional initialization, only a configuration file.
+ */
+public class CommonBackend implements Backend {
 
-    private static final Logger log = LoggerFactory.getLogger(SupportedBackend.class);
+    private static final Logger log = LoggerFactory.getLogger(CommonBackend.class);
 
     private final boolean debug;
     private final String id;
     private final Map<String, Object> backendParameters;
     private final ObjectMapper objectMapper;
 
-    public SupportedBackend(String id, boolean debug, Map<String, Object> backendParameters, ObjectMapper objectMapper) {
+    public CommonBackend(String id, boolean debug, Map<String, Object> backendParameters, ObjectMapper objectMapper) {
         this.debug = debug;
         this.id = id;
         this.backendParameters = backendParameters;
@@ -51,12 +54,6 @@ public class SupportedBackend implements Backend {
 
     public String getId() {
         return id;
-    }
-
-    @Override
-    public boolean supportsOutFiles() {
-        // the "remote" backend doesn't support "out" files
-        return !Constants.BACKEND_REMOTE_KEY.equals(id);
     }
 
     @Override

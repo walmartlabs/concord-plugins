@@ -33,7 +33,6 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import java.net.URI;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -69,7 +68,6 @@ public class TerraformTask implements Task {
         String instanceId = (String) ctx.getVariable(com.walmartlabs.concord.sdk.Constants.Context.TX_ID_KEY);
 
         Map<String, Object> cfg = createCfg(ctx);
-        Map<String, String> env = getEnv(cfg, ctx);
 
         Path workDir = getPath(cfg, com.walmartlabs.concord.sdk.Constants.Context.WORK_DIR_KEY, null);
         if (workDir == null) {
@@ -80,6 +78,7 @@ public class TerraformTask implements Task {
 
         Action action = getAction(cfg);
         Backend backend = backendManager.getBackend(cfg);
+        Map<String, String> env = getEnv(ctx, cfg, backend);
 
         GitSshWrapper gitSshWrapper = GitSshWrapper.createFrom(secretService, ctx, instanceId, workDir, cfg, debug);
         Map<String, String> baseEnv = gitSshWrapper.updateEnv(workDir, new HashMap<>());
@@ -133,20 +132,19 @@ public class TerraformTask implements Task {
         return m;
     }
 
-    @SuppressWarnings("unchecked")
-    private Map<String, String> getEnv(Map<String, Object> cfg, Context ctx) throws Exception {
-        Map<String, String> defaultEnv = (Map<String, String>) cfg.getOrDefault(Constants.DEFAULT_ENV_KEY, Collections.emptyMap());
-        Map<String, String> m = new HashMap<>(defaultEnv);
-        Map<String, Object> backend = MapUtils.getMap(cfg, Constants.BACKEND_KEY, null);
-        if (backend != null && backend.containsKey(Constants.BACKEND_REMOTE_KEY)) {
-            Path baseDir = Paths.get(ContextUtils.assertString(ctx, com.walmartlabs.concord.sdk.Constants.Context.WORK_DIR_KEY));
-            String tfCliCfgFile = Utils.getRemoteBackendTfCfgFile(backend, baseDir);
-            if (tfCliCfgFile != null) {
-                m.put(Constants.TF_CLI_CONFIG_FILE_KEY, tfCliCfgFile);
-            }
-        }
-        Map<String, String> extraEnv = (Map<String, String>) cfg.getOrDefault(Constants.EXTRA_ENV_KEY, Collections.emptyMap());
+    private Map<String, String> getEnv(Context ctx, Map<String, Object> cfg, Backend backend) throws Exception {
+        Map<String, String> m = new HashMap<>();
+
+        // default env
+        m.putAll(MapUtils.getMap(cfg, Constants.DEFAULT_ENV_KEY, Collections.emptyMap()));
+
+        // backend-specific env
+        m.putAll(backend.prepareEnv(ctx, cfg));
+
+        // user env
+        Map<String, String> extraEnv = MapUtils.getMap(cfg, Constants.EXTRA_ENV_KEY, Collections.emptyMap());
         m.putAll(extraEnv);
+
         return m;
     }
 
