@@ -1,5 +1,22 @@
 # Change log
 
+## [Unreleased]
+
+### Added
+
+- s3: allow the specification of the local path for the retrieve
+object. This change allows the user to specify a dst for the path
+in the workspace where the retrieved object will be place, and if
+not specified defaults to the object key.
+
+### Changed
+
+- terraform: fixed an issue preventing the `remote` backend from
+working correctly. Now backend classes are responsible for providing
+the necessary environment and/or configuration files.
+
+
+
 ## [1.23.2] - 2020-03-04
 
 ### Changed
