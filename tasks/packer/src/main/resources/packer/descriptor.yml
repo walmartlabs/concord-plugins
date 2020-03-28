@@ -1,0 +1,9 @@
+---
+id: packer
+name: Packer
+executable: packer
+architecture: amd64
+namingStyle: LOWER
+packaging: ZIP
+defaultVersion: 1.5.5
+urlTemplate: https://releases.hashicorp.com/packer/{version}/packer_{version}_{os}_{arch}.zip
