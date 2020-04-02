@@ -223,6 +223,7 @@ public class GitHubTask implements Task {
         String gitHubOrgName = assertString(ctx, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(ctx, GITHUB_REPONAME);
         int gitHubPRID = assertInt(ctx, GITHUB_PRID);
+        String commitMessage = getString(ctx, GITHUB_MERGECOMMITMSG, "GitHub PR Merge");
 
         GitHubClient client = GitHubClient.createClient(gitHubUri);
         client.setOAuth2Token(gitHubAccessToken);
@@ -231,7 +232,7 @@ public class GitHubTask implements Task {
         PullRequestService prService = new PullRequestService(client);
         try {
             log.info("Using PR# {}", gitHubPRID);
-            prService.merge(repo, gitHubPRID, "GitHub PR Merge");
+            prService.merge(repo, gitHubPRID, commitMessage);
             log.info("Merged PR# {}", gitHubPRID);
         } catch (IOException e) {
             throw new RuntimeException("Cannot merge the pull request: " + e.getMessage());

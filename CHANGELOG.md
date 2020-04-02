@@ -1,5 +1,14 @@
 # Change log
 
+## [Unreleased]
+
+### Added
+
+- git: allow custom messages for `mergePR` actions in the `github`
+task.
+
+
+
 ## [1.24.0] - 2020-03-25
 
 ### Added
