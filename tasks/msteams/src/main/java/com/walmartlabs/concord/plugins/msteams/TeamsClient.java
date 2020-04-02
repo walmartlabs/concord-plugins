@@ -58,6 +58,7 @@ import java.util.Map;
 public class TeamsClient implements AutoCloseable {
 
     private static final Logger log = LoggerFactory.getLogger(TeamsClient.class);
+
     private final int retryCount;
     private final PoolingHttpClientConnectionManager connManager;
     private final CloseableHttpClient client;
@@ -90,6 +91,7 @@ public class TeamsClient implements AutoCloseable {
         if (potentialAction != null && !potentialAction.isEmpty()) {
             params.put("potentialAction", potentialAction);
         }
+
         return exec(cfg, params);
     }
 
@@ -120,26 +122,26 @@ public class TeamsClient implements AutoCloseable {
                 } else {
                     if (response.getEntity() == null) {
                         log.error("exec [webhookUrl: '{}', params: '{}'] -> empty response", webhookUrl, params);
-                        return new Result(false, "empty response", null);
+                        return new Result(false, "empty response", null, null, null);
                     }
 
                     String s = EntityUtils.toString(response.getEntity());
                     if (response.getStatusLine().getStatusCode() != Constants.TEAMS_SUCCESS_STATUS_CODE) {
                         log.error("exec [webhookUrl: '{}', params: '{}'] -> failed response", webhookUrl, params);
-                        return new Result(false, s, null);
+                        return new Result(false, s, null, null, null);
                     }
 
-                    Result r = new Result(true, null, s);
+                    Result r = new Result(true, null, s, null, null);
                     log.info("exec [webhookUrl: '{}', params: '{}'] -> {}", webhookUrl, params, r);
                     return r;
                 }
             }
         }
 
-        return new Result(false, "too many requests", null);
+        return new Result(false, "too many requests", null, null, null);
     }
 
-    private static int getRetryAfter(HttpResponse response) {
+    public static int getRetryAfter(HttpResponse response) {
         Header h = response.getFirstHeader("Retry-After");
         if (h == null) {
             return Constants.DEFAULT_RETRY_AFTER;
@@ -153,7 +155,7 @@ public class TeamsClient implements AutoCloseable {
         }
     }
 
-    private static void sleep(long t) {
+    public static void sleep(long t) {
         try {
             Thread.sleep(t);
         } catch (InterruptedException e) {
@@ -162,7 +164,7 @@ public class TeamsClient implements AutoCloseable {
     }
 
     @SuppressWarnings("Duplicates")
-    private static PoolingHttpClientConnectionManager createConnManager() {
+    public static PoolingHttpClientConnectionManager createConnManager() {
         try {
             SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
             sslContext.init(new KeyManager[0], new TrustManager[]{new DefaultTrustManager()}, new SecureRandom());
@@ -185,7 +187,7 @@ public class TeamsClient implements AutoCloseable {
                 .build();
     }
 
-    private static RequestConfig createConfig(TeamsConfiguration cfg) {
+    public static RequestConfig createConfig(TeamsConfiguration cfg) {
         HttpHost proxy = null;
         if (cfg.getProxyAddress() != null) {
             proxy = new HttpHost(cfg.getProxyAddress(), cfg.getProxyPort(), "http");

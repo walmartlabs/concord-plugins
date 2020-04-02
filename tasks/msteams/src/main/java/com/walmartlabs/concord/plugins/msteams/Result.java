@@ -34,18 +34,27 @@ public class Result implements Serializable {
     private final boolean ok;
     private final String error;
     private final Map<String, Object> params = new HashMap<>();
-    public final String data;
+    private final String data;
+    private final String conversationId;
+    private final String activityId;
 
 
     public static Result error(String error) {
-        return new Result(false, error, null);
+        return new Result(false, error, null, null,
+                null);
     }
 
-    public Result(boolean ok, String error, String data) {
+    public Result(boolean ok,
+                  String error,
+                  String data,
+                  String conversationId,
+                  String activityId) {
 
         this.ok = ok;
         this.error = error;
         this.data = data;
+        this.conversationId = conversationId;
+        this.activityId = activityId;
     }
 
     public boolean isOk() {
@@ -58,6 +67,14 @@ public class Result implements Serializable {
 
     public String getData() {
         return data;
+    }
+
+    public String getConversationId() {
+        return conversationId;
+    }
+
+    public String getActivityId() {
+        return activityId;
     }
 
     @JsonAnyGetter
@@ -75,6 +92,7 @@ public class Result implements Serializable {
         return "Response{" +
                 "ok=" + ok +
                 ", error='" + error + '\'' +
+                ", data='" + data + '\'' +
                 '}';
     }
 }

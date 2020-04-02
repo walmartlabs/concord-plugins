@@ -4,6 +4,7 @@
 
 ### Added
 
+- msteams: `msteamsV2` task implemeted using Azure Bot service;
 - git: allow custom messages for `mergePR` actions in the `github`
 task.
 

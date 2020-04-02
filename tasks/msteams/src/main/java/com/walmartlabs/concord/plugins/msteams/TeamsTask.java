@@ -67,7 +67,8 @@ public class TeamsTask implements Task {
         }
     }
 
-    private void sendMessage(@InjectVariable("context") Context ctx, Map<String, Object> cfg, String title, String text, String themeColor, List<Object> sections,
+    private void sendMessage(@InjectVariable("context") Context ctx, Map<String, Object> cfg, String title,
+                             String text, String themeColor, List<Object> sections,
                              List<Object> potentialAction, boolean ignoreErrors) {
         TeamsConfiguration teamsConfiguration = TeamsConfiguration.from(ctx);
         Map<String, Object> result = new HashMap<>();

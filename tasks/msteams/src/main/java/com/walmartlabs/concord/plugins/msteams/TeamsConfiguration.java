@@ -33,20 +33,41 @@ public class TeamsConfiguration {
     public static TeamsConfiguration from(Context ctx) {
         Map<String, Object> msteamsParams = (Map<String, Object>) ctx.getVariable(Constants.MSTEAMS_PARAMS_KEY);
 
-
-        return from(getString(msteamsParams, Constants.TEAM_ID_KEY), getString(msteamsParams, Constants.TENANT_ID_KEY),
-                getString(msteamsParams, Constants.WEBHOOKTYPE_ID_KEY), getString(msteamsParams, Constants.WEBHOOK_ID_KEY), getString(msteamsParams, Constants.ROOT_WEBHOOK_URL_KEY),
-                getString(msteamsParams, Constants.PROXY_ADDRESS_KEY), getInt(msteamsParams, Constants.PROXY_PORT_KEY, Constants.DEFAULT_PROXY_PORT),
+        return from(getString(msteamsParams, Constants.TEAM_ID_KEY),
+                getString(msteamsParams, Constants.TENANT_ID_KEY),
+                getString(msteamsParams, Constants.WEBHOOKTYPE_ID_KEY),
+                getString(msteamsParams, Constants.WEBHOOK_ID_KEY),
+                getString(msteamsParams, Constants.ROOT_WEBHOOK_URL_KEY),
+                getString(msteamsParams, Constants.PROXY_ADDRESS_KEY),
+                getInt(msteamsParams, Constants.PROXY_PORT_KEY, Constants.DEFAULT_PROXY_PORT),
                 getInt(msteamsParams, Constants.CONNECTION_TIMEOUT_KEY, Constants.DEFAULT_CONNECT_TIMEOUT),
                 getInt(msteamsParams, Constants.SO_TIMEOUT_KEY, Constants.DEFAULT_SO_TIMEOUT),
-                getInt(msteamsParams, Constants.RETRY_COUNT_KEY, Constants.DEFAULT_RETRY_COUNT));
+                getInt(msteamsParams, Constants.RETRY_COUNT_KEY, Constants.DEFAULT_RETRY_COUNT),
+                getString(msteamsParams, Constants.VAR_ACCESS_TOKEN_API),
+                getString(msteamsParams, Constants.VAR_CLIENT_ID),
+                getString(msteamsParams, Constants.VAR_CLIENT_SECRET),
+                getString(msteamsParams, Constants.VAR_ROOT_API));
     }
 
 
-    public static TeamsConfiguration from(String teamId, String tenantId, String webhookTypeId, String webhookId, String rootWebhookUrl,
-                                          String proxyAddress, int proxyPort, int connectTimeout, int soTimeout, int retryCount) {
+    public static TeamsConfiguration from(String teamId,
+                                          String tenantId,
+                                          String webhookTypeId,
+                                          String webhookId,
+                                          String rootWebhookUrl,
+                                          String proxyAddress,
+                                          int proxyPort,
+                                          int connectTimeout,
+                                          int soTimeout,
+                                          int retryCount,
+                                          String accessTokenApi,
+                                          String clientId,
+                                          String clientSecret,
+                                          String rootApi) {
 
-        return new TeamsConfiguration(teamId, tenantId, webhookTypeId, webhookId, rootWebhookUrl, proxyAddress, proxyPort, connectTimeout, soTimeout, retryCount);
+        return new TeamsConfiguration(teamId, tenantId, webhookTypeId, webhookId,
+                rootWebhookUrl, proxyAddress, proxyPort, connectTimeout, soTimeout, retryCount, accessTokenApi,
+                clientId, clientSecret, rootApi);
     }
 
     private final String teamId;
@@ -54,7 +75,10 @@ public class TeamsConfiguration {
     private final String webhookTypeId;
     private final String webhookId;
     private final String rootWebhookUrl;
-
+    private final String accessTokenApi;
+    private final String clientId;
+    private final String clientSecret;
+    private final String rootApi;
 
     private final String proxyAddress;
     private final int proxyPort;
@@ -62,8 +86,21 @@ public class TeamsConfiguration {
     private final int soTimeout;
     private final int retryCount;
 
-    public TeamsConfiguration(String teamId, String tenantId, String webhookTypeId, String webhookId, String rootWebhookUrl, String proxyAddress, int proxyPort,
-                              int connectTimeout, int soTimeout, int retryCount) {
+    public TeamsConfiguration(String teamId,
+                              String tenantId,
+                              String webhookTypeId,
+                              String webhookId,
+                              String rootWebhookUrl,
+                              String proxyAddress,
+                              int proxyPort,
+                              int connectTimeout,
+                              int soTimeout,
+                              int retryCount,
+                              String accessTokenApi,
+                              String clientId,
+                              String clientSecret,
+                              String rootApi) {
+
         this.teamId = teamId;
         this.tenantId = tenantId;
         this.webhookTypeId = webhookTypeId;
@@ -74,6 +111,10 @@ public class TeamsConfiguration {
         this.connectTimeout = connectTimeout;
         this.soTimeout = soTimeout;
         this.retryCount = retryCount;
+        this.accessTokenApi = accessTokenApi;
+        this.clientId = clientId;
+        this.clientSecret = clientSecret;
+        this.rootApi = rootApi;
     }
 
     public String getWebhookTypeId() {
@@ -114,5 +155,21 @@ public class TeamsConfiguration {
 
     public int getRetryCount() {
         return retryCount;
+    }
+
+    public String getAccessTokenApi() {
+        return accessTokenApi;
+    }
+
+    public String getClientId() {
+        return clientId;
+    }
+
+    public String getClientSecret() {
+        return clientSecret;
+    }
+
+    public String getRootApi() {
+        return rootApi;
     }
 }
