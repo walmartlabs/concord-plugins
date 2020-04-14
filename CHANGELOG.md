@@ -1,5 +1,14 @@
 # Change log
 
+## [Unreleased]
+
+### Changed
+
+- terraform: write `*.auto.tfvars.json` to the specified `dir` (when
+provided) instead of the process' root directory.
+
+
+
 ## [1.25.0] - 2020-04-02
 
 ### Added
