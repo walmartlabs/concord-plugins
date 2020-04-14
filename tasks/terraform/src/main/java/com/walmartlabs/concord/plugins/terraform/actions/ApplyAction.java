@@ -83,7 +83,7 @@ public class ApplyAction extends Action {
             if (plan == null) {
                 // running without a previously created plan file
                 // save 'extraVars' into a file that can be automatically picked up by TF
-                createVarsFile(workDir, objectMapper, extraVars);
+                createVarsFile(Utils.getAbsolute(workDir, dir), objectMapper, extraVars);
             }
 
             Path dirOrPlanAbsolute = workDir.resolve(plan != null ? plan : dir);
