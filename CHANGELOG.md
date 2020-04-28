@@ -4,6 +4,7 @@
 
 ### Added
 
+- new plugin: `tasks/packer`;
 - github: new action `getPrList`.
 
 
