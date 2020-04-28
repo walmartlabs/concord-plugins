@@ -68,11 +68,14 @@ public class GitHubTask implements Task {
     private static final String GITHUB_MERGECOMMITMSG = "commitMessage";
     private static final String GITHUB_FORKTARGETORG = "targetOrg";
 
-
     private static final String STATUS_CHECK_STATE = "state";
     private static final String STATUS_CHECK_TARGET_URL = "targetUrl";
     private static final String STATUS_CHECK_DESCRIPTION = "description";
     private static final String STATUS_CHECK_CONTEXT = "context";
+    private static final String GITHUB_PR_STATE = "state";
+
+    private static final List<String> GITHUB_VALID_PR_STATES = Arrays.asList("all", "open", "closed");
+    private static final Set<String> STATUS_CHECK_STATES = new HashSet<>(Arrays.asList("error", "failure", "pending", "success"));
 
     private static final int STATUS_GITHUB_REPO_NOT_FOUND = 404;
 
@@ -137,6 +140,10 @@ public class GitHubTask implements Task {
             }
             case GETBRANCHLIST: {
                 getBranchList(ctx, gitHubUri);
+                break;
+            }
+            case GETPRLIST: {
+                getPRList(ctx, gitHubUri);
                 break;
             }
             case GETTAGLIST: {
@@ -472,7 +479,7 @@ public class GitHubTask implements Task {
         IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
 
         CommitService commitService = new CommitService(client);
-        List statuses;
+        List<CommitStatus> statuses;
         try {
             log.info("Getting status for commit {}", commitSha);
             statuses = commitService.getStatuses(repo, commitSha);
@@ -568,6 +575,43 @@ public class GitHubTask implements Task {
         } catch (Exception e) {
             throw new RuntimeException("Error occured while getting tag list: " + e.getMessage());
         }
+    }
+
+    private static void getPRList(Context ctx, String gitHubUri) {
+        String gitHubAccessToken = assertString(ctx, GITHUB_ACCESSTOKEN);
+        String gitHubOrgName = assertString(ctx, GITHUB_ORGNAME);
+        String gitHubRepoName = assertString(ctx, GITHUB_REPONAME);
+        String state = getString(ctx, GITHUB_PR_STATE, "open").toLowerCase();
+
+        if (!GITHUB_VALID_PR_STATES.contains(state)) {
+            throw new IllegalArgumentException("Invalid PR state '" + state +
+                    "'. Allowed values are only 'all', 'open', 'closed'.");
+        }
+
+        GitHubClient client = GitHubClient.createClient(gitHubUri);
+
+        try {
+            //Connect to GitHub
+            client.setOAuth2Token(gitHubAccessToken);
+            IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
+
+            //Getting PR list
+            PullRequestService prService = new PullRequestService(client);
+
+            log.info("Getting '{}' PRs from '{}/{}'...", state, gitHubOrgName, gitHubRepoName);
+            List<PullRequest> list = prService.getPullRequests(repo, state);
+            if (list == null) {
+                list = Collections.emptyList();
+            }
+
+            log.info("Got total of {} PRs.", list.size());
+
+            ObjectMapper om = new ObjectMapper();
+            ctx.setVariable("prList", om.convertValue(list, Object.class));
+        } catch (Exception e) {
+            throw new RuntimeException("Error occurred while getting PR list: " + e.getMessage());
+        }
+
     }
 
     private static void createRepo(Context ctx, String gitHubUri) {
@@ -698,8 +742,6 @@ public class GitHubTask implements Task {
         throw new IllegalArgumentException("'" + ACTION_KEY + "' must be a string");
     }
 
-    private static Set<String> STATUS_CHECK_STATES = new HashSet<>(Arrays.asList("error", "failure", "pending", "success"));
-
     private static String assertStatusState(Context ctx) {
         String state = assertString(ctx, STATUS_CHECK_STATE).trim().toLowerCase();
         if (!STATUS_CHECK_STATES.contains(state)) {
@@ -729,6 +771,7 @@ public class GitHubTask implements Task {
         GETSTATUSES,
         FORKREPO,
         GETBRANCHLIST,
+        GETPRLIST,
         GETTAGLIST,
         GETLATESTSHA,
         CREATEREPO,

@@ -1,5 +1,13 @@
 # Change log
 
+## [Unreleased]
+
+### Added
+
+- github: new action `getPrList`.
+
+
+
 ## [1.25.1] - 2020-04-14
 
 ### Changed
