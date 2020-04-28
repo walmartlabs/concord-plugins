@@ -29,6 +29,7 @@ import com.walmartlabs.concord.plugins.OKHttpDownloadManager;
 import com.walmartlabs.concord.plugins.RequiresAwsCredentials;
 import com.walmartlabs.concord.plugins.packer.commands.Build;
 import com.walmartlabs.concord.sdk.Context;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
@@ -38,6 +39,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Ignore("requires AWS credentials")
 @RequiresAwsCredentials
 public class PackerTaskExecutionTest
         extends ConcordTestSupport {
