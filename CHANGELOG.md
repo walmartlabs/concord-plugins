@@ -1,5 +1,13 @@
 # Change log
 
+## [Unreleased]
+
+### Added
+
+- terraform: new action `destroy`.
+
+
+
 ## [1.26.0] - 2020-04-28
 
 ### Added

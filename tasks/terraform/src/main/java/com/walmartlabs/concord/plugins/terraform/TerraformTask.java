@@ -20,7 +20,6 @@ package com.walmartlabs.concord.plugins.terraform;
  * =====
  */
 
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.walmartlabs.concord.plugins.terraform.actions.*;
 import com.walmartlabs.concord.plugins.terraform.backend.Backend;
@@ -45,6 +44,7 @@ import static com.walmartlabs.concord.plugins.terraform.Utils.getPath;
 public class TerraformTask implements Task {
 
     private static final Logger log = LoggerFactory.getLogger(TerraformTask.class);
+
     private static final String DEFAULT_TERRAFORM_VERSION = "0.12.5";
     private static final String DEFAULT_TOOL_URL_TEMPLATE = "https://releases.hashicorp.com/terraform/%s/terraform_%s_%s_amd64.zip";
 
@@ -115,7 +115,7 @@ public class TerraformTask implements Task {
                 case OUTPUT: {
                     OutputAction a = new OutputAction(ctx, cfg, env, false);
                     CommonResult result = a.exec(terraform, backend);
-                    ctx.setVariable(Constants.RESULT_KEY, result);
+                    ctx.setVariable(Constants.RESULT_KEY, objectMapper.convertValue(result, Map.class));
                     break;
                 }
                 default:
@@ -209,13 +209,13 @@ public class TerraformTask implements Task {
 
         String tfOs;
         String os = System.getProperty("os.name").toLowerCase();
-        if (os.indexOf("mac") >= 0) {
+        if (os.contains("mac")) {
             tfOs = "darwin";
-        } else if (os.indexOf("nux") >= 0) {
+        } else if (os.contains("nux")) {
             tfOs = "linux";
-        } else if (os.indexOf("win") >= 0) {
+        } else if (os.contains("win")) {
             tfOs = "windows";
-        } else if (os.indexOf("sunos") >= 0) {
+        } else if (os.contains("sunos")) {
             tfOs = "solaris";
         } else {
             throw new IllegalArgumentException("Your operating system is not supported: " + os);
