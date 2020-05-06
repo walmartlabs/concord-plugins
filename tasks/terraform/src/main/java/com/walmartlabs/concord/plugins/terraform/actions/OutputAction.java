@@ -68,7 +68,7 @@ public class OutputAction extends Action {
     }
 
     @SuppressWarnings("unchecked")
-    public OutputResult exec(Terraform terraform, Backend backend) throws Exception {
+    public CommonResult exec(Terraform terraform, Backend backend) throws Exception {
         try {
             if (!skipInit) {
                 // normally we'd run `terraform init` in the specified `dir`
@@ -88,13 +88,13 @@ public class OutputAction extends Action {
             }
 
             Map<String, Object> data = objectMapper.readValue(r.getStdout(), Map.class);
-            return OutputResult.ok(data);
+            return CommonResult.ok(data);
         } catch (Exception e) {
             if (!ignoreErrors) {
                 throw e;
             }
 
-            return OutputResult.error(e.getMessage());
+            return CommonResult.error(e.getMessage());
         }
     }
 }

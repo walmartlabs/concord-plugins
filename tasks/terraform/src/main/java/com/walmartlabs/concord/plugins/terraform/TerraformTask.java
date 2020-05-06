@@ -102,13 +102,19 @@ public class TerraformTask implements Task {
                 }
                 case APPLY: {
                     ApplyAction a = new ApplyAction(ctx, cfg, env);
-                    ApplyResult result = a.exec(terraform, backend);
+                    CommonResult result = a.exec(terraform, backend);
+                    ctx.setVariable(Constants.RESULT_KEY, objectMapper.convertValue(result, Map.class));
+                    break;
+                }
+                case DESTROY: {
+                    DestroyAction a = new DestroyAction(ctx, cfg, env);
+                    CommonResult result = a.exec(terraform, backend);
                     ctx.setVariable(Constants.RESULT_KEY, objectMapper.convertValue(result, Map.class));
                     break;
                 }
                 case OUTPUT: {
                     OutputAction a = new OutputAction(ctx, cfg, env, false);
-                    OutputResult result = a.exec(terraform, backend);
+                    CommonResult result = a.exec(terraform, backend);
                     ctx.setVariable(Constants.RESULT_KEY, result);
                     break;
                 }
@@ -175,7 +181,8 @@ public class TerraformTask implements Task {
     public enum Action {
         APPLY,
         PLAN,
-        OUTPUT
+        OUTPUT,
+        DESTROY;
     }
 
     // During the init we will download the version of Terraform specified by the user if defined, otherwise

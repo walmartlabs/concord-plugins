@@ -25,7 +25,7 @@ import com.walmartlabs.concord.plugins.terraform.Constants;
 import com.walmartlabs.concord.plugins.terraform.Terraform;
 import com.walmartlabs.concord.plugins.terraform.Utils;
 import com.walmartlabs.concord.plugins.terraform.backend.Backend;
-import com.walmartlabs.concord.plugins.terraform.commands.ApplyCommand;
+import com.walmartlabs.concord.plugins.terraform.commands.DestroyCommand;
 import com.walmartlabs.concord.sdk.Context;
 import com.walmartlabs.concord.sdk.MapUtils;
 
@@ -35,14 +35,13 @@ import java.util.Map;
 
 import static com.walmartlabs.concord.plugins.terraform.Utils.getPath;
 
-public class ApplyAction extends Action {
+public class DestroyAction extends Action {
 
     private final Context ctx;
     private final Map<String, Object> cfg;
     private final boolean verbose;
     private final Path workDir;
     private final Path dir;
-    private final Path plan;
     private final Map<String, Object> extraVars;
     private final List<String> userSuppliedVarFileNames;
     private final Map<String, String> env;
@@ -51,7 +50,7 @@ public class ApplyAction extends Action {
     private final ObjectMapper objectMapper;
 
     @SuppressWarnings("unchecked")
-    public ApplyAction(Context ctx, Map<String, Object> cfg, Map<String, String> env) {
+    public DestroyAction(Context ctx, Map<String, Object> cfg, Map<String, String> env) {
         this.ctx = ctx;
         this.cfg = cfg;
         this.env = env;
@@ -67,8 +66,6 @@ public class ApplyAction extends Action {
         // the TF files directory
         this.dir = getPath(cfg, Constants.DIR_KEY, workDir);
 
-        // a file, created by the plan action
-        this.plan = getPath(cfg, Constants.PLAN_KEY, null);
 
         this.extraVars = MapUtils.get(cfg, Constants.EXTRA_VARS_KEY, null, Map.class);
         this.userSuppliedVarFileNames = MapUtils.get(cfg, Constants.VARS_FILES, null, List.class);
@@ -80,16 +77,13 @@ public class ApplyAction extends Action {
     public CommonResult exec(Terraform terraform, Backend backend) throws Exception {
         try {
             init(ctx, workDir, dir, !verbose, env, terraform, backend);
-            if (plan == null) {
-                // running without a previously created plan file
-                // save 'extraVars' into a file that can be automatically picked up by TF
-                createVarsFile(Utils.getAbsolute(workDir, dir), objectMapper, extraVars);
-            }
 
-            Path dirOrPlanAbsolute = workDir.resolve(plan != null ? plan : dir);
+            createVarsFile(Utils.getAbsolute(workDir, dir), objectMapper, extraVars);
+
+            Path dirAbsolute = workDir.resolve(dir);
             List<Path> userSuppliedVarFiles = Utils.resolve(workDir, userSuppliedVarFileNames);
 
-            Terraform.Result r = new ApplyCommand(workDir, dirOrPlanAbsolute, userSuppliedVarFiles, env).exec(terraform);
+            Terraform.Result r = new DestroyCommand(workDir, dirAbsolute, userSuppliedVarFiles, env).exec(terraform);
             if (r.getCode() != 0) {
                 throw new RuntimeException("Process finished with code " + r.getCode() + ": " + r.getStderr());
             }
