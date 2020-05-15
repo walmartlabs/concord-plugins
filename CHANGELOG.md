@@ -4,10 +4,13 @@
 
 ### Added
 
+- git: runtime v2 compatibility;
+- git: new `shallow` parameter. Enables shallow cloning;
 - terraform: new action `destroy`.
 
 ### Changed
 
+- git: use `git` CLI for cloning instead of JGit;
 - msteams: pick up the `useProxy` value from default parameters.
 
 

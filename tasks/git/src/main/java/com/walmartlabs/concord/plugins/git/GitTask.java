@@ -20,37 +20,31 @@ package com.walmartlabs.concord.plugins.git;
  * =====
  */
 
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.Session;
 import com.walmartlabs.concord.common.IOUtils;
-import com.walmartlabs.concord.sdk.Constants;
-import com.walmartlabs.concord.sdk.Context;
-import com.walmartlabs.concord.sdk.SecretService;
-import com.walmartlabs.concord.sdk.Task;
+import com.walmartlabs.concord.common.secret.KeyPair;
+import com.walmartlabs.concord.common.secret.UsernamePassword;
+import com.walmartlabs.concord.sdk.MapUtils;
+import com.walmartlabs.concord.sdk.Secret;
 import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.api.MergeResult.MergeStatus;
 import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.transport.*;
+import org.eclipse.jgit.transport.PushResult;
+import org.eclipse.jgit.transport.RefSpec;
+import org.eclipse.jgit.transport.RemoteRefUpdate;
 import org.eclipse.jgit.transport.RemoteRefUpdate.Status;
-import org.eclipse.jgit.util.FS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.inject.Inject;
-import javax.inject.Named;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 
 import static com.walmartlabs.concord.plugins.git.Utils.getBoolean;
-import static com.walmartlabs.concord.sdk.ContextUtils.assertString;
-import static com.walmartlabs.concord.sdk.ContextUtils.getString;
+import static com.walmartlabs.concord.sdk.MapUtils.assertString;
+import static com.walmartlabs.concord.sdk.MapUtils.getString;
 
-@Named("git")
-public class GitTask implements Task {
+public class GitTask {
 
     private static final Logger log = LoggerFactory.getLogger(GitTask.class);
 
@@ -62,7 +56,6 @@ public class GitTask implements Task {
     private static final String GIT_COMMITTER_EMAIL = "commitEmail";
     private static final String GIT_COMMITTER_USERNAME = "commitUsername";
     private static final String GIT_DESTINATION_BRANCH = "destinationBranch";
-    private static final String GIT_KEY_PATH = "keyPath";
     private static final String GIT_NEW_BRANCH_NAME = "newBranch";
     private static final String GIT_PASSWORD = "password";
     private static final String GIT_PRIVATE_KEY = "privateKey";
@@ -76,90 +69,78 @@ public class GitTask implements Task {
     private static final String REFS_REMOTES = "refs/remotes/origin/";
     private static final String GIT_PULL_REMOTE_BRANCH = "remoteBranch";
 
-    private static final String OUT_KEY = "out";
     private static final String IGNORE_ERRORS_KEY = "ignoreErrors";
-    private static final String DEFAULT_OUT_VAR_KEY = "result";
     private static final String CHANGE_LIST_KEY = "changeList";
     private static final String STATUS_KEY = "status";
     private static final String OK_KEY = "ok";
     private static final String ERROR_KEY = "error";
 
-    private final SecretService secretService;
+    private final GitSecretService secretService;
+    private final Path processWorkDir;
 
-    @Inject
-    public GitTask(SecretService secretService) {
+    public GitTask(GitSecretService secretService, Path processWorkDir) {
         this.secretService = secretService;
+        this.processWorkDir = processWorkDir;
     }
 
-    @Override
-    public void execute(Context ctx) throws Exception {
-        Action action = getAction(ctx);
+    public Map<String, Object> execute(Map<String, Object> in) throws Exception {
+        Action action = getAction(in);
         log.info("Starting '{}' action...", action);
 
         switch (action) {
             case CLONE: {
-                doClone(ctx);
-                break;
+                return doClone(in);
             }
             case CREATEBRANCH: {
-                doCreateNewBranch(ctx);
-                break;
+                return doCreateNewBranch(in);
             }
             case MERGE: {
-                doMergeNewBranch(ctx);
-                break;
+                return doMergeNewBranch(in);
             }
             case COMMIT: {
-                doCommit(ctx);
-                break;
+                return doCommit(in);
             }
             case PULL: {
-                doPull(ctx);
-                break;
+                return doPull(in);
             }
             default:
                 throw new IllegalArgumentException("Unsupported action type: " + action);
         }
     }
 
-    private void doClone(Context ctx) throws Exception {
-        String uri = assertString(ctx, GIT_URL);
-
-        String baseBranch = getString(ctx, GIT_BASE_BRANCH, null);
-        if (baseBranch == null) {
-            baseBranch = "master";
+    private Map<String, Object> doClone(Map<String, Object> in) throws Exception {
+        String uri = assertString(in, GIT_URL);
+        String baseBranch = getString(in, GIT_BASE_BRANCH, "master");
+        String dst = getDest(in);
+        Path dstDir = processWorkDir.resolve(dst);
+        if (Files.exists(dstDir)) {
+            throw new IllegalStateException("Destination directory '" + dst + "' already exists");
         }
 
-        Path dstDir = prepareTargetDirectory(ctx);
-        Map<String, String> transportCfg = getTransportConfig(ctx);
-        TransportConfigCallback transportCallback = createTransportConfigCallback(transportCfg);
+        Secret secret = getSecret(in);
+
+        GitClient client = GitClientFactory.create(in);
 
         log.info("Cloning {} to {}...", uri, dstDir);
         try {
-            cloneRepo(uri, baseBranch, dstDir, transportCallback);
-            setOutVariable(ctx, true, ResultStatus.SUCCESS, "", Collections.emptySet());
+            client.cloneRepo(uri, baseBranch, secret, dstDir);
+            return toResult(true, ResultStatus.SUCCESS, "", Collections.emptySet());
         } catch (Exception e) {
             String error = "Error while cloning the repository.\n" + e.getMessage();
-
-            handleError(error, e, ctx, dstDir);
-        } finally {
-            cleanUp(transportCfg.get(GIT_KEY_PATH));
+            return handleError(error, e, in, dstDir);
         }
     }
 
-    private void doPull(Context ctx) throws Exception {
-        Path dstDir = prepareTargetDirectory(ctx);
-        String remoteBranch = assertString(ctx, GIT_PULL_REMOTE_BRANCH);
+    private Map<String, Object> doPull(Map<String, Object> in) throws Exception {
+        Path dstDir = prepareTargetDirectory(in);
+        String remoteBranch = assertString(in, GIT_PULL_REMOTE_BRANCH);
 
-        Map<String, String> transportCfg = getTransportConfig(ctx);
-        TransportConfigCallback transportCallback = createTransportConfigCallback(transportCfg);
-
-        Git git = Git.open(dstDir.toFile());
+        TransportConfigCallback transportCallback = JGitClient.createTransportConfigCallback(getSecret(in));
 
         // TODO: Research if there is a way to pass uri. For now defaulting it to a name
         String remote = "origin";
 
-        try {
+        try (Git git = Git.open(dstDir.toFile())) {
             PullCommand pullCommand = git.pull();
             log.info("Pulling changes from remote '{}/{}'...", remote, remoteBranch);
             PullResult result = pullCommand.setRemote(remote)
@@ -208,35 +189,36 @@ public class GitTask implements Task {
                     }
                 }
             }
+
+            return Collections.emptyMap();
         } catch (Exception e) {
             String error = "Error occurred during git pull action.\n" + e.getMessage();
-            handleError(error, e, ctx, dstDir);
+            return handleError(error, e, in, dstDir);
         }
     }
 
-    private void doCommit(Context ctx) {
-        Path dstDir = prepareTargetDirectory(ctx);
-        String baseBranch = assertString(ctx, GIT_BASE_BRANCH);
-        String commitMessage = assertString(ctx, GIT_COMMIT_MSG);
-        String committerUId = assertString(ctx, GIT_COMMITTER_USERNAME);
-        String committerEmail = assertString(ctx, GIT_COMMITTER_EMAIL);
-        boolean pushChangesToOrigin = getBoolean(ctx, GIT_PUSH_CHANGES_TO_ORIGIN, false);
-        boolean ignoreErrors = isIgnoreErrors(ctx);
+    private Map<String, Object> doCommit(Map<String, Object> in) throws Exception {
+        Path dstDir = prepareTargetDirectory(in);
+        String baseBranch = assertString(in, GIT_BASE_BRANCH);
+        String commitMessage = assertString(in, GIT_COMMIT_MSG);
+        String committerUId = assertString(in, GIT_COMMITTER_USERNAME);
+        String committerEmail = assertString(in, GIT_COMMITTER_EMAIL);
+        boolean pushChangesToOrigin = getBoolean(in, GIT_PUSH_CHANGES_TO_ORIGIN, false);
+        boolean ignoreErrors = isIgnoreErrors(in);
+
+        TransportConfigCallback transportCallback = JGitClient.createTransportConfigCallback(getSecret(in));
 
         try (Git git = Git.open(dstDir.toFile())) {
-            Map<String, String> transportCfg = getTransportConfig(ctx);
-            TransportConfigCallback transportCallback = createTransportConfigCallback(transportCfg);
-
             log.info("Scanning folder for changes.");
             git.add().addFilepattern(".").call();
             git.add().setUpdate(true).addFilepattern(".").call();
             org.eclipse.jgit.api.Status status = git.status().call();
             if (status.getUncommittedChanges().isEmpty()) {
                 log.warn("No changes detected on your local git repo.Skipping git commit and git push actions.");
-                setOutVariable(ctx, true, ResultStatus.NO_CHANGES, "", Collections.emptySet());
-                return;
+                return toResult(true, ResultStatus.NO_CHANGES, "", Collections.emptySet());
             }
 
+            Map<String, Object> commitResult;
             log.info("Changes detected in the following files: " + status.getUncommittedChanges());
             CommitCommand commitCommand = git.commit()
                     .setMessage(commitMessage)
@@ -244,19 +226,18 @@ public class GitTask implements Task {
             try {
                 commitCommand.call();
                 log.info("Committer userid and email are '{}', '{}'", committerUId, committerEmail);
-                setOutVariable(ctx, true, ResultStatus.SUCCESS, "", status.getUncommittedChanges());
+                commitResult = toResult(true, ResultStatus.SUCCESS, "", status.getUncommittedChanges());
             } catch (Exception e) {
                 String error = "Problem committing changes.\n" + e.getMessage();
                 if (!ignoreErrors) {
                     throw new IllegalArgumentException(error, e);
                 }
-                setOutVariable(ctx, false, ResultStatus.FAILURE, error, status.getUncommittedChanges());
-                return;
+                return toResult(false, ResultStatus.FAILURE, error, status.getUncommittedChanges());
             }
 
             if (!pushChangesToOrigin) {
                 log.warn("Skipping push operation as 'pushChanges' parameter is set to 'false' by default. If you want to push the changes to origin, set it to 'true' in your git commit action");
-                return;
+                return commitResult;
             }
 
             PushCommand cmd = git.push();
@@ -290,8 +271,7 @@ public class GitTask implements Task {
                             throw new IllegalArgumentException(error);
                         }
 
-                        setOutVariable(ctx, false, ResultStatus.FAILURE, error, status.getUncommittedChanges());
-                        break;
+                        return toResult(false, ResultStatus.FAILURE, error, status.getUncommittedChanges());
                     }
                     case REJECTED_NONFASTFORWARD: {
                         String error = "failed to push some refs to origin'\n" +
@@ -303,8 +283,7 @@ public class GitTask implements Task {
                             throw new IllegalArgumentException(error);
                         }
 
-                        setOutVariable(ctx, false, ResultStatus.FAILURE, error, status.getUncommittedChanges());
-                        break;
+                        return toResult(false, ResultStatus.FAILURE, error, status.getUncommittedChanges());
                     }
                     case UP_TO_DATE: {
                         String error = "Everything up-to-date. Nothing to push to origin. Status Code:" + pushStatus;
@@ -312,51 +291,59 @@ public class GitTask implements Task {
                             throw new IllegalArgumentException(error);
                         }
 
-                        setOutVariable(ctx, false, ResultStatus.FAILURE, error, status.getUncommittedChanges());
-                        break;
+                        return toResult(false, ResultStatus.FAILURE, error, status.getUncommittedChanges());
                     }
                     case OK: {
                         log.info("Successfully pushed the changes to origin");
-                        setOutVariable(ctx, true, ResultStatus.SUCCESS, "", status.getUncommittedChanges());
-                        break;
+                        return toResult(true, ResultStatus.SUCCESS, "", status.getUncommittedChanges());
                     }
                 }
             }
+
+            return Collections.emptyMap();
         } catch (Exception e) {
             String error = "Exception occurred while accessing the git repo or while pushing the changes to origin\n" + e.getMessage();
             if (!ignoreErrors) {
                 throw new IllegalArgumentException(error, e);
             }
 
-            setOutVariable(ctx, false, ResultStatus.FAILURE, error, Collections.emptySet());
+            return toResult(false, ResultStatus.FAILURE, error, Collections.emptySet());
         }
     }
 
-    private void doCreateNewBranch(Context ctx) throws Exception {
-        String uri = assertString(ctx, GIT_URL);
+    private Map<String, Object> doCreateNewBranch(Map<String, Object> in) throws Exception {
+        String uri = assertString(in, GIT_URL);
 
-        String baseBranch = getString(ctx, GIT_BASE_BRANCH, null);
+        String baseBranch = getString(in, GIT_BASE_BRANCH, null);
         if (baseBranch == null) {
             baseBranch = "master";
             log.info("User input for 'baseBranch' parameter is not provided. The default 'master' branch is used as the base to create the new branch.");
         }
 
         //New Branch variables
-        String newBranchName = assertString(ctx, GIT_NEW_BRANCH_NAME);
-        boolean pushNewBranchToOrigin = getBoolean(ctx, GIT_PUSH_NEW_BRANCH_TO_ORIGIN, false);
+        String newBranchName = assertString(in, GIT_NEW_BRANCH_NAME);
+        boolean pushNewBranchToOrigin = getBoolean(in, GIT_PUSH_NEW_BRANCH_TO_ORIGIN, false);
 
-        Path dstDir = prepareTargetDirectory(ctx);
-
-        Map<String, String> transportCfg = getTransportConfig(ctx);
-        TransportConfigCallback transportCallback = createTransportConfigCallback(transportCfg);
+        Path dstDir = prepareTargetDirectory(in);
 
         log.info("Cloning {} to {}...", uri, dstDir);
+
+        Secret secret = getSecret(in);
+        GitClient client = GitClientFactory.create(in);
         try {
-            Git git = cloneRepo(uri, baseBranch, dstDir, transportCallback);
+            client.cloneRepo(uri, baseBranch, secret, dstDir);
+        } catch (Exception e) {
+            String error = "Error while cloning the repository.\n" + e.getMessage();
+            return handleError(error, e, in, dstDir);
+        }
+
+        try (Git git = Git.open(dstDir.toFile())) {
             git.checkout().setCreateBranch(true).setName(newBranchName).call();
             log.info("Created new branch '{}'", newBranchName);
             //Push created Branch to remote Origin on user input
             if (pushNewBranchToOrigin) {
+                TransportConfigCallback transportCallback = JGitClient.createTransportConfigCallback(secret);
+
                 PushCommand cmd = git.push();
                 cmd.setTransportConfigCallback(transportCallback)
                         .setRemote("origin")
@@ -366,38 +353,40 @@ public class GitTask implements Task {
             } else {
                 log.warn("Skipping push operation as 'pushBranch' parameter is set to 'false' by default. If you want to push your new branch to origin, set it to 'true' in your git createBranch action");
             }
-            setOutVariable(ctx, true, ResultStatus.SUCCESS, "", Collections.emptySet());
+            log.info("Done");
+            return toResult(true, ResultStatus.SUCCESS, "", Collections.emptySet());
         } catch (Exception e) {
             String error = "Error while cloning the repository.\n" + e.getMessage();
-            handleError(error, e, ctx, dstDir);
-        } finally {
-            cleanUp(transportCfg.get(GIT_KEY_PATH));
+            return handleError(error, e, in, dstDir);
         }
-
-        log.info("Done");
     }
 
-    private void doMergeNewBranch(Context ctx) throws Exception {
-        String uri = assertString(ctx, GIT_URL);
-        String sourceBranch = assertString(ctx, GIT_SOURCE_BRANCH);
-        String destinationBranch = assertString(ctx, GIT_DESTINATION_BRANCH);
-
-        Path dstDir = prepareTargetDirectory(ctx);
-
-        Map<String, String> transportCfg = getTransportConfig(ctx);
-        TransportConfigCallback transportCallback = createTransportConfigCallback(transportCfg);
+    private Map<String, Object> doMergeNewBranch(Map<String, Object> in) throws Exception {
+        String uri = assertString(in, GIT_URL);
+        String sourceBranch = assertString(in, GIT_SOURCE_BRANCH);
+        String destinationBranch = assertString(in, GIT_DESTINATION_BRANCH);
+        Path dstDir = prepareTargetDirectory(in);
 
         log.info("Cloning {} to {}...", uri, dstDir);
+
+        Secret secret = getSecret(in);
+
+        GitClient client = GitClientFactory.create(in);
         try {
+            client.cloneRepo(uri, destinationBranch, secret, dstDir);
+        } catch (Exception e) {
+            String error = "Error while cloning the repository.\n" + e.getMessage();
+            return handleError(error, e, in, dstDir);
+        }
+
+        try (Git git = Git.open(dstDir.toFile())){
             //Merge Branch and Push to Origin if there are no conflicts
             String sourceBranch_ref = REFS_REMOTES.concat(sourceBranch);
-            Git git = cloneRepo(uri, destinationBranch, dstDir, transportCallback);
             Repository repo = git.getRepository();
 
             MergeCommand cmd = git.merge();
             cmd.include(repo.findRef(sourceBranch_ref)); //Get Reference of From Branch
             MergeResult res = cmd.call();
-
 
             MergeResult.MergeStatus mergeStatus = res.getMergeStatus();
             switch (mergeStatus) {
@@ -408,51 +397,51 @@ public class GitTask implements Task {
                     Git.wrap(repo).reset().setMode(ResetCommand.ResetType.HARD).call();
 
                     String error = "Automatic merge failed and aborted because of conflicts. Fix the conflicts and commit the result before merging";
-                    if (!isIgnoreErrors(ctx)) {
+                    if (!isIgnoreErrors(in)) {
                         throw new IllegalAccessException(error);
                     }
-                    setOutVariable(ctx, false, ResultStatus.FAILURE, error, Collections.emptySet());
-                    break;
+                    return toResult(false, ResultStatus.FAILURE, error, Collections.emptySet());
                 }
 
                 case ALREADY_UP_TO_DATE: {
-                    setOutVariable(ctx, true, ResultStatus.NO_CHANGES, "", Collections.emptySet());
                     log.info("Branch already up-to-date. No merging required");
-                    break;
+                    return toResult(true, ResultStatus.NO_CHANGES, "", Collections.emptySet());
                 }
                 default: {
                     log.info("Merged '{}' with '{}'", sourceBranch, destinationBranch);
                     //Push to Origin
+                    TransportConfigCallback transportCallback = JGitClient.createTransportConfigCallback(secret);
+
                     PushCommand pushCommand = git.push();
                     pushCommand.setTransportConfigCallback(transportCallback)
                             .setRemote("origin")
                             .setRefSpecs(new RefSpec(destinationBranch))
                             .call();
-                    setOutVariable(ctx, true, ResultStatus.SUCCESS, "", Collections.emptySet());
                     log.info("Pushed '{}' to the remote's origin", destinationBranch);
-                    break;
+                    return toResult(true, ResultStatus.SUCCESS, "", Collections.emptySet());
                 }
             }
         } catch (Exception e) {
             String error = "Error while cloning a repository\n" + e.getMessage();
-            handleError(error, e, ctx, dstDir);
-        } finally {
-            cleanUp(transportCfg.get(GIT_KEY_PATH));
+            return handleError(error, e, in, dstDir);
         }
     }
 
-    private Path prepareTargetDirectory(Context ctx) {
-        String s = getString(ctx, GIT_WORKING_DIR, null);
-        if (s == null) {
-            String url = assertString(ctx, GIT_URL);
-
-            final int slashIndex = url.lastIndexOf("/");
-            final int dotGitIndex = url.lastIndexOf(".git");
-            s = url.substring(slashIndex + 1, (dotGitIndex > slashIndex + 1 ? dotGitIndex : url.length() - 1));
+    private static String getDest(Map<String, Object> in) {
+        String s = getString(in, GIT_WORKING_DIR, null);
+        if (s != null) {
+            return s;
         }
 
-        String workDir = (String) ctx.getVariable(Constants.Context.WORK_DIR_KEY);
-        Path p = Paths.get(workDir, s);
+        String url = assertString(in, GIT_URL);
+
+        int slashIndex = url.lastIndexOf("/");
+        int dotGitIndex = url.lastIndexOf(".git");
+        return url.substring(slashIndex + 1, (dotGitIndex > slashIndex + 1 ? dotGitIndex : url.length() - 1));
+    }
+
+    private Path prepareTargetDirectory(Map<String, Object> in) {
+        Path p = processWorkDir.resolve(getDest(in));
         if (!Files.exists(p)) {
             try {
                 Files.createDirectories(p);
@@ -464,205 +453,99 @@ public class GitTask implements Task {
         return p;
     }
 
-    @SuppressWarnings("unchecked")
-    private Path exportPrivateKey(Context ctx) throws Exception {
-        Object o = ctx.getVariable(GIT_PRIVATE_KEY);
-        if (o == null) {
+    private Path exportPrivateKey(Map<String, Object> in) throws Exception {
+        Map<String, Object> m = MapUtils.getMap(in, GIT_PRIVATE_KEY, null);
+        if (m == null) {
             return null;
         }
-        if (o instanceof Map) {
-            Map<String, Object> m = (Map<String, Object>) o;
-            String secretName = (String) m.get("secretName");
-            if (secretName == null) {
-                throw new IllegalArgumentException("Secret name is required to export a private key");
-            }
 
-            String orgName = (String) m.get("org");
-            String pwd = (String) m.get("password");
-
-            log.info("Using secret: {}", (orgName != null ? orgName + "/" + secretName : secretName));
-
-            String txId = (String) ctx.getVariable(Constants.Context.TX_ID_KEY);
-            String workDir = (String) ctx.getVariable(Constants.Context.WORK_DIR_KEY);
-
-            Map<String, String> keyPair = secretService.exportKeyAsFile(ctx, txId, workDir, orgName, secretName, pwd);
-            Files.delete(Paths.get(keyPair.get("public")));
-
-            Path p = Paths.get(keyPair.get("private"));
-            return p.toAbsolutePath();
+        String secretName = MapUtils.getString(m, "secretName");
+        if (secretName == null) {
+            throw new IllegalArgumentException("Secret name is required to export a private key");
         }
 
-        throw new IllegalArgumentException("Mandatory parameter '" + GIT_PRIVATE_KEY + "' is missing");
+        String orgName = getString(m, "org");
+        String pwd = getString(m, "password");
+
+        log.info("Using secret: {}", (orgName != null ? orgName + "/" + secretName : secretName));
+
+        Path privateKey = secretService.exportPrivateKeyAsFile(orgName, secretName, pwd);
+
+        return privateKey.toAbsolutePath();
     }
 
-    private Git cloneRepo(String uri, String branchName, Path dst, TransportConfigCallback transportCallback) throws Exception {
-        Git repo = Git.cloneRepository()
-                .setURI(uri)
-                .setBranch(branchName)
-                .setDirectory(dst.toFile())
-                .setTransportConfigCallback(transportCallback)
-                .call();
+    private Secret getSecret(Map<String, Object> in) throws Exception {
+        Path keyPath = exportPrivateKey(in);
 
-        // check if the branch actually exists
-        if (branchName != null) {
-            repo.checkout()
-                    .setName(branchName)
-                    .call();
-        }
-
-        return repo;
-    }
-
-    private void cleanUp(String path) throws IOException {
-        if (path != null) {
-            Files.delete(Paths.get(path));
-        }
-    }
-
-    private Map<String, String> getTransportConfig(Context ctx) throws Exception {
-        Map<String, String> cfg = new HashMap<>();
-
-        Path keyPath = exportPrivateKey(ctx);
         if (keyPath != null) {
-            cfg.put(GIT_KEY_PATH, keyPath.toString());
-            return cfg;
+            byte[] privateKey = Files.readAllBytes(keyPath);
+            Files.delete(keyPath);
+            return new KeyPair(null, privateKey);
         }
 
-        return getBasicAuthorization(ctx);
+        return getBasicAuthorization(in);
     }
 
-    @SuppressWarnings("unchecked")
-    private static Map<String, String> getBasicAuthorization(Context ctx) {
-        Map<String, Object> authMap = (Map<String, Object>) ctx.getVariable(GIT_AUTH_KEY);
-        if (authMap == null) {
-            return Collections.EMPTY_MAP;
+    private static Secret getBasicAuthorization(Map<String, Object> in) {
+        Map<String, Object> authMap = MapUtils.getMap(in, GIT_AUTH_KEY, Collections.emptyMap());
+        if (authMap.isEmpty()) {
+            return null;
         }
 
-        Map<String, String> credentials = (Map<String, String>) authMap.get(GIT_BASIC_KEY);
-        if (credentials == null) {
-            return Collections.EMPTY_MAP;
+        Map<String, Object> credentials = MapUtils.getMap(authMap, GIT_BASIC_KEY, Collections.emptyMap());
+        if (credentials.isEmpty()) {
+            return null;
         }
 
-        String usernameOrToken;
-        String passwd;
-
-        if (credentials.get(GIT_TOKEN) != null) {
-            usernameOrToken = credentials.get(GIT_TOKEN);
-            passwd = "";
-        } else {
-            usernameOrToken = credentials.getOrDefault(GIT_USER_NAME, "");
-            passwd = credentials.getOrDefault(GIT_PASSWORD, "");
+        if (credentials.containsKey(GIT_TOKEN)) {
+            return new TokenSecret(assertString(credentials, GIT_TOKEN));
         }
 
-        Map<String, String> cfg = new HashMap<>();
-        cfg.put(GIT_USER_NAME, usernameOrToken);
-        cfg.put(GIT_PASSWORD, passwd);
-        return cfg;
-    }
+        if (credentials.containsKey(GIT_USER_NAME)) {
 
-    private static TransportConfigCallback createTransportConfigCallback(Map<String, String> cfg) {
-
-        if (cfg.get(GIT_KEY_PATH) != null) {
-            return createSshTransportConfigCallback(cfg.get(GIT_KEY_PATH));
+            return new UsernamePassword(assertString(credentials, GIT_USER_NAME), getString(credentials, GIT_PASSWORD, "").toCharArray());
         }
 
-        if (cfg.get(GIT_USER_NAME) != null) {
-            return createHttpTransportConfigCallback(cfg.get(GIT_USER_NAME), cfg.get(GIT_PASSWORD));
-        }
-
-        // empty callback
-        return transport -> {
-        };
-
+        return null;
     }
 
-    private static TransportConfigCallback createSshTransportConfigCallback(String pkey) {
-        return transport -> {
-            if (transport instanceof SshTransport) {
-                configureSshTransport((SshTransport) transport, pkey);
-            } else {
-                throw new IllegalArgumentException("Use SSH GIT URL ");
-            }
-        };
+    private static boolean isIgnoreErrors(Map<String, Object> in) {
+        return getBoolean(in, IGNORE_ERRORS_KEY, false);
     }
 
-    private static TransportConfigCallback createHttpTransportConfigCallback(String username, String password) {
-        return transport -> {
-            if (transport instanceof HttpTransport) {
-                transport.setCredentialsProvider(
-                        new UsernamePasswordCredentialsProvider(username, password));
-            } else {
-                throw new IllegalArgumentException("Use HTTP(S) GIT URL ");
-            }
-        };
-    }
-
-    private static void configureSshTransport(SshTransport t, String pkey) {
-        SshSessionFactory f = new JschConfigSessionFactory() {
-            @Override
-            protected JSch createDefaultJSch(FS fs) throws JSchException {
-                JSch d = super.createDefaultJSch(fs);
-                d.removeAllIdentity();
-                d.addIdentity(pkey);
-                log.debug("configureSshTransport -> using the supplied secret");
-                return d;
-            }
-
-            @Override
-            protected void configure(OpenSshConfig.Host hc, Session session) {
-                Properties config = new Properties();
-                config.put("StrictHostKeyChecking", "no");
-                session.setConfig(config);
-                log.debug("configureSshTransport -> strict host key checking is disabled");
-            }
-        };
-
-        t.setSshSessionFactory(f);
-    }
-
-    private static Action getAction(Context ctx) {
-        Object v = ctx.getVariable(ACTION_KEY);
-        if (v instanceof String) {
-            String s = (String) v;
-            return Action.valueOf(s.trim().toUpperCase());
-        }
-        throw new IllegalArgumentException("'" + ACTION_KEY + "' must be a string");
-    }
-
-    private static boolean isIgnoreErrors(Context ctx) {
-        return getBoolean(ctx, IGNORE_ERRORS_KEY, false);
-    }
-
-    private static void handleError(String error, Exception e, Context ctx, Path dstDir) {
+    private static Map<String, Object> handleError(String error, Exception e, Map<String, Object> in, Path dstDir) {
         try {
             IOUtils.deleteRecursively(dstDir);
         } catch (Exception ex) {
             log.info("cleanup -> error: " + ex.getMessage());
         }
 
-        if (!isIgnoreErrors(ctx)) {
+        if (!isIgnoreErrors(in)) {
             throw new IllegalArgumentException(error, e);
         }
 
-        setOutVariable(ctx, false, ResultStatus.FAILURE, error, Collections.emptySet());
+        return toResult(false, ResultStatus.FAILURE, error, Collections.emptySet());
     }
 
-    private static void setOutVariable(Context ctx, boolean ok, ResultStatus resultStatus, String error, Set<String> changeList) {
-        String key = (String) ctx.getVariable(OUT_KEY);
-        if (key == null) {
-            key = DEFAULT_OUT_VAR_KEY;
-        }
-
+    private static Map<String, Object> toResult(boolean ok, ResultStatus resultStatus, String error, Set<String> changeList) {
         Map<String, Object> result = new HashMap<>();
         result.put(OK_KEY, ok);
         result.put(STATUS_KEY, resultStatus);
         result.put(ERROR_KEY, error);
         result.put(CHANGE_LIST_KEY, changeList);
-
-        ctx.setVariable(key, result);
+        return result;
     }
 
-    public enum Action {
+    private static Action getAction(Map<String, Object> in) {
+        String v = MapUtils.assertString(in, ACTION_KEY);
+        try {
+            return Action.valueOf(v.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Unknown action: '" + v + "'. Available actions: " + Arrays.toString(Action.values()));
+        }
+    }
+
+    enum Action {
         CLONE,
         CREATEBRANCH,
         MERGE,

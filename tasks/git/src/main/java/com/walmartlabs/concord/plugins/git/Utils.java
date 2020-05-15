@@ -20,15 +20,14 @@ package com.walmartlabs.concord.plugins.git;
  * =====
  */
 
-import com.walmartlabs.concord.sdk.Context;
-import com.walmartlabs.concord.sdk.ContextUtils;
-
 import java.util.Map;
+
+import static com.walmartlabs.concord.sdk.MapUtils.getString;
 
 public final class Utils {
 
-    public static boolean getBoolean(Context ctx, String k, boolean fallback) {
-        Object v = ctx.getVariable(k);
+    public static boolean getBoolean(Map<String, Object> in, String k, boolean fallback) {
+        Object v = in.get(k);
 
         if (v == null) {
             return fallback;
@@ -45,8 +44,8 @@ public final class Utils {
         return (Boolean) v;
     }
 
-    public static String getUrl(Map<String, Object> defaults, Context ctx, String k) {
-        String v = ContextUtils.getString(ctx, k, (defaults != null ? defaults.get(k).toString() : null));
+    public static String getUrl(Map<String, Object> defaults, Map<String, Object> in, String k) {
+        String v = getString(in, k, (defaults != null ? defaults.get(k).toString() : null));
         if (v == null) {
             throw new IllegalArgumentException("Mandatory parameter '" + k + "' is required");
         }
