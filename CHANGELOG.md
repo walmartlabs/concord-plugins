@@ -6,6 +6,10 @@
 
 - terraform: new action `destroy`.
 
+### Changed
+
+- msteams: pick up the `useProxy` value from default parameters.
+
 
 
 ## [1.26.0] - 2020-04-28

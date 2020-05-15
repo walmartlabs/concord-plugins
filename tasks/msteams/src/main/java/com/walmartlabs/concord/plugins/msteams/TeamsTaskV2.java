@@ -55,17 +55,16 @@ public class TeamsTaskV2 implements Task {
         }
 
         boolean ignoreErrors = MapUtils.getBoolean(cfg, Constants.IGNORE_ERRORS_KEY, false);
-        boolean useProxy = MapUtils.getBoolean(cfg, Constants.USE_PROXY_KEY, false);
 
         log.info("Starting '{}' action....", action);
 
         switch (action) {
             case CREATECONVERSATION: {
-                createConversation(ctx, cfg, activity, ignoreErrors, useProxy);
+                createConversation(ctx, cfg, activity, ignoreErrors);
                 break;
             }
             case REPLYTOCONVERSATION: {
-                replyToConversation(ctx, cfg, activity, ignoreErrors, useProxy);
+                replyToConversation(ctx, cfg, activity, ignoreErrors);
                 break;
             }
             default:
@@ -74,7 +73,7 @@ public class TeamsTaskV2 implements Task {
     }
 
     private void createConversation(@InjectVariable("context") Context ctx, Map<String, Object> cfg,
-                                    Map<String, Object> activity, boolean ignoreErrors, boolean useProxy) {
+                                    Map<String, Object> activity, boolean ignoreErrors) {
 
         TeamsConfiguration teamsConfiguration = TeamsConfiguration.from(ctx);
         String channelId = MapUtils.assertString(cfg, Constants.VAR_CHANNEL_ID);
@@ -82,7 +81,7 @@ public class TeamsTaskV2 implements Task {
         Map<String, Object> result = new HashMap<>();
         Result r;
 
-        try (TeamsClientV2 client = new TeamsClientV2(teamsConfiguration, useProxy)) {
+        try (TeamsClientV2 client = new TeamsClientV2(teamsConfiguration)) {
             r = client.createConversation(cfg, activity, channelId, teamsConfiguration.getRootApi());
 
             if (!r.isOk()) {
@@ -105,7 +104,7 @@ public class TeamsTaskV2 implements Task {
     }
 
     private void replyToConversation(@InjectVariable("context") Context ctx, Map<String, Object> cfg,
-                                     Map<String, Object> activity, boolean ignoreErrors, boolean useProxy) {
+                                     Map<String, Object> activity, boolean ignoreErrors) {
 
         TeamsConfiguration teamsConfiguration = TeamsConfiguration.from(ctx);
 
@@ -113,7 +112,7 @@ public class TeamsTaskV2 implements Task {
         Map<String, Object> result = new HashMap<>();
         Result r;
 
-        try (TeamsClientV2 client = new TeamsClientV2(teamsConfiguration, useProxy)) {
+        try (TeamsClientV2 client = new TeamsClientV2(teamsConfiguration)) {
             r = client.replyToConversation(activity, teamsConfiguration.getRootApi(), conversationId);
 
             if (!r.isOk()) {

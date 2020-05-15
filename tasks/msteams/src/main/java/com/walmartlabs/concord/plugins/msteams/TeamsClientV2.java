@@ -56,10 +56,10 @@ public class TeamsClientV2 implements AutoCloseable {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public TeamsClientV2(TeamsConfiguration cfg, boolean useProxy) {
+    public TeamsClientV2(TeamsConfiguration cfg) {
         this.retryCount = cfg.getRetryCount();
         this.connManager = TeamsClient.createConnManager();
-        this.client = createClient(cfg, connManager, useProxy);
+        this.client = createClient(cfg, connManager);
     }
 
     @Override
@@ -130,21 +130,20 @@ public class TeamsClientV2 implements AutoCloseable {
         return new Result(false, "too many requests", null, null, null);
     }
 
-    private static CloseableHttpClient createClient(TeamsConfiguration cfg, HttpClientConnectionManager connManager,
-                                                    boolean useProxy) {
+    private static CloseableHttpClient createClient(TeamsConfiguration cfg, HttpClientConnectionManager connManager) {
         String accessToken = generateAccessToken(cfg);
 
         Collection<Header> headers = Collections.singleton(new BasicHeader(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken));
         return HttpClientBuilder.create()
-                .setDefaultRequestConfig(createConfig(cfg, useProxy))
+                .setDefaultRequestConfig(createConfig(cfg))
                 .setConnectionManager(connManager)
                 .setDefaultHeaders(headers)
                 .build();
     }
 
-    public static RequestConfig createConfig(TeamsConfiguration cfg, boolean useProxy) {
+    public static RequestConfig createConfig(TeamsConfiguration cfg) {
         HttpHost proxy = null;
-        if (useProxy) {
+        if (cfg.isUseProxy()) {
             proxy = new HttpHost(cfg.getProxyAddress(), cfg.getProxyPort(), "http");
         }
 

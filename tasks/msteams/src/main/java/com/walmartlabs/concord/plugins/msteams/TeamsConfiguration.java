@@ -24,8 +24,7 @@ import com.walmartlabs.concord.sdk.Context;
 
 import java.util.Map;
 
-import static com.walmartlabs.concord.sdk.MapUtils.getInt;
-import static com.walmartlabs.concord.sdk.MapUtils.getString;
+import static com.walmartlabs.concord.sdk.MapUtils.*;
 
 public class TeamsConfiguration {
 
@@ -40,6 +39,7 @@ public class TeamsConfiguration {
                 getString(msteamsParams, Constants.ROOT_WEBHOOK_URL_KEY),
                 getString(msteamsParams, Constants.PROXY_ADDRESS_KEY),
                 getInt(msteamsParams, Constants.PROXY_PORT_KEY, Constants.DEFAULT_PROXY_PORT),
+                getBoolean(msteamsParams, Constants.USE_PROXY_KEY, false),
                 getInt(msteamsParams, Constants.CONNECTION_TIMEOUT_KEY, Constants.DEFAULT_CONNECT_TIMEOUT),
                 getInt(msteamsParams, Constants.SO_TIMEOUT_KEY, Constants.DEFAULT_SO_TIMEOUT),
                 getInt(msteamsParams, Constants.RETRY_COUNT_KEY, Constants.DEFAULT_RETRY_COUNT),
@@ -57,6 +57,7 @@ public class TeamsConfiguration {
                                           String rootWebhookUrl,
                                           String proxyAddress,
                                           int proxyPort,
+                                          boolean useProxy,
                                           int connectTimeout,
                                           int soTimeout,
                                           int retryCount,
@@ -66,7 +67,7 @@ public class TeamsConfiguration {
                                           String rootApi) {
 
         return new TeamsConfiguration(teamId, tenantId, webhookTypeId, webhookId,
-                rootWebhookUrl, proxyAddress, proxyPort, connectTimeout, soTimeout, retryCount, accessTokenApi,
+                rootWebhookUrl, proxyAddress, proxyPort, useProxy, connectTimeout, soTimeout, retryCount, accessTokenApi,
                 clientId, clientSecret, rootApi);
     }
 
@@ -82,6 +83,7 @@ public class TeamsConfiguration {
 
     private final String proxyAddress;
     private final int proxyPort;
+    private final boolean useProxy;
     private final int connectTimeout;
     private final int soTimeout;
     private final int retryCount;
@@ -93,6 +95,7 @@ public class TeamsConfiguration {
                               String rootWebhookUrl,
                               String proxyAddress,
                               int proxyPort,
+                              boolean useProxy,
                               int connectTimeout,
                               int soTimeout,
                               int retryCount,
@@ -108,6 +111,7 @@ public class TeamsConfiguration {
         this.rootWebhookUrl = rootWebhookUrl;
         this.proxyAddress = proxyAddress;
         this.proxyPort = proxyPort;
+        this.useProxy = useProxy;
         this.connectTimeout = connectTimeout;
         this.soTimeout = soTimeout;
         this.retryCount = retryCount;
@@ -143,6 +147,10 @@ public class TeamsConfiguration {
 
     public int getProxyPort() {
         return proxyPort;
+    }
+
+    public boolean isUseProxy() {
+        return useProxy;
     }
 
     public int getConnectTimeout() {
