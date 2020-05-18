@@ -27,7 +27,7 @@ import java.util.Map;
 public final class GitClientFactory {
 
     public static GitClient create(Map<String, Object> in) {
-        boolean useJGit = MapUtils.getBoolean(in, "usejgit", false);
+        boolean useJGit = MapUtils.getBoolean(in, "useJGit", true);
         if (useJGit) {
             return new JGitClient();
         }
