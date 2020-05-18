@@ -38,7 +38,7 @@ public class GitCliClient implements GitClient {
     public void cloneRepo(String uri, String branchName, Secret secret, Path dst) {
         ImmutableGitClientConfiguration.Builder cfg = GitClientConfiguration.builder()
                 .httpLowSpeedLimit(0)
-                .httpLowSpeedTime(600)
+                .sshTimeout(600)
                 .shallowClone(shallowClone);
 
         if (secret instanceof TokenSecret) {
