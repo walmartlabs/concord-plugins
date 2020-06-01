@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Changed
+
+- git: improved validation of input parameters.
+
+
+
+## [1.27.0] - 2020-05-26
+
 ### Added
 
 - git: runtime v2 compatibility;

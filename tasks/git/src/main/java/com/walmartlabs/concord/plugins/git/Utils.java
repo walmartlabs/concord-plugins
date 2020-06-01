@@ -45,7 +45,7 @@ public final class Utils {
     }
 
     public static String getUrl(Map<String, Object> defaults, Map<String, Object> in, String k) {
-        String v = getString(in, k, (defaults != null ? defaults.get(k).toString() : null));
+        String v = getString(in, k, (String) (defaults != null ? defaults.get(k) : null));
         if (v == null) {
             throw new IllegalArgumentException("Mandatory parameter '" + k + "' is required");
         }
