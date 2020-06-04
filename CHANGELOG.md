@@ -6,6 +6,10 @@
 
 - new plugin: `tasks/xml`.
 
+
+
+## [1.27.1] - 2020-06-03
+
 ### Changed
 
 - git: improved validation of input parameters.
