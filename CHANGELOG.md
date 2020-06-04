@@ -1,6 +1,6 @@
 # Change log
 
-## [Unreleased]
+## [1.28.0] - 2020-06-04
 
 ### Added
 
