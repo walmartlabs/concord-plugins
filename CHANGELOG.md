@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- new plugin: `tasks/xml`.
+
 ### Changed
 
 - git: improved validation of input parameters.

@@ -1,0 +1,12 @@
+configuration:
+  dependencies:
+    - "mvn://com.walmartlabs.concord.plugins:xml-tasks:1.27.1-SNAPSHOT"
+
+flows:
+  default:
+    - expr: "${xmlUtils.mavenGav('pom.xml')}"
+      out: gav
+
+    - log: "groupId: ${gav.groupId}"
+    - log: "artifactId: ${gav.artifactId}"
+    - log: "version: ${gav.version}"
