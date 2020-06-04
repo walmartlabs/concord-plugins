@@ -1,6 +1,6 @@
 configuration:
   dependencies:
-    - "mvn://com.walmartlabs.concord.plugins:xml-tasks:1.27.1-SNAPSHOT"
+    - "mvn://com.walmartlabs.concord.plugins:xml-tasks:1.28.0"
 
 flows:
   default:
