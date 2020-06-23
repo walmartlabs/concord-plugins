@@ -1,5 +1,13 @@
 # Change log
 
+## [Unreleased]
+
+### Added
+
+- puppet: runtime-v2 compatibility.
+
+
+
 ## [1.28.0] - 2020-06-04
 
 ### Added
