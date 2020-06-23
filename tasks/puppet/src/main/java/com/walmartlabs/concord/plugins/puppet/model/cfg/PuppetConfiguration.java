@@ -22,20 +22,22 @@ package com.walmartlabs.concord.plugins.puppet.model.cfg;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.walmartlabs.concord.plugins.puppet.Utils;
+import com.walmartlabs.concord.plugins.puppet.model.SecretExporter;
 import com.walmartlabs.concord.plugins.puppet.model.exception.ConfigException;
 import com.walmartlabs.concord.plugins.puppet.model.exception.InvalidValueException;
 import com.walmartlabs.concord.plugins.puppet.model.exception.MissingParameterException;
-import com.walmartlabs.concord.sdk.Context;
 import com.walmartlabs.concord.sdk.MapUtils;
-import com.walmartlabs.concord.sdk.SecretService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.util.*;
@@ -71,6 +73,7 @@ public abstract class PuppetConfiguration {
 
     /**
      * Returns heads that are required for an API call
+     *
      * @return Map of headers
      */
     public abstract Map<String, String> getHeaders();
@@ -95,6 +98,9 @@ public abstract class PuppetConfiguration {
         return validateCerts;
     }
 
+    /**
+     * @return List of certificates used for API call verification
+     */
     public List<Certificate> getCertificates() {
         return certificates;
     }
@@ -106,71 +112,39 @@ public abstract class PuppetConfiguration {
     /**
      * Converts PEM-encoded certificate string into certificates and adds it to a
      * List of certificates
+     *
      * @param text PEM-encoded certificate
      * @param pCfg PuppetConfiguration to add the certs
      */
-    private static void textToCert(String text, PuppetConfiguration pCfg)  {
+    private static void textToCert(String text, PuppetConfiguration pCfg) {
         try (
-                InputStream is = new ByteArrayInputStream(text.getBytes());
+                InputStream is = new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
                 BufferedInputStream bis = new BufferedInputStream(is)
         ) {
-            streamToCerts(bis, pCfg);
+            Utils.streamToCerts(bis, pCfg);
         } catch (Exception e) {
             throw new ConfigException("Error reading certificates: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Converts PEM-encoded certificate file into certificates and adds it to a
-     * List of certificates
-     * @param filePath Path to the PEM-encoded certificate file
-     * @param pCfg PuppetConfiguration to add the certs
-     */
-    private static void fileToCert(String filePath, PuppetConfiguration pCfg) {
-        try (
-                FileInputStream is = new FileInputStream(filePath);
-                BufferedInputStream bis = new BufferedInputStream(is)
-        ) {
-            streamToCerts(bis, pCfg);
-        } catch (Exception e) {
-            throw new ConfigException("Error reading certificates: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Converts PEM-encoded InputStream into certificates and adds it to a
-     * List of certificates
-     * @param is InputSteam of pem-encoded certificate data
-     * @param pCfg PuppetConfiguration to add the certs
-     * @throws IOException when error is encountered with the InputStream
-     * @throws CertificateException when certificate cannot be parsed
-     */
-    private static void streamToCerts(InputStream is, PuppetConfiguration pCfg) throws IOException, CertificateException {
-        CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
-
-        while (is.available() > 0) {
-            pCfg.addCert(certificateFactory.generateCertificate(is));
         }
     }
 
     /**
      * Adds a certificate to the list of certificates to trust
+     *
      * @param c cert to trust
      */
-    private void addCert(Certificate c) {
+    public void addCert(Certificate c) {
         if (certificates == null) {
             certificates = new ArrayList<>();
         }
         certificates.add(c);
     }
 
-
     /**
      * Reads one or more certificates from given sources
-     * @param secretService Concord {@link SecretService} for retrieving file secrets
-     * @param ctx Concord {@link Context} for getting process info and use with SecretService
+     *
+     * @param exporter Class that can interact with some version of Concord's SecretService
      */
-    public void initializeCertificates(SecretService secretService, Context ctx) {
+    public void initializeCertificates(SecretExporter exporter) {
         if (certificate == null) {
             return;
         }
@@ -179,19 +153,20 @@ public abstract class PuppetConfiguration {
             textToCert(MapUtils.getString(certificate, CERTIFICATE_TEXT_KEY), this);
         }
         if (certificate.containsKey(CERTIFICATE_PATH_KEY)) {
-            fileToCert(MapUtils.getString(certificate, CERTIFICATE_PATH_KEY), this);
+            Utils.fileToCert(MapUtils.getString(certificate, CERTIFICATE_PATH_KEY), this);
         }
         if (certificate.containsKey(CERTIFICATE_SECRET_KEY)) {
-            Map<String, Object> secret = (Map<String, Object>) certificate.get(CERTIFICATE_SECRET_KEY);
+            Map<String, Object> secret = MapUtils
+                    .getMap(certificate, CERTIFICATE_SECRET_KEY, Collections.emptyMap());
             String sOrg = (String) secret.get(CERTIFICATE_ORG_KEY);
             String sName = (String) secret.get(CERTIFICATE_NAME_KEY);
             String sPass = (String) secret.getOrDefault(CERTIFICATE_PASSWORD_KEY, null);
 
+            Utils.debug(log, debug, String.format("Loading cert from secret: %s/%s", sOrg, sName));
+
             try {
-                String filename = secretService.exportAsFile(
-                        ctx, (String) ctx.getVariable(TX_ID), (String) ctx.getVariable(WORK_DIR), sOrg, sName, sPass
-                );
-                fileToCert(filename, this);
+                Path filePath = exporter.export(sOrg, sName, sPass);
+                Utils.fileToCert(filePath.toString(), this);
             } catch (Exception e) {
                 throw new ConfigException("Error reading certificate from secret: " + e.getMessage());
             }
@@ -223,7 +198,8 @@ public abstract class PuppetConfiguration {
 
     /**
      * Throws a {@link MissingParameterException} when a required parameter is missing or empty/null
-     * @param a ExternalParam attribute settings
+     *
+     * @param a   ExternalParam attribute settings
      * @param val Value to check
      */
     private static void checkForEmptyValue(JsonProperty a, Object val) {
@@ -244,10 +220,11 @@ public abstract class PuppetConfiguration {
 
     /**
      * Sets the defaults for a field, specified by an {@link JsonProperty} attribute
-     * @param a Attribute configuration
-     * @param f Field of the target object to set
+     *
+     * @param a      Attribute configuration
+     * @param f      Field of the target object to set
      * @param target Object to inject value into
-     * @param val Value to inject
+     * @param val    Value to inject
      */
     private static void setDefaultValue(JsonProperty a, PuppetConfiguration target, Field f, Object val) {
         // Use default value if not set
@@ -282,8 +259,9 @@ public abstract class PuppetConfiguration {
     /**
      * Attempts to convert an object to a Number.
      * is true
+     *
      * @param name Name of the parameter that will be coerced
-     * @param val Value to coerce
+     * @param val  Value to coerce
      * @return Value as a number
      */
     private static Number coerceToNumber(String name, Object val) {
@@ -296,8 +274,9 @@ public abstract class PuppetConfiguration {
 
     /**
      * Attempts ot convert an Object to a List.
+     *
      * @param name Name of the object (for logging)
-     * @param val Object that should be a list
+     * @param val  Object that should be a list
      * @return List value
      */
     private static List coerceToList(String name, Object val) {
@@ -315,8 +294,9 @@ public abstract class PuppetConfiguration {
 
     /**
      * Attempts to convert and Object to Map
+     *
      * @param name name of hte object (for logging)
-     * @param val Object that should be a Map
+     * @param val  Object that should be a Map
      * @return Map value
      */
     private static Map coerceToMap(String name, Object val) {
@@ -335,6 +315,7 @@ public abstract class PuppetConfiguration {
 
     /**
      * Initializes an object from a map of attributes
+     *
      * @param m map of attributes for the object
      * @return instantiated object containing the attributes from the Map
      */
@@ -346,7 +327,7 @@ public abstract class PuppetConfiguration {
         fields.addAll(getJsonPropertyFields(clazz.getSuperclass()));
 
         try {
-            config = clazz.newInstance();
+            config = clazz.getDeclaredConstructor().newInstance();
             for (Field f : fields) {
                 JsonProperty a = f.getAnnotation(JsonProperty.class);
                 Object val = m.get(a.value());
@@ -354,7 +335,7 @@ public abstract class PuppetConfiguration {
             }
 
             config.validateAttributes();
-        } catch (IllegalAccessException | InstantiationException e) {
+        } catch (IllegalAccessException | InstantiationException | NoSuchMethodException | InvocationTargetException e) {
             // ooh that's really bad
             throw new ConfigException(e.getMessage());
         }
@@ -364,6 +345,7 @@ public abstract class PuppetConfiguration {
 
     /**
      * Gets the fields with the {@link JsonProperty} annotation from a class.
+     *
      * @param clazz Class from which to get the fields
      * @return Array of fields
      */

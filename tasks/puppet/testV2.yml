@@ -1,4 +1,5 @@
 configuration:
+  runtime: concord-v2
   arguments:
     puppetParams:
       debug: true
@@ -10,7 +11,6 @@ flows:
 
   promptForAction:
     # Create Action Prompt Form
-    - ${execution.removeVariable('apiTokenForm')}   # clear stale form data
     - set:
         options:
           - "Create API Token"
@@ -30,13 +30,12 @@ flows:
       "Exit":
         - log: "Exiting..."
         - exit
-    - call: promptForAction
 
 
   # Create an API Token
   createToken:
     - form: apiTokenForm  # get user info
-    - task: puppet   # create the token
+    - task: puppet        # create the token
       in:
         action: "createApiToken"
         ignoreErrors: true
@@ -45,11 +44,12 @@ flows:
         tokenLife: ${apiTokenForm.lifetime}
         tokenLabel: ${apiTokenForm.label}
         tokenDescription: ${apiTokenForm.description}
-    - if: ${result.ok}
+      out: tokenResult
+    - if: ${tokenResult.ok}
       then:
-        - log: "New api token: ${result.data}"
+        - log: "New api token: ${tokenResult.data}"
       else:
-        - log: "Error creating api token: ${result.error}"
+        - log: "Error creating api token: ${tokenResult.error}"
 
 
   # execute a PQL query
@@ -60,17 +60,17 @@ flows:
         action: "pql"
         ignoreErrors: true
         queryString: ${queryForm.query}
-    - if: ${result.ok}
+      out: queryResult
+    - if: ${queryResult.ok}
       then:
         # prove we got the results
-        - log: ${resource.prettyPrintJson(result.data)}
+        - log: ${resource.prettyPrintJson(queryResult.data)}
         # filter down to only the certname values
         - set:
-            certnames: ${result.data.stream().map(x -> x.get("certname")).toList()}
-        - log: "Only certnames:"
-        - log: ${resource.prettyPrintJson(certnames)}
+            certnames: ${queryResult.data.stream().map(x -> x.get("certname")).toList()}
+        - log: "Only certnames: ${resource.prettyPrintJson(certnames)}"
       else:
-        - log: "Error executing pql: ${result.error}"
+        - log: "Error executing pql: ${queryResult.error}"
 
 forms:
   apiTokenForm:

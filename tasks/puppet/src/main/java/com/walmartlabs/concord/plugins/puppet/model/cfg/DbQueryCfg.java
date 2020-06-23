@@ -31,21 +31,28 @@ import java.util.Map;
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class DbQueryCfg extends PuppetConfiguration {
 
-    /** PuppetDB API Url */
+    /**
+     * PuppetDB API Url
+     */
     @JsonProperty(value = Keys.DATABASE_URL_KEY, required = true)
     private String dbUrl;
 
-    /** API token for authorization */
+    /**
+     * API token for authorization
+     */
     @JsonProperty(value = Keys.API_TOKEN_KEY)
     private String apiToken;
 
-    /** PQL query string to execute */
+    /**
+     * PQL query string to execute
+     */
     @JsonProperty(value = Keys.QUERY_STRING_KEY, required = true)
     private String queryString;
 
-    public DbQueryCfg() { }
+    public DbQueryCfg() {
+    }
 
-    public Map<String,String> getHeaders() {
+    public Map<String, String> getHeaders() {
         Map<String, String> headers = new HashMap<>();
         headers.put(Constants.ApiConst.AUTHENTICATION_TOKEN, apiToken);
 

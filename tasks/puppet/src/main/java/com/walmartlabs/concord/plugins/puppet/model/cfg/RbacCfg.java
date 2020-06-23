@@ -30,7 +30,9 @@ import java.util.Map;
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class RbacCfg extends PuppetConfiguration {
 
-    /** PuppetDB API Url */
+    /**
+     * PuppetDB API Url
+     */
     @JsonProperty(value = Keys.RBAC_URL_KEY, required = true)
     private String rbacUrl;
     @JsonProperty(value = Keys.TOKEN_LIFETIME_KEY, defaultValue = "1h", required = true)
@@ -45,9 +47,10 @@ public class RbacCfg extends PuppetConfiguration {
     private String description;
 
 
-    public RbacCfg() { }
+    public RbacCfg() {
+    }
 
-    public Map<String,String> getHeaders() {
+    public Map<String, String> getHeaders() {
         // no headers for rbac call
         return new HashMap<>();
     }

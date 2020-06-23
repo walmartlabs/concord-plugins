@@ -24,7 +24,7 @@ import com.walmartlabs.concord.plugins.git.GitSecretService;
 import com.walmartlabs.concord.plugins.git.GitTask;
 import com.walmartlabs.concord.runtime.v2.sdk.SecretService;
 import com.walmartlabs.concord.runtime.v2.sdk.Task;
-import com.walmartlabs.concord.runtime.v2.sdk.TaskContext;
+import com.walmartlabs.concord.runtime.v2.sdk.Variables;
 import com.walmartlabs.concord.runtime.v2.sdk.WorkingDirectory;
 
 import javax.inject.Inject;
@@ -46,8 +46,8 @@ public class GitTaskV2 implements Task {
     }
 
     @Override
-    public Serializable execute(TaskContext ctx) throws Exception {
-        Map<String, Object> result = delegate.execute(ctx.input());
+    public Serializable execute(Variables input) throws Exception {
+        Map<String, Object> result = delegate.execute(input.toMap());
         return new HashMap<>(result);
     }
 

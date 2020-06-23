@@ -29,8 +29,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 
 public class PuppetHostnameVerifier implements HostnameVerifier {
-    private static final Logger log = LoggerFactory.getLogger(PuppetHostnameVerifier.class);
 
+    private static final Logger log = LoggerFactory.getLogger(PuppetHostnameVerifier.class);
 
     private final URL allowedUrl;
 

@@ -21,14 +21,15 @@ package com.walmartlabs.concord.plugins.puppet;
  */
 
 public final class Constants {
-    private Constants() { }
-    
-    public static final String EMPTY_STRING = "";
+
+    private Constants() {
+    }
 
     /**
      * Variable names that may be provided by Concord process Context
      */
     public static class Keys {
+        public static final String PARAMS_KEY = "puppetParams";
         public static final String ACTION_KEY = "action";
         public static final String QUERY_STRING_KEY = "queryString";
         public static final String API_TOKEN_KEY = "apiToken";
@@ -68,7 +69,7 @@ public final class Constants {
 
         /**
          * All root-level input parameters for the task
-         *
+         * <p>
          * Don't include sub-keys like certificate members
          *
          * <pre>
@@ -79,26 +80,34 @@ public final class Constants {
          *       secret:     # don't include
          *         org:      # don't include
          * </pre>
-         * */
-        public static final String[] ALL_IN_PARAMS = { ACTION_KEY, QUERY_STRING_KEY, API_TOKEN_KEY, DEBUG_KEY,
-        IGNORE_ERRORS_KEY, USERNAME_KEY, PASSWORD_KEY, DATABASE_URL_KEY, RBAC_URL_KEY, TOKEN_LIFETIME_KEY, TOKEN_LABEL_KEY,
-        TOKEN_DESCRIPTION_KEY, CONNECT_TIMEOUT_KEY, READ_TIMEOUT_KEY, WRITE_TIMEOUT_KEY, VALIDATE_CERTS_KEY,
-        CERTIFICATE_KEY, TX_ID, WORK_DIR };
+         */
+        private static final String[] ALL_IN_PARAMS = {ACTION_KEY, QUERY_STRING_KEY, API_TOKEN_KEY, DEBUG_KEY,
+                IGNORE_ERRORS_KEY, USERNAME_KEY, PASSWORD_KEY, DATABASE_URL_KEY, RBAC_URL_KEY, TOKEN_LIFETIME_KEY, TOKEN_LABEL_KEY,
+                TOKEN_DESCRIPTION_KEY, CONNECT_TIMEOUT_KEY, READ_TIMEOUT_KEY, WRITE_TIMEOUT_KEY, VALIDATE_CERTS_KEY,
+                CERTIFICATE_KEY, TX_ID, WORK_DIR};
 
-        private Keys() { }
+        public static String[] getAllInParams() {
+            return ALL_IN_PARAMS.clone();
+        }
+
+        private Keys() {
+        }
     }
 
 
     public static class ApiConst {
         public static final String AUTHENTICATION_TOKEN = "X-Authentication";
 
-        private ApiConst() {}
+        private ApiConst() {
+        }
     }
 
     public static class Actions {
-        public static final String ACTION_DB_QUERY = "pql";
-        public static final String ACTION_CREATE_API_TOKEN = "createApiToken";
+        public static final String DB_QUERY = "pql";
+        public static final String CREATE_API_TOKEN = "createApiToken";
+        public static final String NONE = "none";
 
-        private Actions() { }
+        private Actions() {
+        }
     }
 }

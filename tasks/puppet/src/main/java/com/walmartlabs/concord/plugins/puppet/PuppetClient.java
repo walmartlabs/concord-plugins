@@ -45,8 +45,8 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
-
 class PuppetClient {
+
     private static final Logger log = LoggerFactory.getLogger(PuppetClient.class);
 
     private static final MediaType APPLICATION_JSON = MediaType.parse("application/json");
@@ -67,7 +67,7 @@ class PuppetClient {
         Request.Builder rBuilder = new Request.Builder()
                 .url(url)
                 .post(RequestBody.create(APPLICATION_JSON, payload));
-        for (Map.Entry<String, String> e: cfg.getHeaders().entrySet()) {
+        for (Map.Entry<String, String> e : cfg.getHeaders().entrySet()) {
             rBuilder.addHeader(e.getKey(), e.getValue());
         }
 
@@ -100,6 +100,7 @@ class PuppetClient {
 
     /**
      * Queries Puppet database for a list of results
+     *
      * @param query Query string to execute
      * @return List of results
      * @throws Exception when error occurs executing query
@@ -115,6 +116,7 @@ class PuppetClient {
 
     /**
      * Creates and API token for use with Puppet API calls
+     *
      * @param tp Token payload containing parameters for creation
      * @return the new API token
      * @throws Exception when error encountered creating API token
@@ -136,6 +138,7 @@ class PuppetClient {
     /**
      * Checks for a seemingly-usable API URL to execute against. Combines it with
      * a path to generate an encoded, full URL for an API call.
+     *
      * @param path API Path for execution, include leading forward-slash '/'
      * @return Full, encoded URL string
      */
@@ -155,10 +158,11 @@ class PuppetClient {
 
     /**
      * Executes a Callable until successful, up to a given number of retries
-     * @param retryCount Number of allowed retry attempts
+     *
+     * @param retryCount    Number of allowed retry attempts
      * @param retryInterval Milliseconds to wait between retries
-     * @param c Callable to execute
-     * @param <T> Type of Callable
+     * @param c             Callable to execute
+     * @param <T>           Type of Callable
      * @return results of the Callable
      * @throws ApiException when api call can't be made successfully
      */
@@ -214,14 +218,14 @@ class PuppetClient {
      * @throws Exception
      */
     private OkHttpClient createClient(PuppetConfiguration cfg) throws Exception {
-        OkHttpClient.Builder clientBuilder =  new OkHttpClient.Builder()
+        OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
                 .connectTimeout(cfg.getConnectTimeout(), TimeUnit.SECONDS)
                 .readTimeout(cfg.getReadTimeout(), TimeUnit.SECONDS)
                 .writeTimeout(cfg.getWriteTimeout(), TimeUnit.SECONDS);
 
         if (!cfg.validateCerts()) {
             Utils.debug(log, cfg.doDebug(), "Disabling certificate verification.");
-            final TrustManager[] tms = new TrustManager[] {
+            final TrustManager[] tms = new TrustManager[]{
                     new X509TrustManager() {
                         @Override
                         public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {
@@ -242,7 +246,7 @@ class PuppetClient {
             final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
 
             clientBuilder
-                    .sslSocketFactory(sslSocketFactory, (X509TrustManager)tms[0])
+                    .sslSocketFactory(sslSocketFactory, (X509TrustManager) tms[0])
                     .hostnameVerifier(new PuppetHostnameVerifier(cfg.getBaseUrl()));
         } else if (cfg.useCustomKeyStore()) {
             Utils.debug(log, cfg.doDebug(), "Adding master cert to trusted certs");
@@ -262,6 +266,7 @@ class PuppetClient {
 
     /**
      * Gets an X509TrustManager for se with ssl connections
+     *
      * @param keyStore Keystore to use with the trust manager
      * @return TrustManager to validate ssl connections
      * @throws Exception when default trust manager can't be obtained
@@ -281,8 +286,9 @@ class PuppetClient {
 
     /**
      * Creates an SSL Context for validating SSL connections.
+     *
      * @param keyStore KeyStore to use for certificate validations
-     * @param tm for making trust decisions
+     * @param tm       for making trust decisions
      * @return SSL Context with the given keystore and trustmanager
      * @throws Exception
      */
@@ -301,6 +307,7 @@ class PuppetClient {
 
     /**
      * Creates a KeyStore for use with SSL connections containing a given list of certificates
+     *
      * @param certificates list of Certificates to add to the keystore
      * @return Keystore used for ssl verification
      */
@@ -311,7 +318,7 @@ class PuppetClient {
             keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
             keyStore.load(null, null);
 
-            int i=0;
+            int i = 0;
             for (Certificate c : certificates) {
                 keyStore.setCertificateEntry("custom-cert-" + i++, c);
             }

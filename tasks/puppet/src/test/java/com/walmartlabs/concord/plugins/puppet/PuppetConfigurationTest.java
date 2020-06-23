@@ -80,5 +80,4 @@ public class PuppetConfigurationTest {
         cfg.put(Constants.Keys.PASSWORD_KEY, "fake-password");
         return cfg;
     }
-
 }

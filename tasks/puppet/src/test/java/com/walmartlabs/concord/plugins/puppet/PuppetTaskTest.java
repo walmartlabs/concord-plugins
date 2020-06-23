@@ -289,6 +289,7 @@ public class PuppetTaskTest extends AbstractApiTest {
         List data = (List) result.get("data");
         assertEquals(10, data.size());
     }
+
     @Test
     public void testTokenCreate() throws Exception {
         MockContext ctx = new MockContext(buildRbacCfg());
@@ -337,6 +338,8 @@ public class PuppetTaskTest extends AbstractApiTest {
 
     private Map<String, Object> buildRbacCfg() throws Exception {
         Map<String, Object> cfg = new HashMap<>();
+        cfg.put("txId", "cd729813-e93f-4e0a-9856-dc8e65bdd9df");
+        cfg.put("workDir", System.getProperty("user.dir"));
         cfg.put(Constants.Keys.RBAC_URL_KEY, httpsRule.baseUrl());
         cfg.put(Constants.Keys.USERNAME_KEY, "fake-username");
         cfg.put(Constants.Keys.PASSWORD_KEY, "fake-password");
@@ -346,7 +349,6 @@ public class PuppetTaskTest extends AbstractApiTest {
         return cfg;
     }
 
-
     private Map<String, Object> buildDbQueryConfig() {
         Map<String, Object> cfg = new HashMap<>();
         cfg.put(Constants.Keys.DATABASE_URL_KEY, httpRule.baseUrl());
@@ -355,7 +357,6 @@ public class PuppetTaskTest extends AbstractApiTest {
         cfg.put("workDir", System.getProperty("user.dir"));
         return cfg;
     }
-
 
     @Test
     public void test404() {

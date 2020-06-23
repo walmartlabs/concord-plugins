@@ -4,7 +4,7 @@ package com.walmartlabs.concord.plugins.puppet;
  * *****
  * Concord
  * -----
- * Copyright (C) 2017 - 2019 Walmart Inc.
+ * Copyright (C) 2017 - 2020 Walmart Inc.
  * -----
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ package com.walmartlabs.concord.plugins.puppet;
  * =====
  */
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.walmartlabs.concord.plugins.puppet.model.PuppetResult;
 import com.walmartlabs.concord.plugins.puppet.model.cfg.DbQueryCfg;
 import com.walmartlabs.concord.plugins.puppet.model.cfg.RbacCfg;
@@ -28,73 +27,74 @@ import com.walmartlabs.concord.plugins.puppet.model.dbquery.DbQueryPayload;
 import com.walmartlabs.concord.plugins.puppet.model.exception.InvalidValueException;
 import com.walmartlabs.concord.plugins.puppet.model.exception.MissingParameterException;
 import com.walmartlabs.concord.plugins.puppet.model.token.TokenPayload;
-import com.walmartlabs.concord.sdk.Context;
-import com.walmartlabs.concord.sdk.InjectVariable;
-import com.walmartlabs.concord.sdk.SecretService;
-import com.walmartlabs.concord.sdk.Task;
+import com.walmartlabs.concord.sdk.MapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Named;
+import java.io.Serializable;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.walmartlabs.concord.plugins.puppet.Constants.Actions.CREATE_API_TOKEN;
-import static com.walmartlabs.concord.plugins.puppet.Constants.Actions.DB_QUERY;
+import static com.walmartlabs.concord.plugins.puppet.Constants.Actions;
 import static com.walmartlabs.concord.plugins.puppet.Constants.Keys.*;
 
 @Named("puppet")
-public class PuppetTask implements Task {
+public class PuppetTaskV2 implements Task {
 
-    private static final Logger log = LoggerFactory.getLogger(PuppetTask.class);
+    private static final Logger log = LoggerFactory.getLogger(PuppetTaskV2.class);
 
-    @InjectVariable(Constants.Keys.PARAMS_KEY)
-    private Map<String, Object> defaults;
-
-    // 'ignoreErrors' and 'action' variables are not part of PuppetConfiguration
-    // because they are needed before a config can be created
-
-    @InjectVariable(IGNORE_ERRORS_KEY)
-    private Boolean ignoreErrors;
-
-    @InjectVariable(ACTION_KEY)
-    private String action;
+    private final Map<String, Object> defaults;
+    private final SecretService secretService;
 
     @Inject
-    protected SecretService secretService;
-
+    public PuppetTaskV2(SecretService s, Context taskContext) {
+        secretService = s;
+        defaults = taskContext.variables().getMap(PARAMS_KEY, new HashMap<>());
+    }
 
     @Override
-    public void execute(Context ctx) throws Exception {
+    public Serializable execute(Variables input) throws Exception {
+        Map<String, Object> vars = input.toMap();
+        boolean ignoreErrors = MapUtils.getBoolean(
+                vars,
+                IGNORE_ERRORS_KEY,
+                MapUtils.getBoolean(defaults, IGNORE_ERRORS_KEY, false)
+        );
+
         PuppetResult result;
 
         try {
-            result = getResult(ctx);
-
+            result = getResult(vars, defaults);
         } catch (Exception ex) {
             // Determine if task should fail gracefully
-            if (ignoreErrors != null && ignoreErrors) {
+            if (ignoreErrors) {
                 result = new PuppetResult(false, null, ex.getMessage());
             } else {
                 throw ex;
             }
         }
 
-        ObjectMapper om = new ObjectMapper();
-        ctx.setVariable(OUT_VARIABLE_KEY, om.convertValue(result, Map.class));
+        return result;
     }
 
-    private PuppetResult getResult(Context ctx) throws Exception {
-        if (action == null || action.trim().isEmpty()) {
-            throw new MissingParameterException(ACTION_KEY);
-        }
+    private PuppetResult getResult(
+            Map<String, Object> params,
+            Map<String, Object> defaultParams) throws Exception {
+
+        String action = MapUtils.getString(params, ACTION_KEY, Actions.NONE);
+
+        Map<String, Object> merged = UtilsV2.mergeParams(params, defaultParams);
 
         switch (action) {
-            case CREATE_API_TOKEN:
-                return new PuppetResult(true, createToken(ctx), null);
-            case DB_QUERY:
-                return new PuppetResult(true, dbQuery(ctx), null);
+            case Actions.CREATE_API_TOKEN:
+                return new PuppetResult(true, createToken(merged), null);
+            case Actions.DB_QUERY:
+                return new PuppetResult(true, dbQuery(merged), null);
+            case Actions.NONE:
+                throw new MissingParameterException(ACTION_KEY);
             default:
                 throw new InvalidValueException(ACTION_KEY, action, "Not a supported action.");
         }
@@ -103,20 +103,17 @@ public class PuppetTask implements Task {
     /**
      * Executes a PuppetDB query
      *
-     * @param ctx Concord process {@link Context}
+     * @param params merged global and task parameters
      * @return Query results
      * @throws Exception when query cannot be executed
      */
-    private List<Map<String, Object>> dbQuery(Context ctx) throws Exception {
-        DbQueryCfg cfg = Utils.createCfg(ctx, secretService, defaults, DbQueryCfg.class);
+    private List<Map<String, Object>> dbQuery(Map<String, Object> params) throws Exception {
+        DbQueryCfg cfg = UtilsV2.createCfg(params, secretService, DbQueryCfg.class);
         PuppetClient client = new PuppetClient(cfg);
 
         Utils.debug(log, cfg.doDebug(),
                 String.format("Executing query: %s", cfg.getQueryString())
         );
-        Utils.debug(log, cfg.doDebug(),
-                String.format("Task result will be saved as '%s' variable.", OUT_VARIABLE_KEY));
-
 
         log.info("Starting Puppet Query on {}", cfg.getBaseUrl());
 
@@ -126,12 +123,12 @@ public class PuppetTask implements Task {
     /**
      * Create an API token
      *
-     * @param ctx Concord process {@link Context}
+     * @param params merged global and task parameters
      * @return the new API token
      * @throws Exception When something goes wrong communicating with the API
      */
-    private String createToken(Context ctx) throws Exception {
-        RbacCfg cfg = Utils.createCfg(ctx, secretService, defaults, RbacCfg.class);
+    private String createToken(Map<String, Object> params) throws Exception {
+        RbacCfg cfg = UtilsV2.createCfg(params, secretService, RbacCfg.class);
         PuppetClient client = new PuppetClient(cfg);
         TokenPayload payload = new TokenPayload(cfg);
 

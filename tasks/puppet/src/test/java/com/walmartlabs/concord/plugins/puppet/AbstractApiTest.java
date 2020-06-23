@@ -34,11 +34,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.cert.Certificate;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.StringJoiner;
 
 public abstract class AbstractApiTest {
@@ -68,6 +70,20 @@ public abstract class AbstractApiTest {
     AbstractApiTest() {
     }
 
+    /**
+     * Values used for most tests
+     * @return map of defaults for puppetParams
+     */
+    HashMap<String, Object> getDefaults() throws Exception {
+        HashMap<String, Object> d = new HashMap<>();
+        d.put(Constants.Keys.RBAC_URL_KEY, httpRule.baseUrl());
+        d.put(Constants.Keys.USERNAME_KEY, "fake-username");
+        d.put(Constants.Keys.PASSWORD_KEY, "fake-password");
+        d.put(Constants.Keys.DATABASE_URL_KEY, httpRule.baseUrl());
+        d.put(Constants.Keys.API_TOKEN_KEY, "23w4der5f6tg7yh8uj9iko");
+
+        return d;
+    }
 
     /**
      * Gets the public certificate of the Wiremock https rule and saves it to a
@@ -78,66 +94,59 @@ public abstract class AbstractApiTest {
     Path getWiremockCertFile() throws Exception {
         if (certPath != null) { return certPath; }
 
-        try {
-            // Create a trust manager that does not validate certificate chains
-            TrustManager[] trustAllCerts = new TrustManager[]{
-                    new X509TrustManager() {
-                        public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                            return null;
-                        }
-                        public void checkClientTrusted(
-                                java.security.cert.X509Certificate[] certs, String authType) {
-                        }
-                        public void checkServerTrusted(
-                                java.security.cert.X509Certificate[] certs, String authType) {
-                        }
+        // Create a trust manager that does not validate certificate chains
+        TrustManager[] trustAllCerts = new TrustManager[]{
+                new X509TrustManager() {
+                    public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                        return null;
                     }
-            };
-
-            // Install the all-trusting trust manager
-            SSLContext sc = SSLContext.getInstance("TLSv1.2");
-            sc.init(null, trustAllCerts, new java.security.SecureRandom());
-            HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
-
-
-            String hostname = "localhost";
-            SSLSocketFactory factory = HttpsURLConnection.getDefaultSSLSocketFactory();
-
-            SSLSocket socket = (SSLSocket) factory.createSocket(hostname, httpsRule.httpsPort());
-            socket.startHandshake();
-            Certificate[] certs = socket.getSession().getPeerCertificates();
-            Certificate cert = certs[0];
-            socket.close();
-
-
-            String keyEncodedString = Base64.getEncoder().encodeToString(cert.getEncoded());
-
-            StringBuilder encodedKey = new StringBuilder();
-            encodedKey.append("-----BEGIN CERTIFICATE-----\n");
-
-            int col = 0;
-            for (int i=0; i < keyEncodedString.length(); i++) {
-                encodedKey.append(keyEncodedString.charAt(i));
-                col++;
-                if (col == 64) {
-                    encodedKey.append("\n");
-                    col = 0;
+                    public void checkClientTrusted(
+                            java.security.cert.X509Certificate[] certs, String authType) {
+                    }
+                    public void checkServerTrusted(
+                            java.security.cert.X509Certificate[] certs, String authType) {
+                    }
                 }
+        };
+
+        // Install the all-trusting trust manager
+        SSLContext sc = SSLContext.getInstance("TLSv1.2");
+        sc.init(null, trustAllCerts, new java.security.SecureRandom());
+        HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+
+
+        String hostname = "localhost";
+        SSLSocketFactory factory = HttpsURLConnection.getDefaultSSLSocketFactory();
+
+        SSLSocket socket = (SSLSocket) factory.createSocket(hostname, httpsRule.httpsPort());
+        socket.startHandshake();
+        Certificate[] certs = socket.getSession().getPeerCertificates();
+        Certificate cert = certs[0];
+        socket.close();
+
+
+        String keyEncodedString = Base64.getEncoder().encodeToString(cert.getEncoded());
+
+        StringBuilder encodedKey = new StringBuilder();
+        encodedKey.append("-----BEGIN CERTIFICATE-----\n");
+
+        int col = 0;
+        for (int i=0; i < keyEncodedString.length(); i++) {
+            encodedKey.append(keyEncodedString.charAt(i));
+            col++;
+            if (col == 64) {
+                encodedKey.append("\n");
+                col = 0;
             }
-            encodedKey.append("\n-----END CERTIFICATE-----");
+        }
+        encodedKey.append("\n-----END CERTIFICATE-----");
 
-            certPath = Paths.get("target/wiremock.pem");
-            try (FileOutputStream fos = new FileOutputStream(certPath.toString())) {
-                fos.write(encodedKey.toString().getBytes());
-            }
-
-            return certPath;
-
-        } catch (Exception ex) {
-            log.error("Failed to get wiremock public key");
+        certPath = Paths.get("target/wiremock.pem");
+        try (FileOutputStream fos = new FileOutputStream(certPath.toString())) {
+            fos.write(encodedKey.toString().getBytes(StandardCharsets.UTF_8));
         }
 
-        throw new Exception("Failed to get wiremock public cert for testing.");
+        return certPath;
     }
 
     /**
@@ -148,7 +157,7 @@ public abstract class AbstractApiTest {
     String getWiremockCertString() throws Exception {
         if (certString != null) { return certString; }
 
-        certString = new String(Files.readAllBytes(getWiremockCertFile()));
+        certString = new String(Files.readAllBytes(getWiremockCertFile()), StandardCharsets.UTF_8);
         return certString;
     }
 
@@ -166,7 +175,15 @@ public abstract class AbstractApiTest {
         Files.readAllLines(Paths.get(resourcePath.toURI())).forEach(sj::add);
         String json = sj.toString();
 
-
+        httpRule.stubFor(WireMock.post(WireMock
+                .urlPathMatching("^/rbac-api/v1/auth/token$"))
+                .willReturn(WireMock.aResponse()
+                        .withStatus(200)
+                        .withHeader(CONTENT_TYPE, APPLICATION_JSON)
+                        .withHeader(ACCEPT, APPLICATION_JSON)
+                        .withBody(json)
+                )
+        );
         httpsRule.stubFor(WireMock.post(WireMock
                 .urlPathMatching("^/rbac-api/v1/auth/token$"))
                 .willReturn(WireMock.aResponse()

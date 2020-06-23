@@ -21,7 +21,10 @@ package com.walmartlabs.concord.plugins.puppet.model.exception;
  */
 
 public class ApiException extends Exception {
-    /** HTTP status code **/
+
+    /**
+     * HTTP status code
+     **/
     private int code = 0;
 
     public static ApiException buildException(int statusCode, String errMessage) {

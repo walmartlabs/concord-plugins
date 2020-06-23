@@ -23,6 +23,7 @@ package com.walmartlabs.concord.plugins.puppet.model.dbquery;
 import com.walmartlabs.concord.plugins.puppet.model.cfg.DbQueryCfg;
 
 public class DbQueryPayload {
+
     private String query;
 
     public DbQueryPayload(DbQueryCfg cfg) {

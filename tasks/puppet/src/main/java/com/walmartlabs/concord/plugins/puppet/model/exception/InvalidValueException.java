@@ -29,8 +29,9 @@ public class InvalidValueException extends RuntimeException {
     /**
      * Creates object with message detailing what parameter value is invalid with a list of allowed
      * values
-     * @param name Parameter for which the invalid value was given
-     * @param v Value given
+     *
+     * @param name    Parameter for which the invalid value was given
+     * @param v       Value given
      * @param allowed Array of allows object values
      */
     public InvalidValueException(String name, Object v, Object[] allowed) {
@@ -39,8 +40,9 @@ public class InvalidValueException extends RuntimeException {
 
     /**
      * Creates object with message detailing what parameter value is invalid with an extra message.
-     * @param name Parameter for which an invalid value was given
-     * @param v Value given
+     *
+     * @param name     Parameter for which an invalid value was given
+     * @param v        Value given
      * @param extraMsg Custom message to append
      */
     public InvalidValueException(String name, Object v, String extraMsg) {
