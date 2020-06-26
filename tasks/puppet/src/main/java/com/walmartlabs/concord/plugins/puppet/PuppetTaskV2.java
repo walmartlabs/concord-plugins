@@ -27,6 +27,10 @@ import com.walmartlabs.concord.plugins.puppet.model.dbquery.DbQueryPayload;
 import com.walmartlabs.concord.plugins.puppet.model.exception.InvalidValueException;
 import com.walmartlabs.concord.plugins.puppet.model.exception.MissingParameterException;
 import com.walmartlabs.concord.plugins.puppet.model.token.TokenPayload;
+import com.walmartlabs.concord.runtime.v2.sdk.Context;
+import com.walmartlabs.concord.runtime.v2.sdk.SecretService;
+import com.walmartlabs.concord.runtime.v2.sdk.Task;
+import com.walmartlabs.concord.runtime.v2.sdk.Variables;
 import com.walmartlabs.concord.sdk.MapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,8 +54,8 @@ public class PuppetTaskV2 implements Task {
     private final SecretService secretService;
 
     @Inject
-    public PuppetTaskV2(SecretService s, Context taskContext) {
-        secretService = s;
+    public PuppetTaskV2(SecretService secretService, Context taskContext) {
+        this.secretService = secretService;
         defaults = taskContext.variables().getMap(PARAMS_KEY, new HashMap<>());
     }
 
