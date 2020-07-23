@@ -6,6 +6,10 @@
 
 - puppet: runtime-v2 compatibility.
 
+### Changed
+
+- project: add Sisu indexing to ensure runtime-v2 compatibility.
+
 
 
 ## [1.28.0] - 2020-06-04
