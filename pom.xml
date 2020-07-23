@@ -4,9 +4,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.walmartlabs.concord</groupId>
-        <artifactId>parent</artifactId>
-        <version>1.9.0</version>
+        <groupId>io.takari</groupId>
+        <artifactId>takari</artifactId>
+        <version>27</version>
     </parent>
 
     <groupId>com.walmartlabs.concord.plugins</groupId>
@@ -53,31 +53,25 @@
     </modules>
 
     <properties>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
         <scm.connection>scm:git:https://github.com/walmartlabs/concord-plugins.git</scm.connection>
-        <concord.version>1.53.1</concord.version>
+
+        <concord.version>1.57.0</concord.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>com.walmartlabs.concord</groupId>
-                <artifactId>concord-sdk</artifactId>
+                <artifactId>concord-targetplatform</artifactId>
                 <version>${concord.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.walmartlabs.concord</groupId>
-                <artifactId>concord-common</artifactId>
-                <version>${concord.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.walmartlabs.concord.runtime.v2</groupId>
-                <artifactId>concord-runtime-sdk-v2</artifactId>
-                <version>${concord.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.walmartlabs.concord</groupId>
-                <artifactId>concord-repository</artifactId>
-                <version>${concord.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -129,6 +123,20 @@
                 </plugin>
             </plugins>
         </pluginManagement>
+
+        <plugins>
+            <plugin>
+                <groupId>io.takari.maven.plugins</groupId>
+                <artifactId>takari-lifecycle-plugin</artifactId>
+                <version>1.13.7</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                    <proc>proc</proc>
+                </configuration>
+            </plugin>
+        </plugins>
     </build>
 
     <scm>

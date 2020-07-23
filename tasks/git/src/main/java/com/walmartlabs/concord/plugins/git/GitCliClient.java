@@ -47,6 +47,6 @@ public class GitCliClient implements GitClient {
         }
 
         new com.walmartlabs.concord.repository.GitClient(cfg.build())
-                .fetch(uri, branchName, null, false, secret, dst);
+                .fetch(uri, branchName, null, secret, dst);
     }
 }
