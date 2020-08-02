@@ -25,6 +25,7 @@ import com.walmartlabs.concord.repository.ImmutableGitClientConfiguration;
 import com.walmartlabs.concord.sdk.Secret;
 
 import java.nio.file.Path;
+import java.time.Duration;
 
 public class GitCliClient implements GitClient {
 
@@ -38,7 +39,7 @@ public class GitCliClient implements GitClient {
     public void cloneRepo(String uri, String branchName, Secret secret, Path dst) {
         ImmutableGitClientConfiguration.Builder cfg = GitClientConfiguration.builder()
                 .httpLowSpeedLimit(0)
-                .sshTimeout(600)
+                .sshTimeout(Duration.ofSeconds(600))
                 .shallowClone(shallowClone);
 
         if (secret instanceof TokenSecret) {
