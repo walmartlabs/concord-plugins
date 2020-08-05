@@ -1,5 +1,13 @@
 # Change log
 
+## [Unreleased]
+
+### Changed
+
+- git: updated to work with Concord 1.58.1+.
+
+
+
 ## [1.29.0] - 2020-07-23
 
 ### Added
