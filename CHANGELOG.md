@@ -1,6 +1,6 @@
 # Change log
 
-## [Unreleased]
+## [1.30.0] - 2020-08-12
 
 ### Added
 
