@@ -1,5 +1,14 @@
 # Change log
 
+## [Unreleased]
+
+### Added
+
+- terraform: an option to use a local `terraform` binary from
+`$PATH`.
+
+
+
 ## [1.29.1] - 2020-08-05
 
 ### Changed
