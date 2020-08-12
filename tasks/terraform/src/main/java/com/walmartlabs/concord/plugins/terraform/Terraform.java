@@ -20,15 +20,12 @@ package com.walmartlabs.concord.plugins.terraform;
  * =====
  */
 
-import com.walmartlabs.concord.common.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.URL;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.Callable;
@@ -44,7 +41,6 @@ public class Terraform {
     private final Path binary;
     private final Map<String, String> baseEnv;
     private final ExecutorService executor;
-    private final Path toolArchive;
 
     /**
      * @param workDir the process' working directory. Used to store temporary files
@@ -52,11 +48,10 @@ public class Terraform {
      * @param baseEnv
      * @throws Exception
      */
-    public Terraform(Path workDir, boolean debug, Map<String, String> baseEnv, Path toolArchive) throws Exception {
+    public Terraform(TerraformBinaryResolver binaryResolver, Path workDir, boolean debug, Map<String, String> baseEnv) throws Exception {
         this.debug = debug;
         this.baseEnv = baseEnv;
-        this.toolArchive = toolArchive;
-        this.binary = init(workDir, debug);
+        this.binary = binaryResolver.resolve();
         this.executor = Executors.newCachedThreadPool();
     }
 
@@ -92,50 +87,6 @@ public class Terraform {
 
         int code = p.waitFor();
         return new Result(code, stdout.get(), stderr.get());
-    }
-
-    // During the init we will download the version of Terraform specified by the user if defined, otherwise
-    // we will download the default version. Terraform URLs look like the following:
-    //
-    // https://releases.hashicorp.com/terraform/0.12.5/terraform_0.12.5_linux_amd64.zip
-    // https://releases.hashicorp.com/terraform/0.11.2/terraform_0.11.2_linux_amd64.zip
-    //
-    // So we can generalize to:
-    //
-    // https://releases.hashicorp.com/terraform/${version}/terraform_${version}_linux_amd64.zip
-    //
-    // We will also allow the user to specify the full URL if they want to download the tool zip from
-    // and internal repository manager or other internally managed host.
-    //
-    private Path init(Path workDir, boolean debug) throws Exception {
-        Path dstDir = workDir.resolve(".terraform");
-        if (!Files.exists(dstDir)) {
-            Files.createDirectories(dstDir);
-        }
-
-        Path binaryDst = dstDir.resolve("terraform");
-        if (Files.exists(binaryDst)) {
-            if (debug) {
-                log.info("init -> using the existing binary {}", workDir.relativize(binaryDst));
-            }
-            return binaryDst;
-        }
-
-        if (debug) {
-            log.info("init -> extracting the binary into {}", workDir.relativize(dstDir));
-        }
-
-        if (toolArchive == null) {
-            throw new IllegalStateException(String.format("The Terraform archive '%s' does not appear to be valid.", toolArchive));
-        }
-        URL zipFile = toolArchive.toFile().toURI().toURL();
-        try (InputStream in = zipFile.openStream()) {
-            IOUtils.unzip(in, dstDir);
-        }
-
-
-
-        return binaryDst;
     }
 
     private static void log(String prefix, String s) {

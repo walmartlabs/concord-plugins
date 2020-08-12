@@ -30,7 +30,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Named;
-import java.net.URI;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
@@ -44,9 +43,6 @@ import static com.walmartlabs.concord.plugins.terraform.Utils.getPath;
 public class TerraformTask implements Task {
 
     private static final Logger log = LoggerFactory.getLogger(TerraformTask.class);
-
-    private static final String DEFAULT_TERRAFORM_VERSION = "0.12.5";
-    private static final String DEFAULT_TOOL_URL_TEMPLATE = "https://releases.hashicorp.com/terraform/%s/terraform_%s_%s_amd64.zip";
 
     private final SecretService secretService;
     private final BackendManager backendManager;
@@ -83,7 +79,8 @@ public class TerraformTask implements Task {
         GitSshWrapper gitSshWrapper = GitSshWrapper.createFrom(secretService, ctx, instanceId, workDir, cfg, debug);
         Map<String, String> baseEnv = gitSshWrapper.updateEnv(workDir, new HashMap<>());
 
-        Terraform terraform = new Terraform(workDir, debug, baseEnv, dependencyManager.resolve(new URI(resolveToolUrl(cfg))));
+        TerraformBinaryResolver binaryResolver = new TerraformBinaryResolver(dependencyManager, cfg, workDir, debug);
+        Terraform terraform = new Terraform(binaryResolver, workDir, debug, baseEnv);
         if (debug) {
             terraform.exec(workDir, "version", "version");
         }
@@ -185,47 +182,5 @@ public class TerraformTask implements Task {
         DESTROY;
     }
 
-    // During the init we will download the version of Terraform specified by the user if defined, otherwise
-    // we will download the default version. Terraform URLs look like the following:
-    //
-    // https://releases.hashicorp.com/terraform/0.12.5/terraform_0.12.5_linux_amd64.zip
-    // https://releases.hashicorp.com/terraform/0.11.2/terraform_0.11.2_linux_amd64.zip
-    //
-    // So we can generalize to:
-    //
-    // https://releases.hashicorp.com/terraform/%s/terraform_%s_linux_amd64.zip
-    //
-    // We will also allow the user to specify the full URL if they want to download the tool zip from
-    // and internal repository manager or other internally managed host.
-    //
-    private String resolveToolUrl(Map<String, Object> cfg) {
-        String toolUrl = MapUtils.getString(cfg, Constants.TOOL_URL_KEY);
-        if (toolUrl != null && !toolUrl.isEmpty()) {
-            //
-            // The user has explicitly specified a URL from where to download the tool.
-            //
-            return toolUrl;
-        }
 
-        String tfOs;
-        String os = System.getProperty("os.name").toLowerCase();
-        if (os.contains("mac")) {
-            tfOs = "darwin";
-        } else if (os.contains("nux")) {
-            tfOs = "linux";
-        } else if (os.contains("win")) {
-            tfOs = "windows";
-        } else if (os.contains("sunos")) {
-            tfOs = "solaris";
-        } else {
-            throw new IllegalArgumentException("Your operating system is not supported: " + os);
-        }
-
-        //
-        // Check to see if the user has specified a version of the tool to use, if not use the default version.
-        //
-        String toolVersion = MapUtils.getString(cfg, Constants.TOOL_VERSION_KEY, DEFAULT_TERRAFORM_VERSION);
-
-        return String.format(DEFAULT_TOOL_URL_TEMPLATE, toolVersion, toolVersion, tfOs);
-    }
 }
