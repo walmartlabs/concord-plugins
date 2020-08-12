@@ -23,7 +23,7 @@ package com.walmartlabs.concord.plugins.terraform;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.walmartlabs.concord.common.IOUtils;
-import com.walmartlabs.concord.plugins.terraform.backend.BackendManager;
+import com.walmartlabs.concord.plugins.terraform.backend.BackendFactoryV1;
 import com.walmartlabs.concord.sdk.*;
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
@@ -89,7 +89,7 @@ public class TerraformTaskTest {
     private LockService lockService;
     private ObjectStorage objectStorage;
     private SecretService secretService;
-    private BackendManager backendManager;
+    private BackendFactoryV1 backendManager;
     private DependencyManager dependencyManager;
 
     @Before
@@ -117,7 +117,6 @@ public class TerraformTaskTest {
         lockService = mock(LockService.class);
         objectStorage = createObjectStorage(wireMockRule);
         secretService = createSecretService(workDir);
-        backendManager = new BackendManager(lockService, objectStorage);
         dependencyManager = new OKHttpDownloadManager("terraform");
     }
 
@@ -128,20 +127,22 @@ public class TerraformTaskTest {
     @Test
     @SuppressWarnings("unchecked")
     public void test() throws Exception {
-
-        TerraformTask t = new TerraformTask(secretService, backendManager, dependencyManager);
-
-        Map<String, Object> args = baseArguments(workDir, dstDir, TerraformTask.Action.PLAN.name());
-        args.put(Constants.VARS_FILES, varFiles());
-        args.put(Constants.EXTRA_VARS_KEY, extraVars());
-        args.put(Constants.GIT_SSH_KEY, gitSsh());
+        Map<String, Object> args = baseArguments(workDir, dstDir, Action.PLAN.name());
+        args.put(TaskConstants.VARS_FILES, varFiles());
+        args.put(TaskConstants.EXTRA_VARS_KEY, extraVars());
+        args.put(TaskConstants.GIT_SSH_KEY, gitSsh());
 
         Context ctx = new MockContext(args);
+        backendManager = new BackendFactoryV1(ctx, lockService, objectStorage);
+
+        TerraformTask t = new TerraformTask(secretService, lockService, objectStorage, dependencyManager);
+
+
         t.execute(ctx);
 
         // ---
 
-        Map<String, Object> result = (Map<String, Object>) ctx.getVariable(Constants.RESULT_KEY);
+        Map<String, Object> result = (Map<String, Object>) ctx.getVariable(TaskConstants.RESULT_KEY);
         assertTrue((boolean) result.get("ok"));
         assertNotNull(result.get("planPath"));
 
@@ -154,13 +155,13 @@ public class TerraformTaskTest {
 
         System.out.println("===================================================================================");
 
-        args = baseArguments(workDir, dstDir, TerraformTask.Action.APPLY.name());
-        args.put(Constants.DESTROY_KEY, true);
-        args.put(Constants.PLAN_KEY, result.get("planPath"));
+        args = baseArguments(workDir, dstDir, Action.APPLY.name());
+        args.put(TaskConstants.DESTROY_KEY, true);
+        args.put(TaskConstants.PLAN_KEY, result.get("planPath"));
 
         ctx = new MockContext(args);
         t.execute(ctx);
-        result = (Map<String, Object>) ctx.getVariable(Constants.RESULT_KEY);
+        result = (Map<String, Object>) ctx.getVariable(TaskConstants.RESULT_KEY);
         System.out.println(result);
 
         //
@@ -186,7 +187,7 @@ public class TerraformTaskTest {
         String terraformStateWithOutputs = responseTemplate("terraform.tfstate");
         wireMockRule.stubFor(get("/test").willReturn(aResponse().withBody(terraformStateWithOutputs).withStatus(200)));
 
-        args = baseArguments(workDir, dstDir, TerraformTask.Action.OUTPUT.name());
+        args = baseArguments(workDir, dstDir, Action.OUTPUT.name());
         ctx = new MockContext(args);
         t.execute(ctx);
     }
@@ -258,10 +259,10 @@ public class TerraformTaskTest {
         Map<String, Object> args = new HashMap<>();
         args.put(com.walmartlabs.concord.sdk.Constants.Request.PROCESS_INFO_KEY, Collections.singletonMap("sessionKey", "xyz"));
         args.put(com.walmartlabs.concord.sdk.Constants.Context.WORK_DIR_KEY, workDir.toAbsolutePath().toString());
-        args.put(Constants.ACTION_KEY, actionKey);
-        args.put(Constants.DEBUG_KEY, true);
-        args.put(Constants.STATE_ID_KEY, "testState");
-        args.put(Constants.DIR_KEY, dstDir.toAbsolutePath().toString());
+        args.put(TaskConstants.ACTION_KEY, actionKey);
+        args.put(TaskConstants.DEBUG_KEY, true);
+        args.put(TaskConstants.STATE_ID_KEY, "testState");
+        args.put(TaskConstants.DIR_KEY, dstDir.toAbsolutePath().toString());
         return args;
     }
 

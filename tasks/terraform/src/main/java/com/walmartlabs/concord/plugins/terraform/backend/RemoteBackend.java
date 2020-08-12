@@ -9,9 +9,9 @@ package com.walmartlabs.concord.plugins.terraform.backend;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,24 +21,24 @@ package com.walmartlabs.concord.plugins.terraform.backend;
  */
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.walmartlabs.concord.plugins.terraform.Constants;
-import com.walmartlabs.concord.sdk.Context;
-import com.walmartlabs.concord.sdk.ContextUtils;
+import com.walmartlabs.concord.plugins.terraform.TaskConstants;
 import com.walmartlabs.concord.sdk.MapUtils;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Map;
 
-import static com.walmartlabs.concord.plugins.terraform.Constants.*;
+import static com.walmartlabs.concord.plugins.terraform.TaskConstants.*;
 
 public class RemoteBackend extends CommonBackend {
 
-    public RemoteBackend(String id, boolean debug, Map<String, Object> backendParameters, ObjectMapper objectMapper) {
+    private final Path workDir;
+
+    public RemoteBackend(String id, boolean debug, Map<String, Object> backendParameters, ObjectMapper objectMapper, Path workDir) {
         super(id, debug, backendParameters, objectMapper);
+        this.workDir = workDir;
     }
 
     @Override
@@ -53,17 +53,16 @@ public class RemoteBackend extends CommonBackend {
     }
 
     @Override
-    public Map<String, String> prepareEnv(Context ctx, Map<String, Object> cfg) {
-        Map<String, Object> backend = MapUtils.getMap(cfg, Constants.BACKEND_KEY, null);
+    public Map<String, String> prepareEnv(Map<String, Object> cfg) {
+        Map<String, Object> backend = MapUtils.getMap(cfg, TaskConstants.BACKEND_KEY, null);
         if (backend == null) {
             return Collections.emptyMap();
         }
 
-        Path baseDir = Paths.get(ContextUtils.assertString(ctx, com.walmartlabs.concord.sdk.Constants.Context.WORK_DIR_KEY));
-        String tfCliCfgFile = getRemoteBackendTfCfgFile(backend, baseDir);
+        String tfCliCfgFile = getRemoteBackendTfCfgFile(backend, this.workDir);
         if (tfCliCfgFile != null) {
             // TF_CLI_CONFIG_FILE is the only way to pass the remote's credentials
-            return Collections.singletonMap(Constants.TF_CLI_CONFIG_FILE_KEY, tfCliCfgFile);
+            return Collections.singletonMap(TaskConstants.TF_CLI_CONFIG_FILE_KEY, tfCliCfgFile);
         }
 
         return Collections.emptyMap();

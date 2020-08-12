@@ -20,8 +20,6 @@ package com.walmartlabs.concord.plugins.terraform.backend;
  * =====
  */
 
-import com.walmartlabs.concord.sdk.Context;
-
 import java.nio.file.Path;
 
 public class DummyBackend implements Backend {
@@ -31,17 +29,17 @@ public class DummyBackend implements Backend {
     }
 
     @Override
-    public void lock(Context ctx) {
+    public void lock() {
         // do nothing
     }
 
     @Override
-    public void unlock(Context ctx) {
+    public void unlock() {
         // do nothing
     }
 
     @Override
-    public void init(Context ctx, Path tfDir) {
+    public void init(Path tfDir) {
         // do nothing
     }
 }
