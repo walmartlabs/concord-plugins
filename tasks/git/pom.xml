@@ -27,6 +27,7 @@
         <dependency>
             <groupId>com.walmartlabs.concord</groupId>
             <artifactId>concord-repository</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.walmartlabs.concord</groupId>
@@ -48,6 +49,7 @@
             <artifactId>jackson-databind</artifactId>
             <scope>provided</scope>
         </dependency>
+
         <dependency>
             <groupId>com.jcraft</groupId>
             <artifactId>jsch</artifactId>
@@ -64,6 +66,22 @@
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

@@ -27,17 +27,13 @@ import com.walmartlabs.concord.plugins.puppet.model.dbquery.DbQueryPayload;
 import com.walmartlabs.concord.plugins.puppet.model.exception.InvalidValueException;
 import com.walmartlabs.concord.plugins.puppet.model.exception.MissingParameterException;
 import com.walmartlabs.concord.plugins.puppet.model.token.TokenPayload;
-import com.walmartlabs.concord.runtime.v2.sdk.Context;
-import com.walmartlabs.concord.runtime.v2.sdk.SecretService;
-import com.walmartlabs.concord.runtime.v2.sdk.Task;
-import com.walmartlabs.concord.runtime.v2.sdk.Variables;
+import com.walmartlabs.concord.runtime.v2.sdk.*;
 import com.walmartlabs.concord.sdk.MapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Named;
-import java.io.Serializable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,7 +56,7 @@ public class PuppetTaskV2 implements Task {
     }
 
     @Override
-    public Serializable execute(Variables input) throws Exception {
+    public TaskResult execute(Variables input) throws Exception {
         Map<String, Object> vars = input.toMap();
         boolean ignoreErrors = MapUtils.getBoolean(
                 vars,
@@ -81,7 +77,7 @@ public class PuppetTaskV2 implements Task {
             }
         }
 
-        return result;
+        return new TaskResult(result.isOk(), result.getError()).value("data", result.getData());
     }
 
     private PuppetResult getResult(

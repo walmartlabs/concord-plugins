@@ -22,17 +22,13 @@ package com.walmartlabs.concord.plugins.git.v2;
 
 import com.walmartlabs.concord.plugins.git.GitSecretService;
 import com.walmartlabs.concord.plugins.git.GitTask;
-import com.walmartlabs.concord.runtime.v2.sdk.SecretService;
-import com.walmartlabs.concord.runtime.v2.sdk.Task;
-import com.walmartlabs.concord.runtime.v2.sdk.Variables;
-import com.walmartlabs.concord.runtime.v2.sdk.WorkingDirectory;
+import com.walmartlabs.concord.runtime.v2.sdk.*;
+import com.walmartlabs.concord.sdk.MapUtils;
 
 import javax.inject.Inject;
 import javax.inject.Named;
-import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.Map;
 
 @Named("git")
@@ -46,9 +42,17 @@ public class GitTaskV2 implements Task {
     }
 
     @Override
-    public Serializable execute(Variables input) throws Exception {
+    public TaskResult execute(Variables input) throws Exception {
         Map<String, Object> result = delegate.execute(input.toMap());
-        return new HashMap<>(result);
+
+        // we can't change the delegate's return type w/o breaking compatibility with Concord < 1.62.0
+        // and we can't break that right now as we don't have a way to properly communicate this breakage
+        // (i.e. there's no support for multiple versions of docs per plugin)
+        // so, we have to parse the map back...
+
+        return new TaskResult(MapUtils.getBoolean(result, "ok", true),
+                MapUtils.getString(result, "error"))
+                .values(result);
     }
 
     static class SecretServiceV2 implements GitSecretService {
