@@ -85,6 +85,15 @@
         </dependency>
     </dependencies>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.eclipse.sisu</groupId>
+                <artifactId>sisu-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
     <repositories>
         <repository>
             <id>eclipse</id>
