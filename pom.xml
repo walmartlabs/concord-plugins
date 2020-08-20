@@ -90,37 +90,6 @@
                         <autoVersionSubmodules>true</autoVersionSubmodules>
                     </configuration>
                 </plugin>
-                <plugin>
-                    <groupId>org.codehaus.mojo</groupId>
-                    <artifactId>license-maven-plugin</artifactId>
-                    <version>1.14</version>
-                    <executions>
-                        <execution>
-                            <id>first</id>
-                            <goals>
-                                <goal>update-file-header</goal>
-                            </goals>
-                            <phase>process-sources</phase>
-                        </execution>
-                    </executions>
-                    <configuration>
-                        <verbose>false</verbose>
-                        <licenseName>apache_v2</licenseName>
-                        <organizationName>Walmart Inc.</organizationName>
-                        <projectName>Concord</projectName>
-                        <inceptionYear>2017</inceptionYear>
-                        <processStartTag>*****</processStartTag>
-                        <sectionDelimiter>-----</sectionDelimiter>
-                        <processEndTag>=====</processEndTag>
-                        <roots>
-                            <root>src/main/java</root>
-                            <root>src/test/java</root>
-                        </roots>
-                        <extraExtensions>
-                            <tsx>java</tsx>
-                        </extraExtensions>
-                    </configuration>
-                </plugin>
             </plugins>
         </pluginManagement>
 
@@ -134,6 +103,37 @@
                     <source>${maven.compiler.source}</source>
                     <target>${maven.compiler.target}</target>
                     <proc>proc</proc>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <version>1.14</version>
+                <executions>
+                    <execution>
+                        <id>first</id>
+                        <goals>
+                            <goal>update-file-header</goal>
+                        </goals>
+                        <phase>process-sources</phase>
+                    </execution>
+                </executions>
+                <configuration>
+                    <verbose>false</verbose>
+                    <licenseName>apache_v2</licenseName>
+                    <organizationName>Walmart Inc., Concord Authors</organizationName>
+                    <projectName>Concord</projectName>
+                    <inceptionYear>2017</inceptionYear>
+                    <processStartTag>*****</processStartTag>
+                    <sectionDelimiter>-----</sectionDelimiter>
+                    <processEndTag>=====</processEndTag>
+                    <roots>
+                        <root>src/main/java</root>
+                        <root>src/test/java</root>
+                    </roots>
+                    <extraExtensions>
+                        <tsx>java</tsx>
+                    </extraExtensions>
                 </configuration>
             </plugin>
         </plugins>
