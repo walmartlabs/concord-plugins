@@ -23,7 +23,7 @@ package com.walmartlabs.concord.plugins.terraform.backend;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
-import com.walmartlabs.concord.plugins.terraform.Constants;
+import com.walmartlabs.concord.plugins.terraform.TaskConstants;
 import com.walmartlabs.concord.plugins.terraform.TerraformTaskTest;
 import com.walmartlabs.concord.sdk.Context;
 import com.walmartlabs.concord.sdk.LockService;
@@ -50,7 +50,7 @@ import static org.mockito.Mockito.mock;
 
 public class BackendManagerTest {
 
-    private BackendManager backendManager;
+    private BackendFactoryV1 backendManager;
     private Path dstDir;
 
     @Rule
@@ -61,16 +61,17 @@ public class BackendManagerTest {
 
     @Before
     public void setUp() throws Exception {
-        LockService lockService = mock(LockService.class);
-        ObjectStorage objectStorage = TerraformTaskTest.createObjectStorage(wireMockRule);
-        backendManager = new BackendManager(lockService, objectStorage);
-
         Path tmpDir = Paths.get("/tmp/concord");
         if (!Files.exists(tmpDir)) {
             Files.createDirectories(tmpDir);
         }
-
         dstDir = Files.createTempDirectory(tmpDir, "test");
+
+        Context ctx = new MockContext(Collections.singletonMap("workDir", dstDir.toAbsolutePath().toString()));
+
+        LockService lockService = mock(LockService.class);
+        ObjectStorage objectStorage = TerraformTaskTest.createObjectStorage(wireMockRule);
+        backendManager = new BackendFactoryV1(ctx, lockService, objectStorage);
     }
 
     @Test
@@ -91,7 +92,7 @@ public class BackendManagerTest {
     @SuppressWarnings({"rawtypes"})
     public void validateS3BackendConfigurationSerialization() throws Exception {
         Backend backend = backendManager.getBackend(s3BackendConfiguration());
-        backend.init(context(), dstDir);
+        backend.init(dstDir);
 
         File overrides = dstDir.resolve("concord_override.tf.json").toFile();
         try (Reader reader = new FileReader(overrides)) {
@@ -107,12 +108,11 @@ public class BackendManagerTest {
 
     @Test
     public void validateRemoteBackendTfCliConfigFile() throws Exception {
-        Context ctx = new MockContext(Collections.singletonMap("workDir", dstDir.toAbsolutePath().toString()));
         Map<String, Object> cfg = remoteBackendConfiguration();
 
         Backend backend = backendManager.getBackend(cfg);
-        backend.init(ctx, dstDir);
-        Map<String, String> env = backend.prepareEnv(ctx, cfg);
+        backend.init(dstDir);
+        Map<String, String> env = backend.prepareEnv(cfg);
         assertTrue(env.containsKey("TF_CLI_CONFIG_FILE"));
     }
 
@@ -163,7 +163,7 @@ public class BackendManagerTest {
         Map<String, Object> cfg = new HashMap<>();
         Map<String, Object> backend = new HashMap<>();
         backend.put(backendId, backendParameters);
-        cfg.put(Constants.BACKEND_KEY, backend);
+        cfg.put(TaskConstants.BACKEND_KEY, backend);
         return cfg;
     }
 
@@ -172,7 +172,7 @@ public class BackendManagerTest {
         Map<String, Object> backend = new HashMap<>();
         backend.put("one", new HashMap<>());
         backend.put("two", new HashMap<>());
-        cfg.put(Constants.BACKEND_KEY, backend);
+        cfg.put(TaskConstants.BACKEND_KEY, backend);
         return cfg;
     }
 

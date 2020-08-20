@@ -21,11 +21,10 @@ package com.walmartlabs.concord.plugins.terraform.actions;
  */
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.walmartlabs.concord.plugins.terraform.Constants;
+import com.walmartlabs.concord.plugins.terraform.TaskConstants;
 import com.walmartlabs.concord.plugins.terraform.Terraform;
 import com.walmartlabs.concord.plugins.terraform.backend.Backend;
 import com.walmartlabs.concord.plugins.terraform.commands.OutputCommand;
-import com.walmartlabs.concord.sdk.Context;
 import com.walmartlabs.concord.sdk.MapUtils;
 
 import java.nio.file.Path;
@@ -35,7 +34,6 @@ import static com.walmartlabs.concord.plugins.terraform.Utils.getPath;
 
 public class OutputAction extends Action {
 
-    private final Context ctx;
     private final boolean debug;
     private final boolean verbose;
     private final Path workDir;
@@ -47,39 +45,38 @@ public class OutputAction extends Action {
 
     private final ObjectMapper objectMapper;
 
-    public OutputAction(Context ctx, Map<String, Object> cfg, Map<String, String> env, boolean skipInit) {
-        this.ctx = ctx;
+    public OutputAction(Map<String, Object> cfg, Map<String, String> env, boolean skipInit) {
         this.env = env;
 
-        this.debug = MapUtils.get(cfg, Constants.DEBUG_KEY, false, Boolean.class);
-        this.verbose = MapUtils.get(cfg, Constants.VERBOSE_KEY, false, Boolean.class);
+        this.debug = MapUtils.get(cfg, TaskConstants.DEBUG_KEY, false, Boolean.class);
+        this.verbose = MapUtils.get(cfg, TaskConstants.VERBOSE_KEY, false, Boolean.class);
 
         this.workDir = getPath(cfg, com.walmartlabs.concord.sdk.Constants.Context.WORK_DIR_KEY, null);
         if (!workDir.isAbsolute()) {
             throw new IllegalArgumentException("'workDir' must be an absolute path, got: " + workDir);
         }
 
-        this.dir = getPath(cfg, Constants.DIR_KEY, workDir);
-        this.module = MapUtils.getString(cfg, Constants.MODULE_KEY);
-        this.ignoreErrors = MapUtils.get(cfg, Constants.IGNORE_ERRORS_KEY, false, Boolean.class);
+        this.dir = getPath(cfg, TaskConstants.DIR_KEY, workDir);
+        this.module = MapUtils.getString(cfg, TaskConstants.MODULE_KEY);
+        this.ignoreErrors = MapUtils.get(cfg, TaskConstants.IGNORE_ERRORS_KEY, false, Boolean.class);
         this.skipInit = skipInit;
 
         this.objectMapper = new ObjectMapper();
     }
 
     @SuppressWarnings("unchecked")
-    public CommonResult exec(Terraform terraform, Backend backend) throws Exception {
+    public TerraformActionResult exec(Terraform terraform, Backend backend) throws Exception {
         try {
             if (!skipInit) {
                 // normally we'd run `terraform init` in the specified `dir`
                 // the backend configuration must be placed there as well
-                init(ctx, workDir, dir, !verbose, env, terraform, backend);
+                init(workDir, dir, !verbose, env, terraform, backend);
             } else {
                 // however, if we're running `terraform output` as a part of the apply action
                 // we skip the `terraform init` run and we need to run `terraform output`
                 // in the root directory
                 // the backend configuration must be in the root directory too
-                backend.init(ctx, workDir);
+                backend.init(workDir);
             }
 
             Terraform.Result r = new OutputCommand(debug, workDir, module, env).exec(terraform);
@@ -88,13 +85,13 @@ public class OutputAction extends Action {
             }
 
             Map<String, Object> data = objectMapper.readValue(r.getStdout(), Map.class);
-            return CommonResult.ok(data);
+            return TerraformActionResult.ok(data);
         } catch (Exception e) {
             if (!ignoreErrors) {
                 throw e;
             }
 
-            return CommonResult.error(e.getMessage());
+            return TerraformActionResult.error(e.getMessage());
         }
     }
 }

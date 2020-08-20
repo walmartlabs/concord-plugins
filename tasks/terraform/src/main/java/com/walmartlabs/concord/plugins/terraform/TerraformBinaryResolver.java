@@ -1,7 +1,26 @@
 package com.walmartlabs.concord.plugins.terraform;
 
+/*-
+ * *****
+ * Concord
+ * -----
+ * Copyright (C) 2017 - 2020 Walmart Inc., Concord Authors
+ * -----
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * =====
+ */
+
 import com.walmartlabs.concord.common.IOUtils;
-import com.walmartlabs.concord.sdk.DependencyManager;
 import com.walmartlabs.concord.sdk.MapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,7 +29,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -23,16 +41,16 @@ public class TerraformBinaryResolver {
     private static final String DEFAULT_TERRAFORM_VERSION = "0.12.5";
     private static final String DEFAULT_TOOL_URL_TEMPLATE = "https://releases.hashicorp.com/terraform/%s/terraform_%s_%s_amd64.zip";
 
-    private final DependencyManager dependencyManager;
     private final Map<String, Object> cfg;
     private final Path workDir;
     private final boolean debug;
+    private final BinaryDownloader binaryDownloader;
 
-    public TerraformBinaryResolver(DependencyManager dependencyManager, Map<String, Object> cfg, Path workDir, boolean debug) {
-        this.dependencyManager = dependencyManager;
+    public TerraformBinaryResolver(Map<String, Object> cfg, Path workDir, boolean debug, BinaryDownloader binaryDownloader) {
         this.cfg = cfg;
         this.workDir = workDir;
         this.debug = debug;
+        this.binaryDownloader = binaryDownloader;
     }
 
     /**
@@ -81,7 +99,7 @@ public class TerraformBinaryResolver {
             downloadAndUnpack(toolUrl, dstDir);
         }
 
-        boolean ignoreLocalBinary = MapUtils.getBoolean(cfg, Constants.IGNORE_LOCAL_BINARY_KEY, false);
+        boolean ignoreLocalBinary = MapUtils.getBoolean(cfg, TaskConstants.IGNORE_LOCAL_BINARY_KEY, false);
         if (!ignoreLocalBinary) {
             // try $PATH next
             Path p = findBinaryInPath();
@@ -105,7 +123,7 @@ public class TerraformBinaryResolver {
     }
 
     private void downloadAndUnpack(String toolUrl, Path dst) throws IOException {
-        Path p = dependencyManager.resolve(URI.create(toolUrl));
+        Path p = binaryDownloader.download(toolUrl);
         try (InputStream in = Files.newInputStream(p)) {
             IOUtils.unzip(in, dst);
         }
@@ -140,7 +158,7 @@ public class TerraformBinaryResolver {
     }
 
     private static String userToolUrl(Map<String, Object> cfg) {
-        String toolUrl = MapUtils.getString(cfg, Constants.TOOL_URL_KEY);
+        String toolUrl = MapUtils.getString(cfg, TaskConstants.TOOL_URL_KEY);
         if (toolUrl != null && !toolUrl.isEmpty()) {
             // the user has explicitly specified a URL from where to download the tool.
             return toolUrl;
@@ -164,7 +182,12 @@ public class TerraformBinaryResolver {
         }
 
         // check to see if the user has specified a version of the tool to use, if not use the default version.
-        String toolVersion = MapUtils.getString(cfg, Constants.TOOL_VERSION_KEY, DEFAULT_TERRAFORM_VERSION);
+        String toolVersion = MapUtils.getString(cfg, TaskConstants.TOOL_VERSION_KEY, DEFAULT_TERRAFORM_VERSION);
         return String.format(DEFAULT_TOOL_URL_TEMPLATE, toolVersion, toolVersion, tfOs);
+    }
+
+    public interface BinaryDownloader {
+
+        Path download(String url) throws IOException;
     }
 }

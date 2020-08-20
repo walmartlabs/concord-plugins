@@ -25,7 +25,6 @@ import com.walmartlabs.concord.plugins.terraform.Terraform;
 import com.walmartlabs.concord.plugins.terraform.Utils;
 import com.walmartlabs.concord.plugins.terraform.backend.Backend;
 import com.walmartlabs.concord.plugins.terraform.commands.InitCommand;
-import com.walmartlabs.concord.sdk.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,11 +55,11 @@ public abstract class Action {
         }
     }
 
-    protected static void init(Context ctx, Path workDir, Path dir, boolean silent, Map<String, String> env, Terraform terraform, Backend backend) throws Exception {
+    protected static void init(Path workDir, Path dir, boolean silent, Map<String, String> env, Terraform terraform, Backend backend) throws Exception {
         log.info("init -> initializing the backend and running `terraform init`...");
 
         Path tfDir = Utils.getAbsolute(workDir, dir);
-        backend.init(ctx, tfDir);
+        backend.init(tfDir);
 
         Terraform.Result r = new InitCommand(workDir, tfDir, env, silent).exec(terraform);
         if (r.getCode() != 0) {

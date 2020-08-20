@@ -21,7 +21,6 @@ package com.walmartlabs.concord.plugins.terraform.backend;
  */
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.walmartlabs.concord.sdk.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,17 +55,17 @@ public class CommonBackend implements Backend {
     }
 
     @Override
-    public void lock(Context ctx) throws Exception {
+    public void lock() throws Exception {
         // do nothing
     }
 
     @Override
-    public void unlock(Context ctx) throws Exception {
+    public void unlock() throws Exception {
         // do nothing
     }
 
     @Override
-    public void init(Context ctx, Path tfDir) throws Exception {
+    public void init(Path tfDir) throws Exception {
         //
         // Write out a JSON file to instruct Terraform to override the backend
         //

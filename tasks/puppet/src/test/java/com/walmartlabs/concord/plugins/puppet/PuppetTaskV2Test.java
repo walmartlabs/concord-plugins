@@ -20,11 +20,11 @@ package com.walmartlabs.concord.plugins.puppet;
  * =====
  */
 
-import com.walmartlabs.concord.plugins.puppet.model.PuppetResult;
 import com.walmartlabs.concord.plugins.puppet.model.exception.MissingParameterException;
-import com.walmartlabs.concord.runtime.v2.sdk.SecretService;
-import com.walmartlabs.concord.runtime.v2.sdk.Variables;
 import com.walmartlabs.concord.runtime.v2.sdk.Context;
+import com.walmartlabs.concord.runtime.v2.sdk.SecretService;
+import com.walmartlabs.concord.runtime.v2.sdk.TaskResult;
+import com.walmartlabs.concord.runtime.v2.sdk.Variables;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -75,17 +75,17 @@ public class PuppetTaskV2Test extends AbstractApiTest {
         // -- Task in-vars
 
         variables.put("action", "pql");
-        variables.put("queryString",  "inventory[certname]{ limit 10 }");
+        variables.put("queryString", "inventory[certname]{ limit 10 }");
 
         // -- Execute
 
-        PuppetResult result = (PuppetResult) task.execute(input);
+        TaskResult result = task.execute(input);
 
         // -- Validate
 
         assertNotNull(result);
-        assertTrue(result.isOk());
-        List data = (List) result.getData();
+        assertTrue(result.ok());
+        List data = (List) result.values().get("data");
         assertEquals(10, data.size());
     }
 
@@ -95,7 +95,7 @@ public class PuppetTaskV2Test extends AbstractApiTest {
         // -- Task in-vars
 
         variables.put("action", "pql");
-        variables.put("queryString",  "inventory[certname]{ limit 10 }");
+        variables.put("queryString", "inventory[certname]{ limit 10 }");
         // Empty URL
         variables.put("databaseUrl", "");
 
@@ -104,8 +104,8 @@ public class PuppetTaskV2Test extends AbstractApiTest {
         try {
             task.execute(input);
             fail("Bad url should cause an exception");
-        } catch(MissingParameterException expected) {
-            assert(expected.getMessage().contains("Cannot find value for databaseUrl"));
+        } catch (MissingParameterException expected) {
+            assert (expected.getMessage().contains("Cannot find value for databaseUrl"));
         } catch (Exception e) {
             fail("Unexpected exception with bad URL: " + e.getMessage());
         }
@@ -117,8 +117,8 @@ public class PuppetTaskV2Test extends AbstractApiTest {
         try {
             task.execute(input);
             fail("Bad url should cause an exception");
-        } catch(IllegalArgumentException expected) {
-            assert(expected.getMessage().contains("Invalid URL"));
+        } catch (IllegalArgumentException expected) {
+            assert (expected.getMessage().contains("Invalid URL"));
         } catch (Exception e) {
             fail("Unexpected exception with bad URL: " + e.getMessage());
         }
@@ -135,14 +135,14 @@ public class PuppetTaskV2Test extends AbstractApiTest {
         // -- Execute
 
         // Normally, this should throw an exception
-        PuppetResult result = (PuppetResult) task.execute(input);
+        TaskResult result = task.execute(input);
 
         // -- Validate
 
         // Make sure it failed gracefully and has an error message
         assertNotNull(result);
-        assertFalse(result.isOk());
-        String error = result.getError();
+        assertFalse(result.ok());
+        String error = result.error();
         assertTrue(error.contains("Not a supported action"));
     }
 
@@ -183,7 +183,6 @@ public class PuppetTaskV2Test extends AbstractApiTest {
         }
 
 
-
     }
 
     @Test
@@ -192,7 +191,7 @@ public class PuppetTaskV2Test extends AbstractApiTest {
         // -- Task in-vars
 
         variables.put("action", "pql");
-        variables.put("queryString",  "inventory[certname]{ limit 10 }");
+        variables.put("queryString", "inventory[certname]{ limit 10 }");
         variables.put("databaseUrl", httpsRule.baseUrl());
 
         // -- Execute - this should fail
@@ -217,11 +216,11 @@ public class PuppetTaskV2Test extends AbstractApiTest {
 
         // -- Execute - now it should work
 
-        PuppetResult result = (PuppetResult) task.execute(input);
+        TaskResult result = task.execute(input);
 
         assertNotNull(result);
-        assertTrue(result.isOk());
-        List data = (List) result.getData();
+        assertTrue(result.ok());
+        List data = (List) result.values().get("data");
         assertEquals(10, data.size());
     }
 
@@ -231,7 +230,7 @@ public class PuppetTaskV2Test extends AbstractApiTest {
         // -- Task in-vars
 
         variables.put("action", "pql");
-        variables.put("queryString",  "inventory[certname]{ limit 10 }");
+        variables.put("queryString", "inventory[certname]{ limit 10 }");
         variables.put("databaseUrl", httpsRule.baseUrl());
 
         // -- Execute - this should fail
@@ -256,11 +255,11 @@ public class PuppetTaskV2Test extends AbstractApiTest {
 
         // -- Execute - now it should work
 
-        PuppetResult result = (PuppetResult) task.execute(input);
+        TaskResult result = task.execute(input);
 
         assertNotNull(result);
-        assertTrue(result.isOk());
-        List data = (List) result.getData();
+        assertTrue(result.ok());
+        List data = (List) result.values().get("data");
         assertEquals(10, data.size());
     }
 
@@ -270,7 +269,7 @@ public class PuppetTaskV2Test extends AbstractApiTest {
         // -- Task in-vars
 
         variables.put("action", "pql");
-        variables.put("queryString",  "inventory[certname]{ limit 10 }");
+        variables.put("queryString", "inventory[certname]{ limit 10 }");
         variables.put("databaseUrl", httpsRule.baseUrl());
 
         // -- Execute - this should fail
@@ -300,11 +299,11 @@ public class PuppetTaskV2Test extends AbstractApiTest {
 
         // -- Execute - now it should work
 
-        PuppetResult result = (PuppetResult) task.execute(input);
+        TaskResult result = task.execute(input);
 
         assertNotNull(result);
-        assertTrue(result.isOk());
-        List data = (List) result.getData();
+        assertTrue(result.ok());
+        List data = (List) result.values().get("data");
         assertEquals(10, data.size());
     }
 
@@ -314,7 +313,7 @@ public class PuppetTaskV2Test extends AbstractApiTest {
         // -- Task in-vars
 
         variables.put("action", "pql");
-        variables.put("queryString",  "inventory[certname]{ limit 10 }");
+        variables.put("queryString", "inventory[certname]{ limit 10 }");
         variables.put("databaseUrl", httpsRule.baseUrl());
 
         // -- Execute - this should fail
@@ -337,11 +336,11 @@ public class PuppetTaskV2Test extends AbstractApiTest {
 
         // -- Execute - now it should work
 
-        PuppetResult result = (PuppetResult) task.execute(input);
+        TaskResult result = task.execute(input);
 
         assertNotNull(result);
-        assertTrue(result.isOk());
-        List data = (List) result.getData();
+        assertTrue(result.ok());
+        List data = (List) result.values().get("data");
         assertEquals(10, data.size());
     }
 
@@ -354,10 +353,10 @@ public class PuppetTaskV2Test extends AbstractApiTest {
 
         // -- Execute - now it should work
 
-        PuppetResult result = (PuppetResult) task.execute(input);
+        TaskResult result = task.execute(input);
 
-        assertTrue(result.isOk());
-        String token = (String) result.getData();
+        assertTrue(result.ok());
+        String token = (String) result.values().get("data");
         assertNotNull(token);
     }
 

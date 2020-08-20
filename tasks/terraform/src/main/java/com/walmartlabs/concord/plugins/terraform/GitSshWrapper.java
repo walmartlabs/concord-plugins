@@ -20,8 +20,6 @@ package com.walmartlabs.concord.plugins.terraform;
  * =====
  */
 
-import com.walmartlabs.concord.sdk.Context;
-import com.walmartlabs.concord.sdk.SecretService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,22 +50,20 @@ public class GitSshWrapper {
     private static final String SCRIPT_PERMISSIONS = "r-xr-xr--";
 
     @SuppressWarnings("unchecked")
-    public static GitSshWrapper createFrom(SecretService secretService,
-                                           Context ctx,
-                                           String instanceId,
+    public static GitSshWrapper createFrom(SecretProvider secretProvider,
                                            Path workDir,
                                            Map<String, Object> cfg,
                                            boolean debug) throws Exception {
 
-        Object v = cfg.getOrDefault(Constants.GIT_SSH_KEY, Collections.emptyMap());
+        Object v = cfg.getOrDefault(TaskConstants.GIT_SSH_KEY, Collections.emptyMap());
         if (!(v instanceof Map)) {
-            throw new IllegalArgumentException("'" + Constants.GIT_SSH_KEY + "' must be a object, got: " + v);
+            throw new IllegalArgumentException("'" + TaskConstants.GIT_SSH_KEY + "' must be a object, got: " + v);
         }
 
         Map<String, Object> m = (Map<String, Object>) v;
 
         List<Path> externalKeys = getExternalPrivateKeys(workDir, m, debug);
-        List<Path> exportedKeys = exportSecrets(secretService, ctx, instanceId, workDir, m, debug);
+        List<Path> exportedKeys = exportSecrets(secretProvider, m, debug);
 
         return new GitSshWrapper(externalKeys, exportedKeys, debug);
     }
@@ -76,7 +72,7 @@ public class GitSshWrapper {
     private static List<Path> getExternalPrivateKeys(Path workDir, Map<String, Object> m, boolean debug) {
         Object v = m.getOrDefault(PRIVATE_KEYS_KEY, Collections.emptyList());
         if (!(v instanceof List)) {
-            throw new IllegalArgumentException("'" + Constants.GIT_SSH_KEY + "." + PRIVATE_KEYS_KEY + "' must be a list of paths, got: " + v);
+            throw new IllegalArgumentException("'" + TaskConstants.GIT_SSH_KEY + "." + PRIVATE_KEYS_KEY + "' must be a list of paths, got: " + v);
         }
 
         List<Path> result = new ArrayList<>();
@@ -88,7 +84,7 @@ public class GitSshWrapper {
             } else if (o instanceof String) {
                 p = workDir.resolve((String) o);
             } else {
-                throw new IllegalArgumentException("'" + Constants.GIT_SSH_KEY + "." + PRIVATE_KEYS_KEY + "' elements must be private key paths, got: " + o);
+                throw new IllegalArgumentException("'" + TaskConstants.GIT_SSH_KEY + "." + PRIVATE_KEYS_KEY + "' elements must be private key paths, got: " + o);
             }
 
             if (!p.isAbsolute()) {
@@ -109,34 +105,28 @@ public class GitSshWrapper {
     }
 
     @SuppressWarnings("unchecked")
-    private static List<Path> exportSecrets(SecretService secretService,
-                                            Context ctx,
-                                            String instanceId,
-                                            Path workDir,
+    private static List<Path> exportSecrets(SecretProvider secretProvider,
                                             Map<String, Object> m,
                                             boolean debug) throws Exception {
 
         Object v = m.getOrDefault(SECRETS_KEY, Collections.emptyList());
         if (!(v instanceof List)) {
-            throw new IllegalArgumentException("'" + Constants.GIT_SSH_KEY + "." + SECRETS_KEY + "' must be a list of secrets to export, got: " + v);
+            throw new IllegalArgumentException("'" + TaskConstants.GIT_SSH_KEY + "." + SECRETS_KEY + "' must be a list of secrets to export, got: " + v);
         }
 
         List<Path> result = new ArrayList<>();
         for (Object o : (List<Object>) v) {
             if (!(o instanceof Map)) {
-                throw new IllegalArgumentException("'" + Constants.GIT_SSH_KEY + "." + SECRETS_KEY + "' values must be Concord secrets references, got: " + o);
+                throw new IllegalArgumentException("'" + TaskConstants.GIT_SSH_KEY + "." + SECRETS_KEY + "' values must be Concord secrets references, got: " + o);
             }
 
-            Path p = exportSecret(secretService, ctx, instanceId, workDir, (Map<String, Object>) o, debug);
+            Path p = exportSecret(secretProvider, (Map<String, Object>) o, debug);
             result.add(p);
         }
         return result;
     }
 
-    private static Path exportSecret(SecretService secretService,
-                                     Context ctx,
-                                     String instanceId,
-                                     Path workDir,
+    private static Path exportSecret(SecretProvider secretProvider,
                                      Map<String, Object> m,
                                      boolean debug) throws Exception {
 
@@ -151,21 +141,23 @@ public class GitSshWrapper {
         String password = removeString(m, PASSWORD_KEY);
 
         if (!m.isEmpty()) {
-            throw new IllegalArgumentException("Unrecognized options of '" + Constants.GIT_SSH_KEY + "." + SECRETS_KEY + "': " + m.keySet());
+            throw new IllegalArgumentException("Unrecognized options of '" + TaskConstants.GIT_SSH_KEY + "." + SECRETS_KEY + "': " + m.keySet());
         }
 
-        Map<String, String> secret = secretService.exportKeyAsFile(ctx, instanceId, workDir.toAbsolutePath().toString(), orgName, secretName, password);
-
+        Path p = secretProvider.getPrivateKey(orgName, secretName, password);
         if (debug) {
             log.info("exportSecret -> using {}/{} secret", orgName, secretName);
         }
 
-        return workDir.resolve(secret.get("private"));
+        return p;
     }
 
     private final List<Path> externalPrivateKeys;
     private final List<Path> exportedPrivateKeys;
     private final boolean debug;
+
+    // path to the generated SSH wrapper script, removed in cleanup()
+    private Path wrapperPath;
 
     private GitSshWrapper(List<Path> externalPrivateKeys, List<Path> exportedPrivateKeys, boolean debug) {
         this.externalPrivateKeys = externalPrivateKeys;
@@ -174,12 +166,17 @@ public class GitSshWrapper {
     }
 
     public Map<String, String> updateEnv(Path workDir, Map<String, String> m) throws IOException {
-        String s = generateScript(workDir).toAbsolutePath().toString();
+        this.wrapperPath = generateScript(workDir);
+        String s = wrapperPath.toAbsolutePath().toString();
         m.put("GIT_SSH_COMMAND", s);
         return m;
     }
 
     public void cleanup() throws IOException {
+        if (wrapperPath != null) {
+            Files.deleteIfExists(wrapperPath);
+        }
+
         for (Path p : exportedPrivateKeys) {
             Files.deleteIfExists(p);
         }
@@ -225,5 +222,10 @@ public class GitSshWrapper {
         }
 
         throw new IllegalArgumentException("Expected a string value '" + k + "', got: " + v);
+    }
+
+    public interface SecretProvider {
+
+        Path getPrivateKey(String orgName, String secretName, String password) throws Exception;
     }
 }

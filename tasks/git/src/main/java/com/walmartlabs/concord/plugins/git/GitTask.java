@@ -48,32 +48,31 @@ public class GitTask {
 
     private static final Logger log = LoggerFactory.getLogger(GitTask.class);
 
-    private static final String ACTION_KEY = "action";
-    private static final String GIT_AUTH_KEY = "auth";
-    private static final String GIT_BASE_BRANCH = "baseBranch";
-    private static final String GIT_BASIC_KEY = "basic";
-    private static final String GIT_COMMIT_MSG = "commitMessage";
-    private static final String GIT_COMMITTER_EMAIL = "commitEmail";
-    private static final String GIT_COMMITTER_USERNAME = "commitUsername";
-    private static final String GIT_DESTINATION_BRANCH = "destinationBranch";
-    private static final String GIT_NEW_BRANCH_NAME = "newBranch";
-    private static final String GIT_PASSWORD = "password";
-    private static final String GIT_PRIVATE_KEY = "privateKey";
-    private static final String GIT_PUSH_CHANGES_TO_ORIGIN = "pushChanges";
-    private static final String GIT_PUSH_NEW_BRANCH_TO_ORIGIN = "pushBranch";
-    private static final String GIT_SOURCE_BRANCH = "sourceBranch";
-    private static final String GIT_TOKEN = "token";
-    private static final String GIT_URL = "url";
-    private static final String GIT_USER_NAME = "username";
-    private static final String GIT_WORKING_DIR = "workingDir";
-    private static final String REFS_REMOTES = "refs/remotes/origin/";
-    private static final String GIT_PULL_REMOTE_BRANCH = "remoteBranch";
-
-    private static final String IGNORE_ERRORS_KEY = "ignoreErrors";
-    private static final String CHANGE_LIST_KEY = "changeList";
-    private static final String STATUS_KEY = "status";
-    private static final String OK_KEY = "ok";
-    private static final String ERROR_KEY = "error";
+    public static final String ACTION_KEY = "action";
+    public static final String GIT_AUTH_KEY = "auth";
+    public static final String GIT_BASE_BRANCH = "baseBranch";
+    public static final String GIT_BASIC_KEY = "basic";
+    public static final String GIT_COMMIT_MSG = "commitMessage";
+    public static final String GIT_COMMITTER_EMAIL = "commitEmail";
+    public static final String GIT_COMMITTER_USERNAME = "commitUsername";
+    public static final String GIT_DESTINATION_BRANCH = "destinationBranch";
+    public static final String GIT_NEW_BRANCH_NAME = "newBranch";
+    public static final String GIT_PASSWORD = "password";
+    public static final String GIT_PRIVATE_KEY = "privateKey";
+    public static final String GIT_PUSH_CHANGES_TO_ORIGIN = "pushChanges";
+    public static final String GIT_PUSH_NEW_BRANCH_TO_ORIGIN = "pushBranch";
+    public static final String GIT_SOURCE_BRANCH = "sourceBranch";
+    public static final String GIT_TOKEN = "token";
+    public static final String GIT_URL = "url";
+    public static final String GIT_USER_NAME = "username";
+    public static final String GIT_WORKING_DIR = "workingDir";
+    public static final String REFS_REMOTES = "refs/remotes/origin/";
+    public static final String GIT_PULL_REMOTE_BRANCH = "remoteBranch";
+    public static final String IGNORE_ERRORS_KEY = "ignoreErrors";
+    public static final String CHANGE_LIST_KEY = "changeList";
+    public static final String STATUS_KEY = "status";
+    public static final String OK_KEY = "ok";
+    public static final String ERROR_KEY = "error";
 
     private final GitSecretService secretService;
     private final Path processWorkDir;
@@ -545,7 +544,7 @@ public class GitTask {
         }
     }
 
-    enum Action {
+    public enum Action {
         CLONE,
         CREATEBRANCH,
         MERGE,
@@ -557,5 +556,20 @@ public class GitTask {
         SUCCESS,
         FAILURE,
         NO_CHANGES
+    }
+
+    public static class Result {
+
+        private final boolean ok;
+        private final ResultStatus status;
+        private final String error;
+        private final Set<String> changeList;
+
+        public Result(boolean ok, ResultStatus status, String error, Set<String> changeList) {
+            this.ok = ok;
+            this.status = status;
+            this.error = error;
+            this.changeList = changeList;
+        }
     }
 }

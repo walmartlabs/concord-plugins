@@ -21,12 +21,11 @@ package com.walmartlabs.concord.plugins.terraform.actions;
  */
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.walmartlabs.concord.plugins.terraform.Constants;
+import com.walmartlabs.concord.plugins.terraform.TaskConstants;
 import com.walmartlabs.concord.plugins.terraform.Terraform;
 import com.walmartlabs.concord.plugins.terraform.Utils;
 import com.walmartlabs.concord.plugins.terraform.backend.Backend;
 import com.walmartlabs.concord.plugins.terraform.commands.PlanCommand;
-import com.walmartlabs.concord.sdk.Context;
 import com.walmartlabs.concord.sdk.MapUtils;
 
 import java.io.IOException;
@@ -40,7 +39,6 @@ import static com.walmartlabs.concord.plugins.terraform.Utils.getPath;
 
 public class PlanAction extends Action {
 
-    private final Context ctx;
     private final boolean debug;
     private final boolean destroy;
     private final boolean verbose;
@@ -54,13 +52,12 @@ public class PlanAction extends Action {
     private final ObjectMapper objectMapper;
 
     @SuppressWarnings("unchecked")
-    public PlanAction(Context ctx, Map<String, Object> cfg, Map<String, String> env) {
-        this.ctx = ctx;
+    public PlanAction(Map<String, Object> cfg, Map<String, String> env) {
         this.env = env;
 
-        this.debug = MapUtils.get(cfg, Constants.DEBUG_KEY, false, Boolean.class);
-        this.destroy = MapUtils.get(cfg, Constants.DESTROY_KEY, false, Boolean.class);
-        this.verbose = MapUtils.get(cfg, Constants.VERBOSE_KEY, false, Boolean.class);
+        this.debug = MapUtils.get(cfg, TaskConstants.DEBUG_KEY, false, Boolean.class);
+        this.destroy = MapUtils.get(cfg, TaskConstants.DESTROY_KEY, false, Boolean.class);
+        this.verbose = MapUtils.get(cfg, TaskConstants.VERBOSE_KEY, false, Boolean.class);
 
         // the process' working directory (aka the payload directory)
         this.workDir = getPath(cfg, com.walmartlabs.concord.sdk.Constants.Context.WORK_DIR_KEY, null);
@@ -69,20 +66,20 @@ public class PlanAction extends Action {
         }
 
         // the TF files directory
-        this.dir = getPath(cfg, Constants.DIR_KEY, workDir);
+        this.dir = getPath(cfg, TaskConstants.DIR_KEY, workDir);
 
         // a file, created by the plan action
-        this.plan = getPath(cfg, Constants.PLAN_KEY, null);
+        this.plan = getPath(cfg, TaskConstants.PLAN_KEY, null);
 
-        this.extraVars = MapUtils.get(cfg, Constants.EXTRA_VARS_KEY, null, Map.class);
-        this.userSuppliedVarFileNames = MapUtils.get(cfg, Constants.VARS_FILES, null, List.class);
-        this.ignoreErrors = MapUtils.get(cfg, Constants.IGNORE_ERRORS_KEY, false, Boolean.class);
+        this.extraVars = MapUtils.get(cfg, TaskConstants.EXTRA_VARS_KEY, null, Map.class);
+        this.userSuppliedVarFileNames = MapUtils.get(cfg, TaskConstants.VARS_FILES, null, List.class);
+        this.ignoreErrors = MapUtils.get(cfg, TaskConstants.IGNORE_ERRORS_KEY, false, Boolean.class);
         this.objectMapper = new ObjectMapper();
     }
 
-    public PlanResult exec(Terraform terraform, Backend backend) throws Exception {
+    public TerraformActionResult exec(Terraform terraform, Backend backend) throws Exception {
         try {
-            init(ctx, workDir, dir, !verbose, env, terraform, backend);
+            init(workDir, dir, !verbose, env, terraform, backend);
 
             // save 'extraVars' into a file that can be automatically picked up by TF
             createVarsFile(Utils.getAbsolute(workDir, dir), objectMapper, extraVars);
@@ -100,13 +97,13 @@ public class PlanAction extends Action {
             Terraform.Result r = new PlanCommand(debug, destroy, workDir, dirOrPlanAbsolute, userSuppliedVarFiles, outFile, env).exec(terraform);
             switch (r.getCode()) {
                 case 0: {
-                    return PlanResult.noChanges(r.getStdout(), outFileStr);
+                    return TerraformActionResult.noChanges(r.getStdout(), outFileStr);
                 }
                 case 1: {
                     throw new RuntimeException("Process finished with code " + r.getCode() + ": " + r.getStderr());
                 }
                 case 2: {
-                    return PlanResult.hasChanges(r.getStdout(), outFileStr);
+                    return TerraformActionResult.hasChanges(r.getStdout(), outFileStr);
                 }
                 default:
                     throw new IllegalStateException("Unsupported Terraform exit code: " + r.getCode());
@@ -116,7 +113,7 @@ public class PlanAction extends Action {
                 throw e;
             }
 
-            return PlanResult.error(e.getMessage());
+            return TerraformActionResult.error(e.getMessage());
         }
     }
 

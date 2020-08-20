@@ -23,12 +23,11 @@ package com.walmartlabs.concord.plugins.git.v2;
 import com.walmartlabs.concord.plugins.git.GitHubTask;
 import com.walmartlabs.concord.runtime.v2.sdk.Context;
 import com.walmartlabs.concord.runtime.v2.sdk.Task;
+import com.walmartlabs.concord.runtime.v2.sdk.TaskResult;
 import com.walmartlabs.concord.runtime.v2.sdk.Variables;
 
 import javax.inject.Inject;
 import javax.inject.Named;
-import java.io.Serializable;
-import java.util.HashMap;
 import java.util.Map;
 
 @Named("github")
@@ -45,8 +44,8 @@ public class GithubTaskV2 implements Task {
     }
 
     @Override
-    public Serializable execute(Variables input) {
+    public TaskResult execute(Variables input) {
         Map<String, Object> result = delegate.execute(input.toMap(), defaults);
-        return new HashMap<>(result);
+        return TaskResult.success().values(result);
     }
 }

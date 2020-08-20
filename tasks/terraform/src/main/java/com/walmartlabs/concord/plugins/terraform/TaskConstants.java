@@ -20,7 +20,7 @@ package com.walmartlabs.concord.plugins.terraform;
  * =====
  */
 
-public final class Constants {
+public final class TaskConstants {
 
     public static final String ACTION_KEY = "action";
     public static final String BACKEND_KEY = "backend";
@@ -52,6 +52,6 @@ public final class Constants {
             DIR_KEY, EXTRA_ENV_KEY, EXTRA_VARS_KEY, VARS_FILES, GIT_SSH_KEY, IGNORE_ERRORS_KEY, IGNORE_LOCAL_BINARY_KEY,
             MODULE_KEY, PLAN_KEY, RESULT_KEY, SAVE_OUTPUT_KEY, STATE_ID_KEY, VERBOSE_KEY, TOOL_VERSION_KEY, TOOL_URL_KEY};
 
-    private Constants() {
+    private TaskConstants() {
     }
 }

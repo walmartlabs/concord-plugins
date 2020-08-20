@@ -20,8 +20,6 @@ package com.walmartlabs.concord.plugins.terraform.backend;
  * =====
  */
 
-import com.walmartlabs.concord.sdk.Context;
-
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Map;
@@ -30,22 +28,21 @@ public interface Backend {
 
     String getId();
 
-    void lock(Context ctx) throws Exception;
+    void lock() throws Exception;
 
-    void unlock(Context ctx) throws Exception;
+    void unlock() throws Exception;
 
     /**
      * Initialized the backend.
      *
-     * @param ctx   the process' context
      * @param tfDir a directory with Terraform files
      */
-    void init(Context ctx, Path tfDir) throws Exception;
+    void init(Path tfDir) throws Exception;
 
     /**
      * Prepares the backend-specific environment variables.
      */
-    default Map<String, String> prepareEnv(Context ctx, Map<String, Object> cfg) {
+    default Map<String, String> prepareEnv(Map<String, Object> cfg) {
         return Collections.emptyMap();
     }
 

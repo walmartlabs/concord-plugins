@@ -21,12 +21,11 @@ package com.walmartlabs.concord.plugins.terraform.actions;
  */
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.walmartlabs.concord.plugins.terraform.Constants;
+import com.walmartlabs.concord.plugins.terraform.TaskConstants;
 import com.walmartlabs.concord.plugins.terraform.Terraform;
 import com.walmartlabs.concord.plugins.terraform.Utils;
 import com.walmartlabs.concord.plugins.terraform.backend.Backend;
 import com.walmartlabs.concord.plugins.terraform.commands.DestroyCommand;
-import com.walmartlabs.concord.sdk.Context;
 import com.walmartlabs.concord.sdk.MapUtils;
 
 import java.nio.file.Path;
@@ -37,7 +36,6 @@ import static com.walmartlabs.concord.plugins.terraform.Utils.getPath;
 
 public class DestroyAction extends Action {
 
-    private final Context ctx;
     private final Map<String, Object> cfg;
     private final boolean verbose;
     private final Path workDir;
@@ -50,12 +48,11 @@ public class DestroyAction extends Action {
     private final ObjectMapper objectMapper;
 
     @SuppressWarnings("unchecked")
-    public DestroyAction(Context ctx, Map<String, Object> cfg, Map<String, String> env) {
-        this.ctx = ctx;
+    public DestroyAction(Map<String, Object> cfg, Map<String, String> env) {
         this.cfg = cfg;
         this.env = env;
 
-        this.verbose = MapUtils.get(cfg, Constants.VERBOSE_KEY, false, Boolean.class);
+        this.verbose = MapUtils.get(cfg, TaskConstants.VERBOSE_KEY, false, Boolean.class);
 
         // the process' working directory (aka the payload directory)
         this.workDir = getPath(cfg, com.walmartlabs.concord.sdk.Constants.Context.WORK_DIR_KEY, null);
@@ -64,19 +61,19 @@ public class DestroyAction extends Action {
         }
 
         // the TF files directory
-        this.dir = getPath(cfg, Constants.DIR_KEY, workDir);
+        this.dir = getPath(cfg, TaskConstants.DIR_KEY, workDir);
 
 
-        this.extraVars = MapUtils.get(cfg, Constants.EXTRA_VARS_KEY, null, Map.class);
-        this.userSuppliedVarFileNames = MapUtils.get(cfg, Constants.VARS_FILES, null, List.class);
-        this.ignoreErrors = MapUtils.get(cfg, Constants.IGNORE_ERRORS_KEY, false, Boolean.class);
-        this.saveOutput = MapUtils.get(cfg, Constants.SAVE_OUTPUT_KEY, false, Boolean.class);
+        this.extraVars = MapUtils.get(cfg, TaskConstants.EXTRA_VARS_KEY, null, Map.class);
+        this.userSuppliedVarFileNames = MapUtils.get(cfg, TaskConstants.VARS_FILES, null, List.class);
+        this.ignoreErrors = MapUtils.get(cfg, TaskConstants.IGNORE_ERRORS_KEY, false, Boolean.class);
+        this.saveOutput = MapUtils.get(cfg, TaskConstants.SAVE_OUTPUT_KEY, false, Boolean.class);
         this.objectMapper = new ObjectMapper();
     }
 
-    public CommonResult exec(Terraform terraform, Backend backend) throws Exception {
+    public TerraformActionResult exec(Terraform terraform, Backend backend) throws Exception {
         try {
-            init(ctx, workDir, dir, !verbose, env, terraform, backend);
+            init(workDir, dir, !verbose, env, terraform, backend);
 
             createVarsFile(Utils.getAbsolute(workDir, dir), objectMapper, extraVars);
 
@@ -90,21 +87,21 @@ public class DestroyAction extends Action {
 
             Map<String, Object> data = null;
             if (saveOutput) {
-                CommonResult o = new OutputAction(ctx, cfg, env, true).exec(terraform, backend);
+                TerraformActionResult o = new OutputAction(cfg, env, true).exec(terraform, backend);
                 if (!o.isOk()) {
-                    return CommonResult.error(o.getError());
+                    return TerraformActionResult.error(o.getError());
                 }
 
                 data = o.getData();
             }
 
-            return CommonResult.ok(r.getStdout(), data);
+            return TerraformActionResult.ok(data, r.getStdout());
         } catch (Exception e) {
             if (!ignoreErrors) {
                 throw e;
             }
 
-            return CommonResult.error(e.getMessage());
+            return TerraformActionResult.error(e.getMessage());
         }
     }
 }

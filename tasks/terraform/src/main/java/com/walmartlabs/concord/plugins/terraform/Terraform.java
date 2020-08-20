@@ -43,12 +43,11 @@ public class Terraform {
     private final ExecutorService executor;
 
     /**
-     * @param workDir the process' working directory. Used to store temporary files
      * @param debug   enable/disable additional debug output
      * @param baseEnv
      * @throws Exception
      */
-    public Terraform(TerraformBinaryResolver binaryResolver, Path workDir, boolean debug, Map<String, String> baseEnv) throws Exception {
+    public Terraform(TerraformBinaryResolver binaryResolver, boolean debug, Map<String, String> baseEnv) throws Exception {
         this.debug = debug;
         this.baseEnv = baseEnv;
         this.binary = binaryResolver.resolve();
