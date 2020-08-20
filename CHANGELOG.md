@@ -2,9 +2,14 @@
 
 ## [Unreleased]
 
+### Added
+
+- terraform: runtime-v2 compatibility.
+
 ### Changed
 
-- git: Concord 1.61.0+ compatibility.
+- git: Concord 1.62.0+ compatibility;
+- puppet: Concord 1.62.0+ compatibility.
 
 
 
