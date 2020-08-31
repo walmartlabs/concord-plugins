@@ -122,7 +122,7 @@ public class ConcordV2Backend implements Backend {
             return s;
         }
 
-        ProjectInfo projectInfo = ctx.projectInfo();
+        ProjectInfo projectInfo = ctx.processConfiguration().projectInfo();
         if (projectInfo == null || projectInfo.projectName() == null) {
             throw new IllegalArgumentException("Can't determine '" + TaskConstants.STATE_ID_KEY + "'. The 'concord' backend can only be used for processes running in a project.");
         }
@@ -138,7 +138,7 @@ public class ConcordV2Backend implements Backend {
     }
 
     private static String getCurrentOrgName(Context ctx) {
-        ProjectInfo projectInfo = ctx.projectInfo();
+        ProjectInfo projectInfo = ctx.processConfiguration().projectInfo();
         if (projectInfo == null || projectInfo.orgName() == null) {
             throw new IllegalArgumentException("Can't determine the current organization. The 'concord' backend can only be used for processes running in a project.");
         }
