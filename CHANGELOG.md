@@ -4,6 +4,7 @@
 
 ### Changed
 
+- terraform: fix duplicate `Starting [ACTION]...` messages;
 - terraform: Concord 1.63.0 compatibility.
 
 
