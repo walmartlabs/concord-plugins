@@ -96,7 +96,19 @@ public class TerraformBinaryResolver {
         // try toolUrl first
         String toolUrl = userToolUrl(cfg);
         if (toolUrl != null) {
+            if (debug) {
+                log.info("init -> using the specified toolUrl {}", toolUrl);
+            }
+
             downloadAndUnpack(toolUrl, dstDir);
+
+            // check if the remote archive actually had what we were looking for...
+            if (!Files.exists(binaryInWorkDir)) {
+                String msg = String.format("Can't find the binary in the expected place (%s) after unpacking %s", workDir.relativize(binaryInWorkDir), toolUrl);
+                throw new IllegalStateException(msg);
+            }
+
+            return binaryInWorkDir;
         }
 
         boolean ignoreLocalBinary = MapUtils.getBoolean(cfg, TaskConstants.IGNORE_LOCAL_BINARY_KEY, false);
