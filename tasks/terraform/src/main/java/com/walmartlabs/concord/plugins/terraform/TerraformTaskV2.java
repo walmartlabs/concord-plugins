@@ -89,8 +89,6 @@ public class TerraformTaskV2 implements Task {
             terraform.exec(workDir, "version", "version");
         }
 
-        log.info("Starting {}...", action);
-
         try {
             TerraformActionResult result = TerraformTaskCommon.execute(terraform, action, backend, cfg, env);
             return convertResult(result);

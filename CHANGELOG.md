@@ -1,5 +1,16 @@
 # Change log
 
+## [Unreleased]
+
+### Changed
+
+- terreform: fix `toolUrl` usage. Now it actually uses the downloaded
+binary;
+- terraform: fix duplicate `Starting [ACTION]...` messages;
+- terraform: Concord 1.63.0 compatibility.
+
+
+
 ## [1.31.0] - 2020-08-20
 
 ### Added

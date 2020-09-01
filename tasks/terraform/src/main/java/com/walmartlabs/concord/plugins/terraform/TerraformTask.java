@@ -30,7 +30,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Named;
-import java.io.Serializable;
 import java.net.URI;
 import java.nio.file.Path;
 import java.util.Collections;
@@ -96,8 +95,6 @@ public class TerraformTask implements Task {
         if (debug) {
             terraform.exec(workDir, "version", "version");
         }
-
-        log.info("Starting {}...", action);
 
         try {
             TerraformActionResult result = TerraformTaskCommon.execute(terraform, action, backend, cfg, env);
