@@ -15,6 +15,7 @@
 
     <properties>
         <skipTests>true</skipTests>
+        <testcontainers.concord.version>0.0.30-SNAPSHOT</testcontainers.concord.version>
     </properties>
 
     <dependencies>
@@ -99,9 +100,38 @@
             <artifactId>okhttp</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>ca.ibodrov.concord</groupId>
+            <artifactId>testcontainers-concord-core</artifactId>
+            <version>${testcontainers.concord.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>ca.ibodrov.concord</groupId>
+            <artifactId>testcontainers-concord-junit4</artifactId>
+            <version>${testcontainers.concord.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
+        <testResources>
+            <testResource>
+                <filtering>false</filtering>
+                <directory>${project.basedir}/src/test/resources</directory>
+                <includes>
+                    <include>**/*</include>
+                </includes>
+            </testResource>
+            <testResource>
+                <filtering>true</filtering>
+                <directory>${project.basedir}/src/test/filtered-resources</directory>
+                <includes>
+                    <include>**/*</include>
+                </includes>
+            </testResource>
+        </testResources>
+
         <plugins>
             <plugin>
                 <groupId>org.eclipse.sisu</groupId>
