@@ -23,12 +23,10 @@ package com.walmartlabs.concord.plugins.confluence;
 import com.github.mustachejava.DefaultMustacheFactory;
 import com.github.mustachejava.Mustache;
 import com.github.mustachejava.MustacheFactory;
-import com.walmartlabs.concord.sdk.Context;
 
 import java.io.FileReader;
 import java.io.StringWriter;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -37,20 +35,20 @@ import java.util.Map;
 public class Utils {
 
     @SuppressWarnings("unchecked")
-    public static String getPageId(Context ctx, String url, String pageTitle, String spaceKey) {
+    public static String getPageId(TaskParams in, String pageTitle, String spaceKey) {
         Map<String, Object> results;
 
         try {
-            results = new ConfluenceClient(ctx)
-                    .url(url + "content/")
+            results = new ConfluenceClient(in)
+                    .url("content/")
                     .getWithQueryParams(Constants.CONFLUENCE_ENTITY_TITLE, pageTitle, Constants.CONFLUENCE_ENTITY_SPACEKEY, spaceKey);
 
         } catch (Exception e) {
             throw new RuntimeException("Error occurred while retrieving page id...", e);
         }
-        List<Map> resultsList = (List<Map>) results.get("results");
+        List<Map<String, Object>> resultsList = (List<Map<String, Object>>) results.get("results");
         if (!resultsList.isEmpty()) {
-            Map resultsMap = resultsList.get(0);
+            Map<String, Object> resultsMap = resultsList.get(0);
             return (String) resultsMap.get("id");
         } else {
             throw new RuntimeException("Page with title '" + pageTitle + "' does not exist in space '" + spaceKey + "'");
@@ -58,12 +56,12 @@ public class Utils {
     }
 
     @SuppressWarnings("unchecked")
-    public static String getPageCurrentVersion(Context ctx, String url, int pageId) {
+    public static String getPageCurrentVersion(TaskParams in, int pageId) {
         Map<String, Object> results;
 
         try {
-            results = new ConfluenceClient(ctx)
-                    .url(url + "content/" + pageId + "/history")
+            results = new ConfluenceClient(in)
+                    .url("content/" + pageId + "/history")
                     .get();
 
         } catch (Exception e) {
@@ -79,12 +77,12 @@ public class Utils {
     }
 
     @SuppressWarnings("unchecked")
-    public static String getPageContent(Context ctx, String url, int pageId) {
+    public static String getPageContent(TaskParams in, int pageId) {
         Map<String, Object> results;
 
         try {
-            results = new ConfluenceClient(ctx)
-                    .url(url + "content/" + pageId + "?expand=body.storage")
+            results = new ConfluenceClient(in)
+                    .url("content/" + pageId + "?expand=body.storage")
                     .get();
         } catch (Exception e) {
             throw new RuntimeException("Error occurred while retrieving page content...", e);
@@ -103,31 +101,18 @@ public class Utils {
         }
     }
 
-    private static Object getScope(Context ctx, Map<String, Object> params) {
-        Map<String, Object> ctxParams = ctx != null ? ctx.toMap() : Collections.emptyMap();
-        Map<String, Object> result = new HashMap<>();
-        result.putAll(ctxParams);
-        if (params != null && !params.isEmpty()) {
-            result.putAll(params);
-        }
-        return result;
-    }
-
-    public static Map<String, Object> applyTemplate(Context ctx, String template, Map<String, Object> templateParams) throws Exception {
+    public static Map<String, Object> applyTemplate(Path workDir, String template, Map<String, Object> templateParams) throws Exception {
         StringWriter out = new StringWriter();
         Map<String, Object> m = new HashMap<>();
         if (template == null) {
             m = Collections.emptyMap();
             return m;
         }
-        Path baseDir = Paths.get((String) ctx.getVariable(com.walmartlabs.concord.sdk.Constants.Context.WORK_DIR_KEY));
-        try (FileReader in = new FileReader(baseDir.resolve(template).toFile())) {
+        try (FileReader in = new FileReader(workDir.resolve(template).toFile())) {
             MustacheFactory mf = new DefaultMustacheFactory();
             Mustache mustache = mf.compile(in, template);
 
-            Object scope = getScope(ctx, templateParams);
-            mustache.execute(out, scope);
-
+            mustache.execute(out, templateParams);
         }
         m.put("content", out.toString());
         return m;

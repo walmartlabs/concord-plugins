@@ -33,24 +33,24 @@ import java.util.concurrent.TimeUnit;
 import static com.walmartlabs.concord.sdk.ContextUtils.assertString;
 import static com.walmartlabs.concord.sdk.ContextUtils.getNumber;
 
-@SuppressWarnings("Duplicates")
 public class ConfluenceClient {
 
-    private static final OkHttpClient client = new OkHttpClient();
     private static final ObjectMapper mapper = new ObjectMapper();
 
-    private static final String CONFLUENCE_PWD = "password";
-    private static final String CONFLUENCE_UID = "userId";
+    private final OkHttpClient client;
 
-    private static final String CLIENT_CONNECTTIMEOUT = "connectTimeout";
-    private static final String CLIENT_READTIMEOUT = "readTimeout";
-    private static final String CLIENT_WRITETIMEOUT = "writeTimeout";
-
-    private final Context ctx;
+    private final String apiUrl;
+    private final String auth;
     private String url;
 
-    public ConfluenceClient(Context ctx) {
-        this.ctx = ctx;
+    public ConfluenceClient(TaskParams in) {
+        this.apiUrl = in.apiUrl();
+        this.client = new OkHttpClient.Builder()
+                .connectTimeout(in.connectTimeout(), TimeUnit.SECONDS)
+                .readTimeout(in.readTimeout(), TimeUnit.SECONDS)
+                .writeTimeout(in.writeTimeout(), TimeUnit.SECONDS)
+                .build();
+        this.auth = Credentials.basic(in.userId(), in.password());
     }
 
     public ConfluenceClient url(String url) {
@@ -61,8 +61,8 @@ public class ConfluenceClient {
     public Map<String, Object> post(Map<String, Object> data) throws IOException {
         RequestBody body = RequestBody.create(
                 MediaType.parse(Constants.CLIENT_MEDIATYPE_JSON), mapper.writeValueAsString(data));
-        Request request = requestBuilder(ctx)
-                .url(url)
+        Request request = requestBuilder()
+                .url(buildRequestUrl(apiUrl, url))
                 .post(body)
                 .build();
 
@@ -72,8 +72,8 @@ public class ConfluenceClient {
     public void put(Map<String, Object> data) throws IOException {
         RequestBody body = RequestBody.create(
                 MediaType.parse(Constants.CLIENT_MEDIATYPE_JSON), mapper.writeValueAsString(data));
-        Request request = requestBuilder(ctx)
-                .url(url)
+        Request request = requestBuilder()
+                .url(buildRequestUrl(apiUrl, url))
                 .put(body)
                 .build();
 
@@ -81,8 +81,8 @@ public class ConfluenceClient {
     }
 
     public void delete() throws IOException {
-        Request request = requestBuilder(ctx)
-                .url(url)
+        Request request = requestBuilder()
+                .url(buildRequestUrl(apiUrl, url))
                 .delete()
                 .build();
 
@@ -90,7 +90,7 @@ public class ConfluenceClient {
     }
 
     public Map<String, Object> getWithQueryParams(String param1, String value1, String param2, String value2) throws IOException {
-        HttpUrl httpUrl = HttpUrl.parse(url);
+        HttpUrl httpUrl = HttpUrl.parse(buildRequestUrl(apiUrl, url));
         String address = "";
         if (httpUrl != null) {
             HttpUrl.Builder urlBuilder = httpUrl.newBuilder();
@@ -99,7 +99,7 @@ public class ConfluenceClient {
 
             address = urlBuilder.build().toString();
         }
-        Request request = requestBuilder(ctx)
+        Request request = requestBuilder()
                 .url(address)
                 .build();
 
@@ -115,9 +115,9 @@ public class ConfluenceClient {
                 .build();
 
         Request request = new Request.Builder()
-                .url(url)
+                .url(buildRequestUrl(apiUrl, url))
                 .post(body)
-                .addHeader(Constants.CLIENT_HEADER_AUTH, buildAuth(ctx))
+                .addHeader(Constants.CLIENT_HEADER_AUTH, auth)
                 .addHeader(Constants.CONFLUENCE_ENTITY_TOKEN_KEY, Constants.CONFLUENCE_ENTITY_TOKEN_VALUE)
                 .build();
 
@@ -125,24 +125,22 @@ public class ConfluenceClient {
     }
 
     public Map<String, Object> get() throws IOException {
-        Request request = requestBuilder(ctx)
-                .url(url)
+        Request request = requestBuilder()
+                .url(buildRequestUrl(apiUrl, url))
                 .get()
                 .build();
 
         return call(request);
     }
 
-    private static Request.Builder requestBuilder(Context ctx) {
+    private Request.Builder requestBuilder() {
         return new Request.Builder()
-                .addHeader(Constants.CLIENT_HEADER_AUTH, buildAuth(ctx))
+                .addHeader(Constants.CLIENT_HEADER_AUTH, auth)
                 .addHeader(Constants.CLIENT_HEADER_ACCEPT, Constants.CLIENT_MEDIATYPE_JSON);
     }
 
     @SuppressWarnings("unchecked")
     private Map<String, Object> call(Request request) throws IOException {
-        setClientTimeoutParams(ctx);
-
         Call call = client.newCall(request);
         Response response = call.execute();
         int statusCode = response.code();
@@ -178,20 +176,7 @@ public class ConfluenceClient {
         }
     }
 
-    private static String buildAuth(Context ctx) {
-        String uid = assertString(ctx, CONFLUENCE_UID);
-        String pwd = assertString(ctx, CONFLUENCE_PWD);
-        return Credentials.basic(uid, pwd);
-    }
-
-    private static void setClientTimeoutParams(Context ctx) {
-        long connectTimeout = getNumber(ctx, CLIENT_CONNECTTIMEOUT, Constants.CONNECTION_TIMEOUT).longValue();
-        long readTimeout = getNumber(ctx, CLIENT_READTIMEOUT, Constants.READ_TIMEOUT).longValue();
-        long writeTimeout = getNumber(ctx, CLIENT_WRITETIMEOUT, Constants.WRITE_TIMEOUT).longValue();
-
-        client.newBuilder().
-                connectTimeout(connectTimeout, TimeUnit.SECONDS)
-                .readTimeout(readTimeout, TimeUnit.SECONDS)
-                .writeTimeout(writeTimeout, TimeUnit.SECONDS);
+    private static String buildRequestUrl(String apiUrl, String url) {
+        return apiUrl + url;
     }
 }
