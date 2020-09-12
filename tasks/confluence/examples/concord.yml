@@ -1,6 +1,6 @@
 configuration:
   dependencies:
-  - "mvn://com.walmartlabs.concord.plugins:confluence-task:1.31.2-SNAPSHOT"
+  - "mvn://com.walmartlabs.concord.plugins:confluence-task:1.32.0"
   arguments:
     mySpaceKey: "MYCONFLUENESPACE"
     myPageTitle: "My First Page Title"

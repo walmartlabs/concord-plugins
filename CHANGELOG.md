@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- confluence: runtime-v2 support.
+
 ### Changed
 
 - terraform: fix incorrect value of the `hasChanges` property of

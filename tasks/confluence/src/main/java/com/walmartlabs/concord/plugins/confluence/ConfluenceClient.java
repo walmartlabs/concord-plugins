@@ -22,16 +22,12 @@ package com.walmartlabs.concord.plugins.confluence;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.walmartlabs.concord.sdk.Context;
 import okhttp3.*;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-
-import static com.walmartlabs.concord.sdk.ContextUtils.assertString;
-import static com.walmartlabs.concord.sdk.ContextUtils.getNumber;
 
 public class ConfluenceClient {
 
