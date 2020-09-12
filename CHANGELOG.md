@@ -4,6 +4,7 @@
 
 ### Added
 
+- gremlin: runtime-v2 support.
 - confluence: runtime-v2 support.
 
 ### Changed

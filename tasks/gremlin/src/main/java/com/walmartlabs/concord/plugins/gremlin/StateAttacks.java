@@ -20,44 +20,25 @@ package com.walmartlabs.concord.plugins.gremlin;
  * =====
  */
 
-import com.walmartlabs.concord.sdk.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
+import static com.walmartlabs.concord.plugins.gremlin.TaskParams.*;
 import static com.walmartlabs.concord.plugins.gremlin.Utils.createAttack;
 import static com.walmartlabs.concord.plugins.gremlin.Utils.getAttackDetails;
-import static com.walmartlabs.concord.sdk.ContextUtils.*;
 
 public class StateAttacks {
 
     private static final Logger log = LoggerFactory.getLogger(GremlinTask.class);
 
-    private static final String ATTACK_SHUTDOWN_DELAY = "delay";
-    private static final String ATTACK_SHUTDOWN_REBOOT = "reboot";
-    private static final String ATTACK_TIME_TRAVEL_OFFSET = "offset";
-    private static final String ATTACK_TIME_TRAVEL_NTP = "ntp";
-    private static final String ATTACK_PROCESS_KILLER_INTERVAL = "interval";
-    private static final String ATTACK_PROCESS_KILLER_PROCESS = "process";
-    private static final String ATTACK_PROCESS_KILLER_GROUP = "group";
-    private static final String ATTACK_PROCESS_KILLER_USER = "user";
-    private static final String ATTACK_PROCESS_KILLER_NEWEST = "newest";
-    private static final String ATTACK_PROCESS_KILLER_OLDEST = "oldest";
-    private static final String ATTACK_PROCESS_KILLER_EXACT = "exact";
-    private static final String ATTACK_PROCESS_KILLER_KILLCHILDREN = "killChildren";
-    private static final String ATTACK_PROCESS_KILLER_FULLMATCH = "fullMatch";
-    private static final String ATTACK_TARGET_TYPE = "targetType";
-    private static final String ATTACK_LENGTH = "length";
     private static final String ATTACK_GUID = "attackGuid";
     private static final String ATTACK_DETAILS = "attackDetails";
-    private static final String ATTACK_ENDPOINT_TYPE = "endPointType";
 
-    public void shutdown(Context ctx, String apiUrl, String appUrl) {
-        int delay = getInt(ctx, ATTACK_SHUTDOWN_DELAY, 1);
-        boolean reboot = getBoolean(ctx, ATTACK_SHUTDOWN_REBOOT, true);
-        String targetType = getString(ctx, ATTACK_TARGET_TYPE, Constants.GREMLIN_DEFAULT_TARGET_TYPE);
-        String endPointType = getString(ctx, ATTACK_ENDPOINT_TYPE, Constants.GREMLIN_DEFAULT_ENDPOINT_TYPE);
+    public Map<String, Object> shutdown(ShutdownParams in) {
+        int delay = in.delay(1);
+        boolean reboot = in.reboot();
 
         List<String> args;
         if (reboot) {
@@ -69,18 +50,13 @@ public class StateAttacks {
         Map<String, Object> objAttack = Collections.singletonMap("type", "shutdown");
         Map<String, Object> objArgs = Collections.singletonMap("args", args);
 
-        String attackGuid = createAttack(ctx, objAttack, objArgs, targetType, apiUrl, endPointType);
-        String attackDetails = getAttackDetails(ctx, apiUrl, attackGuid);
-        ctx.setVariable(ATTACK_DETAILS, attackDetails);
-        log.info("URL of Gremlin Attack report: " + appUrl + ctx.getVariable(ATTACK_GUID));
+        return processAttack(in, objAttack, objArgs);
     }
 
-    public void timeTravel(Context ctx, String apiUrl, String appUrl) {
-        int length = assertInt(ctx, ATTACK_LENGTH);
-        int offset = getInt(ctx, ATTACK_TIME_TRAVEL_OFFSET, 5);
-        boolean ntp = getBoolean(ctx, ATTACK_TIME_TRAVEL_NTP, false);
-        String targetType = getString(ctx, ATTACK_TARGET_TYPE, Constants.GREMLIN_DEFAULT_TARGET_TYPE);
-        String endPointType = getString(ctx, ATTACK_ENDPOINT_TYPE, Constants.GREMLIN_DEFAULT_ENDPOINT_TYPE);
+    public Map<String, Object> timeTravel(TimeTravelParams in) {
+        int length = in.length();
+        int offset = in.offset(5);
+        boolean ntp = in.ntp();
 
         List<String> args;
         if (ntp) {
@@ -92,25 +68,20 @@ public class StateAttacks {
         Map<String, Object> objAttack = Collections.singletonMap("type", "time_travel");
         Map<String, Object> objArgs = Collections.singletonMap("args", args);
 
-        String attackGuid = createAttack(ctx, objAttack, objArgs, targetType, apiUrl, endPointType);
-        String attackDetails = getAttackDetails(ctx, apiUrl, attackGuid);
-        ctx.setVariable(ATTACK_DETAILS, attackDetails);
-        log.info("URL of Gremlin Attack report: " + appUrl + ctx.getVariable(ATTACK_GUID));
+        return processAttack(in, objAttack, objArgs);
     }
 
-    public void processKiller(Context ctx, String apiUrl, String appUrl) {
-        int length = assertInt(ctx, ATTACK_LENGTH);
-        int interval = getInt(ctx, ATTACK_PROCESS_KILLER_INTERVAL, 5);
-        String process = assertString(ctx, ATTACK_PROCESS_KILLER_PROCESS);
-        String group = getString(ctx, ATTACK_PROCESS_KILLER_GROUP, null);
-        String user = getString(ctx, ATTACK_PROCESS_KILLER_USER, null);
-        boolean newest = getBoolean(ctx, ATTACK_PROCESS_KILLER_NEWEST, false);
-        boolean oldest = getBoolean(ctx, ATTACK_PROCESS_KILLER_OLDEST, false);
-        boolean exact = getBoolean(ctx, ATTACK_PROCESS_KILLER_EXACT, false);
-        boolean killChildren = getBoolean(ctx, ATTACK_PROCESS_KILLER_KILLCHILDREN, false);
-        boolean fullMatch = getBoolean(ctx, ATTACK_PROCESS_KILLER_FULLMATCH, false);
-        String targetType = getString(ctx, ATTACK_TARGET_TYPE, Constants.GREMLIN_DEFAULT_TARGET_TYPE);
-        String endPointType = getString(ctx, ATTACK_ENDPOINT_TYPE, Constants.GREMLIN_DEFAULT_ENDPOINT_TYPE);
+    public Map<String, Object> processKiller(ProcessKiller in) {
+        int length = in.length();
+        int interval = in.interval(5);
+        String process = in.process();
+        String group = in.group();
+        String user = in.user();
+        boolean newest = in.newest();
+        boolean oldest = in.oldest();
+        boolean exact = in.exact();
+        boolean killChildren = in.killChildren();
+        boolean fullMatch = in.fullMatch();
 
         List<String> args = new ArrayList<>(Arrays.asList("-l", Integer.toString(length), "-i", Integer.toString(interval), "-p", process));
 
@@ -147,9 +118,17 @@ public class StateAttacks {
         Map<String, Object> objAttack = Collections.singletonMap("type", "process_killer");
         Map<String, Object> objArgs = Collections.singletonMap("args", args);
 
-        String attackGuid = createAttack(ctx, objAttack, objArgs, targetType, apiUrl, endPointType);
-        String attackDetails = getAttackDetails(ctx, apiUrl, attackGuid);
-        ctx.setVariable(ATTACK_DETAILS, attackDetails);
-        log.info("URL of Gremlin Attack report: " + appUrl + ctx.getVariable(ATTACK_GUID));
+        return processAttack(in, objAttack, objArgs);
+    }
+
+    private Map<String, Object> processAttack(AttackParams in, Map<String, Object> objAttack, Map<String, Object> objArgs) {
+        String attackGuid = createAttack(in, objAttack, objArgs);
+        String attackDetails = getAttackDetails(in, attackGuid);
+        log.info("URL of Gremlin Attack report: {}", in.appUrl() + attackGuid);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put(ATTACK_DETAILS, attackDetails);
+        result.put(ATTACK_GUID, attackGuid);
+        return result;
     }
 }
