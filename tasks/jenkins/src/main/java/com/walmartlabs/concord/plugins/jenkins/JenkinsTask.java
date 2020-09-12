@@ -21,9 +21,7 @@ package com.walmartlabs.concord.plugins.jenkins;
  */
 
 
-import com.walmartlabs.concord.plugins.jenkins.model.BuildInfo;
-import com.walmartlabs.concord.plugins.jenkins.model.Executable;
-import com.walmartlabs.concord.plugins.jenkins.model.QueueItem;
+import com.walmartlabs.concord.runtime.v2.sdk.Variables;
 import com.walmartlabs.concord.sdk.Context;
 import com.walmartlabs.concord.sdk.InjectVariable;
 import com.walmartlabs.concord.sdk.Task;
@@ -31,173 +29,53 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Named;
-import java.io.File;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 @Named("jenkins")
+@SuppressWarnings("unused")
 public class JenkinsTask implements Task {
 
     private static final Logger log = LoggerFactory.getLogger(JenkinsTask.class);
 
-    private static final String FILE_PATH_PREFIX = "@";
     private static final String OUT_VARIABLE_KEY = "jenkinsJob";
-    private static final int WAIT_DELAY = 15000;
 
     @InjectVariable("jenkinsParams")
     private Map<String, Object> defaults;
 
+    private final JenkinsTaskCommon delegate = new JenkinsTaskCommon();
+
     public void execute(Context ctx) throws Exception {
-        JenkinsConfiguration cfg = createCfg(ctx);
-
-        if (cfg.isDebug()) {
-            log.info("Starting Jenkins job '{}' with parameters '{}' on {}",
-                    cfg.getJobName(), cfg.getParameters(), cfg.getBaseUrl());
-        } else {
-            log.info("Starting Jenkins job '{}' on {}", cfg.getJobName(), cfg.getBaseUrl());
-        }
-
-        Map<String, String> simpleParams = new HashMap<>();
-        Map<String, File> fileParams = new HashMap<>();
-        categorizeParams(cfg.getParameters(), simpleParams, fileParams);
-
-        JenkinsClient client = new JenkinsClient(cfg);
-        String queueLink = client.build(cfg.getJobName(), simpleParams, fileParams);
-
-        long startTimeMs = System.currentTimeMillis();
-        log.info("Waiting for the start of the job, queue link {}", queueLink);
-        Executable executable = waitBuildStart(cfg, client, queueLink, startTimeMs);
-
-        BuildInfo buildInfo = client.getBuildInfo(executable);
-        log.info("Jenkins job status '{}' (still building={})", buildInfo.getResult(), buildInfo.isBuilding());
-
-        if (!isFinalStatus(buildInfo.getResult()) && cfg.isSync()) {
-            log.info("Waiting for completion of the build...");
-            buildInfo = waitForCompletion(cfg, client, executable, startTimeMs);
-        }
-
-        Map<String, Object> result = new HashMap<>();
-        result.put("status", buildInfo.getResult());
-        result.put("buildNumber", executable.getNumber());
-        result.put("isSuccess", "SUCCESS".equalsIgnoreCase(buildInfo.getResult()));
-
+        Map<String, Object> result = delegate.execute(JenkinsConfiguration.of(new ContextVariables(ctx), defaults));
         ctx.setVariable(OUT_VARIABLE_KEY, result);
         log.info("Job info is saved as '{}' variable: {}", OUT_VARIABLE_KEY, result);
     }
 
-    private static Executable waitBuildStart(JenkinsConfiguration cfg, JenkinsClient client, String queueLink, long startTimeMs) throws Exception {
-        while (!Thread.currentThread().isInterrupted()) {
-            QueueItem queueItem = client.getQueueItem(queueLink);
+    private static class ContextVariables implements Variables {
 
-            if (queueItem.isCancelled()) {
-                log.info("Jenkins job cancelled");
-                throw new RuntimeException("Job cancelled");
-            }
+        private final Context context;
 
-            if (queueItem.getExecutable() != null) {
-                return queueItem.getExecutable();
-            }
-
-            if (queueItem.getWhy() != null) {
-                log.info("Jenkins job in queue, reason: '{}'", queueItem.getWhy());
-            }
-
-            assertJobTimeout(cfg, startTimeMs);
-
-            sleep(WAIT_DELAY);
+        public ContextVariables(Context context) {
+            this.context = context;
         }
 
-        throw new RuntimeException("Job build was interrupted");
-    }
-
-    private static BuildInfo waitForCompletion(JenkinsConfiguration cfg, JenkinsClient client, Executable executable, long startTimeMs) throws Exception {
-        while (!Thread.currentThread().isInterrupted()) {
-            BuildInfo buildInfo = client.getBuildInfo(executable);
-
-            if (buildInfo.isBuilding()) {
-                log.info("Jenkins job is building, next check after {} ms", WAIT_DELAY);
-            }
-
-            if (isFinalStatus(buildInfo.getResult())) {
-                return buildInfo;
-            }
-
-            assertJobTimeout(cfg, startTimeMs);
-
-            Thread.sleep(WAIT_DELAY);
+        @Override
+        public Object get(String key) {
+            return context.getVariable(key);
         }
 
-        throw new RuntimeException("Job wait was interrupted");
-    }
-
-    private static void categorizeParams(Map<String, Object> params,
-                                         Map<String, String> simpleParams,
-                                         Map<String, File> fileParams) {
-
-        for (Map.Entry<String, Object> e : params.entrySet()) {
-            if (String.valueOf(e.getValue()).startsWith(FILE_PATH_PREFIX)) {
-                String fileName = String.valueOf(e.getValue()).substring(1);
-                File f = new File(fileName);
-                if (!f.exists()) {
-                    throw new RuntimeException("File does not exists: " + fileName);
-                }
-                fileParams.put(e.getKey(), f);
-            } else {
-                simpleParams.put(e.getKey(), String.valueOf(e.getValue()));
-            }
-        }
-    }
-
-    private JenkinsConfiguration createCfg(Context ctx) {
-        Map<String, Object> m = new HashMap<>(defaults != null ? defaults : Collections.emptyMap());
-
-        for (String k : Constants.ALL_IN_PARAMS) {
-            put(m, k, ctx);
+        @Override
+        public void set(String key, Object value) {
+            throw new IllegalStateException("Unsupported");
         }
 
-        return new JenkinsConfiguration(m);
-    }
-
-    private static void put(Map<String, Object> m, String k, Context ctx) {
-        Object v = ctx.getVariable(k);
-        if (v == null) {
-            return;
+        @Override
+        public boolean has(String key) {
+            return context.getVariable(key) != null;
         }
 
-        m.put(k, v);
-    }
-
-    private static void sleep(long ms) {
-        try {
-            Thread.sleep(ms);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+        @Override
+        public Map<String, Object> toMap() {
+            return context.toMap();
         }
-    }
-
-    private static void assertJobTimeout(JenkinsConfiguration cfg, long startTimeMs) {
-        long timeout = cfg.getJobTimeout();
-        if (timeout <= 0) {
-            return;
-        }
-
-        long currentTimeMs = System.currentTimeMillis();
-        if (currentTimeMs - startTimeMs >= timeout * 1000) {
-            throw new RuntimeException("Timeout waiting for the job");
-        }
-    }
-
-
-    private static boolean isFinalStatus(String s) {
-        if (s == null) {
-            return false;
-        }
-
-        return s.equalsIgnoreCase("CANCELLED")
-                || s.equalsIgnoreCase("SUCCESS")
-                || s.equalsIgnoreCase("UNSTABLE")
-                || s.equalsIgnoreCase("FAILURE")
-                || s.equalsIgnoreCase("ABORTED");
     }
 }

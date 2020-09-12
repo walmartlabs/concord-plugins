@@ -20,13 +20,20 @@ package com.walmartlabs.concord.plugins.jenkins;
  * =====
  */
 
+import com.walmartlabs.concord.runtime.v2.sdk.Variables;
+
 import java.util.Collections;
 import java.util.Map;
 
+import static com.walmartlabs.concord.plugins.jenkins.Utils.merge;
 import static com.walmartlabs.concord.plugins.jenkins.Utils.normalizeUrl;
-import static com.walmartlabs.concord.sdk.MapUtils.*;
 
 public class JenkinsConfiguration {
+
+    public static JenkinsConfiguration of(Variables in, Map<String, Object> defaults) {
+        Variables vars = merge(in, defaults);
+        return new JenkinsConfiguration(vars);
+    }
 
     private static final int DEFAULT_CONNECT_TIMEOUT = 30;
     private static final int DEFAULT_WRITE_TIMEOUT = 30;
@@ -44,18 +51,18 @@ public class JenkinsConfiguration {
     private final long jobTimeout;
     private final boolean debug;
 
-    public JenkinsConfiguration(Map<String, Object> cfg) {
-        this.baseUrl = normalizeUrl(assertString(cfg, Constants.BASE_URL_KEY));
-        this.username = assertString(cfg, Constants.USERNAME_KEY);
-        this.apiToken = assertString(cfg, Constants.API_TOKEN_KEY);
-        this.jobName = assertString(cfg, Constants.JOB_NAME_KEY);
-        this.parameters = getMap(cfg, Constants.PARAMETERS_KEY, Collections.emptyMap());
-        this.connectTimeout = getNumber(cfg, Constants.CONNECTION_TIMEOUT_KEY, DEFAULT_CONNECT_TIMEOUT).longValue();
-        this.writeTimeout = getInt(cfg, Constants.WRITE_TIMEOUT_KEY, DEFAULT_WRITE_TIMEOUT);
-        this.readTimeout = getInt(cfg, Constants.READ_TIMEOUT_KEY, DEFAULT_READ_TIMEOUT);
-        this.sync = getBoolean(cfg, Constants.SYNC_KEY, true);
-        this.jobTimeout = getNumber(cfg, Constants.JOB_TIMEOUT_KEY, -1).longValue();
-        this.debug = getBoolean(cfg, Constants.DEBUG_KEY, false);
+    public JenkinsConfiguration(Variables v) {
+        this.baseUrl = normalizeUrl(v.assertString(Constants.BASE_URL_KEY));
+        this.username = v.assertString(Constants.USERNAME_KEY);
+        this.apiToken = v.assertString(Constants.API_TOKEN_KEY);
+        this.jobName = v.assertString(Constants.JOB_NAME_KEY);
+        this.parameters = v.getMap(Constants.PARAMETERS_KEY, Collections.emptyMap());
+        this.connectTimeout = v.getNumber(Constants.CONNECTION_TIMEOUT_KEY, DEFAULT_CONNECT_TIMEOUT).longValue();
+        this.writeTimeout = v.getInt(Constants.WRITE_TIMEOUT_KEY, DEFAULT_WRITE_TIMEOUT);
+        this.readTimeout = v.getInt(Constants.READ_TIMEOUT_KEY, DEFAULT_READ_TIMEOUT);
+        this.sync = v.getBoolean(Constants.SYNC_KEY, true);
+        this.jobTimeout = v.getNumber(Constants.JOB_TIMEOUT_KEY, -1).longValue();
+        this.debug = v.getBoolean(Constants.DEBUG_KEY, false);
     }
 
     public long getConnectTimeout() {
