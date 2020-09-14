@@ -1,0 +1,10 @@
+configuration:
+  runtime: "concord-v2"
+  dependencies:
+    - "mvn://com.walmartlabs.concord.plugins:terraform-task:%%version%%"
+
+flows:
+  default:
+    - task: terraform
+      in:
+        action: plan

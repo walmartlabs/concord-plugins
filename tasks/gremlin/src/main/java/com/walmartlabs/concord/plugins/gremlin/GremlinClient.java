@@ -23,7 +23,6 @@ package com.walmartlabs.concord.plugins.gremlin;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.squareup.okhttp.*;
-import com.walmartlabs.concord.sdk.Context;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
@@ -32,33 +31,26 @@ import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
-import java.security.cert.CertificateException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-
-import static com.walmartlabs.concord.sdk.ContextUtils.assertString;
-import static com.walmartlabs.concord.sdk.ContextUtils.getBoolean;
-
 
 public class GremlinClient {
 
     private static final OkHttpClient client = new OkHttpClient();
     private static final Gson gson = new GsonBuilder().create();
-    private static final String GREMLIN_API_KEY = "apiKey";
-    private static final String PROXY = "useProxy";
 
-    private final Context ctx;
+    private final GremlinClientParams params;
 
     private String url;
     private int successCode;
 
-    public GremlinClient(Context ctx) {
-        this.ctx = ctx;
+    public GremlinClient(GremlinClientParams params) {
+        this.params = params;
     }
 
     public GremlinClient url(String url) {
-        this.url = url;
+        this.url = params.apiUrl() + url;
         return this;
     }
 
@@ -70,7 +62,7 @@ public class GremlinClient {
     public Map<String, Object> post(Map<String, Object> data) throws IOException {
         RequestBody body = RequestBody.create(
                 MediaType.parse("application/json; charset=utf-8"), gson.toJson(data));
-        Request request = requestBuilder(ctx)
+        Request request = requestBuilder()
                 .url(url)
                 .post(body)
                 .build();
@@ -79,7 +71,7 @@ public class GremlinClient {
     }
 
     public Map<String, Object> get() throws IOException {
-        Request request = getRequestBuilder(ctx)
+        Request request = getRequestBuilder()
                 .url(url)
                 .get()
                 .build();
@@ -87,32 +79,29 @@ public class GremlinClient {
     }
 
     public void delete() throws IOException {
-        Request request = getRequestBuilder(ctx)
+        Request request = getRequestBuilder()
                 .url(url)
                 .delete()
                 .build();
         deleteCall(request);
     }
 
-    private static Request.Builder requestBuilder(Context ctx) {
-        String apiKey = assertString(ctx, GREMLIN_API_KEY);
+    private Request.Builder requestBuilder() {
         return new Request.Builder()
                 .addHeader("Content-Type", "application/json")
                 .addHeader("X-Gremlin-Agent", "concord/" + Version.getVersion())
-                .addHeader("Authorization", "Key " + apiKey);
+                .addHeader("Authorization", "Key " + params.apiKey());
     }
 
-    private static Request.Builder getRequestBuilder(Context ctx) {
-        String apiKey = assertString(ctx, GREMLIN_API_KEY);
+    private Request.Builder getRequestBuilder() {
         return new Request.Builder()
                 .addHeader("X-Gremlin-Agent", "concord/" + Version.getVersion())
-                .addHeader("Authorization", "Key " + apiKey);
+                .addHeader("Authorization", "Key " + params.apiKey());
     }
 
     @SuppressWarnings("unchecked")
     private Map<String, Object> call(Request request) throws IOException {
-        //setup client params
-        setupClientParams(ctx);
+        setupClientParams();
 
         Response response = getClientResponse(request);
         int statusCode = response.code();
@@ -130,8 +119,7 @@ public class GremlinClient {
     }
 
     private void deleteCall(Request request) throws IOException {
-        //setup client params
-        setupClientParams(ctx);
+        setupClientParams();
 
         Response response = getClientResponse(request);
         int statusCode = response.code();
@@ -175,32 +163,22 @@ public class GremlinClient {
     }
 
 
-    private static void setupClientParams(Context ctx) {
-        Map<String, Object> cfg = GremlinTask.createCfg(ctx);
-
-        long connectTimeout = Long.parseLong(cfg.get("connectTimeout").toString());
-        long readTimeout = Long.parseLong(cfg.get("readTimeout").toString());
-        long writeTimeout = Long.parseLong(cfg.get("writeTimeout").toString());
-        boolean useProxy = getBoolean(ctx, PROXY, false);
-
+    private void setupClientParams() {
         try {
-            client.setConnectTimeout(connectTimeout, TimeUnit.SECONDS);
-            client.setReadTimeout(readTimeout, TimeUnit.SECONDS);
-            client.setWriteTimeout(writeTimeout, TimeUnit.SECONDS);
+            client.setConnectTimeout(params.connectTimeout(), TimeUnit.SECONDS);
+            client.setReadTimeout(params.readTimeout(), TimeUnit.SECONDS);
+            client.setWriteTimeout(params.writeTimeout(), TimeUnit.SECONDS);
 
-            if (useProxy) {
-                String proxyHost = cfg.get("proxyHost").toString();
-                int proxyPort = Integer.parseInt(cfg.get("proxyPort").toString());
-
+            if (params.useProxy()) {
                 // Create a trust manager that does not validate certificate chains
                 final TrustManager[] trustAllCerts = new TrustManager[]{
                         new X509TrustManager() {
                             @Override
-                            public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {
+                            public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) {
                             }
 
                             @Override
-                            public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {
+                            public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) {
                             }
 
                             @Override
@@ -216,7 +194,7 @@ public class GremlinClient {
 
                 // Create an ssl socket factory with our all-trusting manager
                 final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
-                client.setProxy(new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort)));
+                client.setProxy(new Proxy(Proxy.Type.HTTP, new InetSocketAddress(params.proxyHost(), params.proxyPort())));
                 client.setSslSocketFactory(sslSocketFactory);
             }
         } catch (Exception e) {
