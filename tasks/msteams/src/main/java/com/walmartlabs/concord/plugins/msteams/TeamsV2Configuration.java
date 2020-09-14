@@ -20,19 +20,20 @@ package com.walmartlabs.concord.plugins.msteams;
  * =====
  */
 
-public interface TeamsConfiguration {
+public interface TeamsV2Configuration {
 
-    String teamId();
+    String rootApi();
+
     String tenantId();
-    String webhookTypeId();
-    String webhookId();
-    String webhookUrl();
-    String rootWebhookUrl();
+    String accessTokenApi();
+    String clientId();
+    String clientSecret();
 
     String proxyAddress();
     int proxyPort();
+    boolean useProxy();
+
     int connectTimeout();
     int soTimeout();
-
     int retryCount();
 }

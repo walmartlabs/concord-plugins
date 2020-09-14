@@ -38,7 +38,6 @@ public class Result implements Serializable {
     private final String conversationId;
     private final String activityId;
 
-
     public static Result error(String error) {
         return new Result(false, error, null, null,
                 null);
