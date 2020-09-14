@@ -1,4 +1,4 @@
-package com.walmartlabs.concord.plugins.xmlutils;
+package com.walmartlabs.concord.plugins.xmlutils.v2;
 
 /*-
  * *****
@@ -20,31 +20,39 @@ package com.walmartlabs.concord.plugins.xmlutils;
  * =====
  */
 
-import com.walmartlabs.concord.sdk.Context;
+import com.walmartlabs.concord.plugins.xmlutils.XmlUtilsTaskCommon;
+import com.walmartlabs.concord.runtime.v2.sdk.Context;
+import com.walmartlabs.concord.runtime.v2.sdk.Task;
 import com.walmartlabs.concord.sdk.InjectVariable;
-import com.walmartlabs.concord.sdk.Task;
 
+import javax.inject.Inject;
 import javax.inject.Named;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
 @Named("xmlUtils")
 @SuppressWarnings("unused")
-public class XmlUtilsTask implements Task {
+public class XmlUtilsTaskV2 implements Task {
+
+    private final XmlUtilsTaskCommon delegate;
+
+    @Inject
+    public XmlUtilsTaskV2(Context context) {
+        this.delegate = new XmlUtilsTaskCommon(context.workingDirectory());
+    }
 
     /**
      * Evaluates the expression and returns a single {@link String} value.
      */
     public String xpathString(@InjectVariable("workDir") String workDir, String file, String expression) throws Exception {
-        return delegate(workDir).xpathString(file, expression);
+        return delegate.xpathString(file, expression);
     }
 
     /**
      * Evaluates the expression and returns a list of {@link String} values.
      */
     public List<String> xpathListOfStrings(@InjectVariable("workDir") String workDir, String file, String expression) throws Exception {
-        return delegate(workDir).xpathListOfStrings(file, expression);
+        return delegate.xpathListOfStrings(file, expression);
     }
 
     /**
@@ -52,15 +60,6 @@ public class XmlUtilsTask implements Task {
      * Knows how to handle the {@code <parent>} tag, i.e. parent GAV values are merged with the pom's own GAV.
      */
     public Map<String, String> mavenGav(@InjectVariable("workDir") String workDir, String file) throws Exception {
-        return delegate(workDir).mavenGav(file);
-    }
-
-    @Override
-    public void execute(Context ctx) {
-        throw new RuntimeException("The task can only be used in expressions");
-    }
-
-    private static XmlUtilsTaskCommon delegate(String workDir) {
-        return new XmlUtilsTaskCommon(Paths.get(workDir));
+        return delegate.mavenGav(file);
     }
 }
