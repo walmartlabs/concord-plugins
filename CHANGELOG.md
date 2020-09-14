@@ -4,6 +4,7 @@
 
 ### Added
 
+- s3: runtime-v2 support;
 - taurus: runtime-v2 support;
 - msteams: runtime-v2 support;
 - zoom: runtime-v2 support;

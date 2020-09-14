@@ -24,8 +24,6 @@ public final class Constants {
 
     public static final String ACTION_KEY = "action";
     public static final String AUTH_KEY = "auth";
-    public static final String OBJECT_KEY = "objectKey";
-    public static final String REGION_KEY = "region";
     public static final String RESULT_KEY = "result";
 
     private Constants() {

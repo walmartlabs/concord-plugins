@@ -38,7 +38,7 @@ public class PutObjectResult implements Result {
         return ok;
     }
 
-    public String geteTag() {
+    public String getTag() {
         return eTag;
     }
 
