@@ -21,7 +21,6 @@ package com.walmartlabs.concord.plugins.msteams;
  */
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.walmartlabs.concord.sdk.MapUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
@@ -49,7 +48,6 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
 import java.security.SecureRandom;
-import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.HashMap;
 import java.util.List;
@@ -66,7 +64,7 @@ public class TeamsClient implements AutoCloseable {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public TeamsClient(TeamsConfiguration cfg) {
-        this.retryCount = cfg.getRetryCount();
+        this.retryCount = cfg.retryCount();
         this.connManager = createConnManager();
         this.client = createClient(cfg, connManager);
     }
@@ -77,7 +75,7 @@ public class TeamsClient implements AutoCloseable {
         connManager.close();
     }
 
-    public Result message(Map<String, Object> cfg, String title, String text, String themeColor,
+    public Result message(TeamsConfiguration cfg, String title, String text, String themeColor,
                           List<Object> sections, List<Object> potentialAction) throws IOException {
 
         Map<String, Object> params = new HashMap<>();
@@ -95,16 +93,16 @@ public class TeamsClient implements AutoCloseable {
         return exec(cfg, params);
     }
 
-    private Result exec(Map<String, Object> cfg, Map<String, Object> params) throws IOException {
+    private Result exec(TeamsConfiguration cfg, Map<String, Object> params) throws IOException {
 
-        String teamId = MapUtils.getString(cfg, Constants.TEAM_ID_KEY, null);
-        String webhookId = MapUtils.getString(cfg, Constants.WEBHOOK_ID_KEY, null);
-        String webhookUrl = MapUtils.getString(cfg, Constants.WEBHOOK_URL_KEY, null);
+        String teamId = cfg.teamId();
+        String webhookId = cfg.webhookId();
+        String webhookUrl = cfg.webhookUrl();
 
         HttpPost request;
 
         if ((teamId != null && !teamId.isEmpty()) && (webhookId != null && !webhookId.isEmpty())) {
-            webhookUrl = cfg.get(Constants.ROOT_WEBHOOK_URL_KEY) + teamId + "@" + cfg.get(Constants.TENANT_ID_KEY) + "/IncomingWebhook/" + webhookId + "/" + cfg.get(Constants.WEBHOOKTYPE_ID_KEY);
+            webhookUrl = cfg.rootWebhookUrl() + teamId + "@" + cfg.tenantId() + "/IncomingWebhook/" + webhookId + "/" + cfg.webhookTypeId();
             request = new HttpPost(webhookUrl);
         } else if (webhookUrl != null && !webhookUrl.isEmpty()) {
             request = new HttpPost(webhookUrl);
@@ -189,13 +187,13 @@ public class TeamsClient implements AutoCloseable {
 
     public static RequestConfig createConfig(TeamsConfiguration cfg) {
         HttpHost proxy = null;
-        if (cfg.getProxyAddress() != null) {
-            proxy = new HttpHost(cfg.getProxyAddress(), cfg.getProxyPort(), "http");
+        if (cfg.proxyAddress() != null) {
+            proxy = new HttpHost(cfg.proxyAddress(), cfg.proxyPort(), "http");
         }
 
         return RequestConfig.custom()
-                .setConnectTimeout(cfg.getConnectTimeout())
-                .setSocketTimeout(cfg.getSoTimeout())
+                .setConnectTimeout(cfg.connectTimeout())
+                .setSocketTimeout(cfg.soTimeout())
                 .setProxy(proxy)
                 .build();
     }
@@ -203,11 +201,11 @@ public class TeamsClient implements AutoCloseable {
     private static class DefaultTrustManager implements X509TrustManager {
 
         @Override
-        public void checkClientTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException { // NOSONAR
+        public void checkClientTrusted(X509Certificate[] x509Certificates, String s) { // NOSONAR
         }
 
         @Override
-        public void checkServerTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException { // NOSONAR
+        public void checkServerTrusted(X509Certificate[] x509Certificates, String s) { // NOSONAR
         }
 
         @Override

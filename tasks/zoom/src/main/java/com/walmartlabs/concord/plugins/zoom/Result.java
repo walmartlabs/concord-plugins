@@ -29,27 +29,18 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
-
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Result implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private final boolean ok;
     private final String error;
     private final Map<String, Object> params = new HashMap<>();
     public final String data;
 
-    public static Result ok(String data) {
-        return new Result(true, null, data);
-    }
-
-    public static Result error(String error) {
-        return new Result(false, error, null);
-    }
-
-
     public Result(boolean ok, String error, String data) {
-
         this.ok = ok;
         this.error = error;
         this.data = data;
