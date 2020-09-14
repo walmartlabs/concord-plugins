@@ -25,6 +25,7 @@ import java.io.InputStream;
 import java.util.Properties;
 
 public final class Version {
+
     private static final String JMETER_VERSION;
     private static final String PLUGINMRG_VERSION;
     private static final String CMD_RUNNER_VERSION;

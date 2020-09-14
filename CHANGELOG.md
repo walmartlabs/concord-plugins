@@ -4,6 +4,7 @@
 
 ### Added
 
+- taurus: runtime-v2 support;
 - msteams: runtime-v2 support;
 - zoom: runtime-v2 support;
 - xml: runtime-v2 support;
