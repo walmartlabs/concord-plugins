@@ -33,6 +33,7 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static com.walmartlabs.concord.plugins.s3.TaskParams.*;
 
 @Ignore
 public class S3TaskTest {
@@ -51,14 +52,14 @@ public class S3TaskTest {
 
         Map<String, Object> args = new HashMap<>();
         args.put(com.walmartlabs.concord.sdk.Constants.Context.WORK_DIR_KEY, p.getParent().toAbsolutePath().toString());
-        args.put(Constants.ACTION_KEY, S3Task.Action.PUTOBJECT.name());
-        args.put(Constants.BUCKET_NAME_KEY, "ibodrov-test");
-        args.put(Constants.OBJECT_KEY, "xyz");
-        args.put(Constants.SRC_KEY, p.getFileName().toString());
-        args.put(Constants.ENDPOINT_KEY, System.getenv("AWS_ENDPOINT"));
-        args.put(Constants.REGION_KEY, System.getenv("AWS_REGION"));
-        args.put(Constants.PATH_STYLE_ACCESS_KEY, true);
-        args.put(Constants.AUTH_KEY, Collections.singletonMap("basic", auth));
+        args.put(ACTION_KEY, TaskParams.Action.PUTOBJECT.name());
+        args.put(PutObjectParams.BUCKET_NAME_KEY, "ibodrov-test");
+        args.put(PutObjectParams.OBJECT_KEY, "xyz");
+        args.put(PutObjectParams.SRC_KEY, p.getFileName().toString());
+        args.put(PutObjectParams.ENDPOINT_KEY, System.getenv("AWS_ENDPOINT"));
+        args.put(PutObjectParams.REGION_KEY, System.getenv("AWS_REGION"));
+        args.put(PutObjectParams.PATH_STYLE_ACCESS_KEY, true);
+        args.put(PutObjectParams.AUTH_KEY, Collections.singletonMap("basic", auth));
 
         MockContext ctx = new MockContext(args);
 
@@ -70,7 +71,7 @@ public class S3TaskTest {
 
         // ---
 
-        args.put(Constants.ACTION_KEY, S3Task.Action.GETOBJECT.name());
+        args.put(Constants.ACTION_KEY, TaskParams.Action.GETOBJECT.name());
 
         ctx = new MockContext(args);
         t.execute(ctx);
