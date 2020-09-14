@@ -4,6 +4,7 @@
 
 ### Added
 
+- zoom: runtime-v2 support;
 - xml: runtime-v2 support;
 - ldap: runtime-v2 support;
 - jsonpath: runtime-v2 support;

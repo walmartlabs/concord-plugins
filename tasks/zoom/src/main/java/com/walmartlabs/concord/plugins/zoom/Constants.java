@@ -26,27 +26,13 @@ public class Constants {
     public static final int DEFAULT_SO_TIMEOUT = 30_000;
     public static final int DEFAULT_RETRY_COUNT = 5;
 
-    public static final String VAR_ZOOM_PARAMS = "zoomParams";
-    public static final String VAR_CLIENT_ID = "clientId";
-    public static final String VAR_CLIENT_SECRET = "clientSecret";
-    public static final String VAR_ACCOUNT_ID = "accountId";
-    public static final String VAR_ROBOT_ID = "robotJid";
-    public static final String VAR_ROOT_API = "rootApi";
     public static final String VAR_ACCESS_TOKEN = "access_token";
-    public static final String VAR_ACCESS_TOKEN_API = "accessTokenApi";
-
-    public static final String VAR_PROXY_ADDRESS = "proxyAddress";
-    public static final String VAR_PROXY_PORT = "proxyPort";
-    public static final String VAR_CONNECTION_TIMEOUT = "connectTimeout";
-    public static final String VAR_SO_TIMEOUT = "soTimeout";
-    public static final String VAR_RETRY_COUNT = "retryCount";
-
     public static final String CHAT_POST_MESSAGE_API = "im/chat/messages";
+
     public static final int TOO_MANY_REQUESTS_ERROR = 429;
     public static final int ZOOM_SUCCESS_STATUS_CODE = 201;
     public static final int DEFAULT_RETRY_AFTER = 1;
     public static final int DEFAULT_PROXY_PORT = 9080;
-
 
     private Constants() {
     }
