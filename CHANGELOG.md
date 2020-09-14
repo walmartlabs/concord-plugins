@@ -4,7 +4,8 @@
 
 ### Added
 
-- gremlin: runtime-v2 support.
+- jira: runtime-v2 support;
+- gremlin: runtime-v2 support;
 - confluence: runtime-v2 support.
 
 ### Changed

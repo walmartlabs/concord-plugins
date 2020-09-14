@@ -29,7 +29,6 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import java.util.Map;
 
-
 @Named("jira")
 public class JiraTaskV2 implements Task {
 
