@@ -124,7 +124,7 @@ public class TerraformTaskV2 implements Task {
         }
 
         if (src.getHasChanges() != null) {
-            dst.value("hasChanges", src.getOutput());
+            dst.value("hasChanges", src.getHasChanges());
         }
 
         if (src.getPlanPath() != null) {

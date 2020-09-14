@@ -33,8 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import static com.walmartlabs.concord.sdk.MapUtils.getNumber;
-
 public class JiraClient {
 
     private static final OkHttpClient client = new OkHttpClient();
@@ -45,17 +43,12 @@ public class JiraClient {
     private static final TypeToken<List<Map<String, Object>>> LIST_OF_MAPS_TYPE_TOKEN = new TypeToken<List<Map<String, Object>>>() {
     };
 
-    private static final String CLIENT_CONNECTTIMEOUT = "connectTimeout";
-    private static final String CLIENT_READTIMEOUT = "readTimeout";
-    private static final String CLIENT_WRITETIMEOUT = "writeTimeout";
-
-    private final Map<String, Object> cfg;
-
+    private final JiraClientCfg cfg;
     private String url;
     private int successCode;
     private String auth;
 
-    public JiraClient(Map<String, Object> cfg) {
+    public JiraClient(JiraClientCfg cfg) {
         this.cfg = cfg;
     }
 
@@ -174,13 +167,9 @@ public class JiraClient {
         }
     }
 
-    private static void setClientTimeoutParams(Map<String, Object> cfg) {
-        long connectTimeout = getNumber(cfg, CLIENT_CONNECTTIMEOUT, 30L).longValue();
-        long readTimeout = getNumber(cfg, CLIENT_READTIMEOUT, 30L).longValue();
-        long writeTimeout = getNumber(cfg, CLIENT_WRITETIMEOUT, 30L).longValue();
-
-        client.setConnectTimeout(connectTimeout, TimeUnit.SECONDS);
-        client.setReadTimeout(readTimeout, TimeUnit.SECONDS);
-        client.setWriteTimeout(writeTimeout, TimeUnit.SECONDS);
+    private static void setClientTimeoutParams(JiraClientCfg cfg) {
+        client.setConnectTimeout(cfg.connectTimeout(), TimeUnit.SECONDS);
+        client.setReadTimeout(cfg.readTimeout(), TimeUnit.SECONDS);
+        client.setWriteTimeout(cfg.writeTimeout(), TimeUnit.SECONDS);
     }
 }
