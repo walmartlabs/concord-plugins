@@ -20,110 +20,68 @@ package com.walmartlabs.concord.plugins.jsonpath;
  * =====
  */
 
-import com.jayway.jsonpath.Configuration;
-import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.Option;
-import com.jayway.jsonpath.ParseContext;
+import com.walmartlabs.concord.runtime.v2.sdk.Variables;
 import com.walmartlabs.concord.sdk.Context;
 import com.walmartlabs.concord.sdk.ContextUtils;
 import com.walmartlabs.concord.sdk.InjectVariable;
 import com.walmartlabs.concord.sdk.Task;
 
 import javax.inject.Named;
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.util.Map;
 
 @Named("jsonPath")
+@SuppressWarnings("unused")
 public class JsonPathTask implements Task {
 
-    private static final String ACTION_KEY = "action";
-    private static final String SRC_KEY = "src";
-    private static final String PATH_KEY = "path";
     private static final String RESULT_KEY = "result";
 
     public Object read(Object v, String jsonPath) {
-        return jsonPath().parse(v).read(jsonPath);
+        return new JsonPathTaskCommon().read(v, jsonPath);
     }
 
     public Object readJson(String s, String jsonPath) {
-        return jsonPath().parse(s).read(jsonPath);
+        return new JsonPathTaskCommon().readJson(s, jsonPath);
     }
 
     public Object readFile(@InjectVariable("context") Context ctx, Object v, String jsonPath) throws IOException {
-        Path baseDir = ContextUtils.getWorkDir(ctx);
-
-        if (v instanceof String) {
-            Path p = assertRelative(Paths.get((String) v));
-            File jsonFile = baseDir.resolve(p).toFile();
-            return jsonPath().parse(jsonFile).read(jsonPath);
-        } else if (v instanceof File) {
-            return jsonPath().parse((File) v).read(jsonPath);
-        } else if (v instanceof Path) {
-            Path p = assertRelative((Path) v);
-            File jsonFile = baseDir.resolve(p).toFile();
-            return jsonPath().parse(jsonFile).read(jsonPath);
-        } else {
-            throw new IllegalArgumentException("Expected a path to a JSON file, got: " + v);
-        }
+        return new JsonPathTaskCommon(ContextUtils.getWorkDir(ctx)).readFile(v, jsonPath);
     }
 
     @Override
     public void execute(Context ctx) throws Exception {
-        Action action = getAction(ctx);
-        String jsonPath = ContextUtils.assertString(ctx, PATH_KEY);
-
-        Object src = ctx.getVariable(SRC_KEY);
-        Object result;
-
-        switch (action) {
-            case READ: {
-                result = read(src, jsonPath);
-                break;
-            }
-            case READFILE: {
-                result = readFile(ctx, src, jsonPath);
-                break;
-            }
-            case READJSON: {
-                result = readJson((String) src, jsonPath);
-                break;
-            }
-            default:
-                throw new IllegalArgumentException("Unsupported action: " + action);
-        }
+        Object result = new JsonPathTaskCommon(ContextUtils.getWorkDir(ctx))
+                .execute(new TaskParams(new ContextVariables(ctx)));
 
         ctx.setVariable(RESULT_KEY, result);
     }
 
-    private static Path assertRelative(Path p) {
-        if (p.isAbsolute()) {
-            throw new IllegalArgumentException("Expected a relative file path, got: " + p);
+    private static class ContextVariables implements Variables {
+
+        private final Context context;
+
+        public ContextVariables(Context context) {
+            this.context = context;
         }
 
-        return p;
-    }
-
-    private static ParseContext jsonPath() {
-        Configuration cfg = Configuration.defaultConfiguration()
-                .addOptions(Option.DEFAULT_PATH_LEAF_TO_NULL);
-
-        return JsonPath.using(cfg);
-    }
-
-    private static Action getAction(Context ctx) {
-        Object v = ctx.getVariable(ACTION_KEY);
-        if (!(v instanceof String)) {
-            throw new IllegalArgumentException("Expected an action, got: " + v);
+        @Override
+        public Object get(String key) {
+            return context.getVariable(key);
         }
 
-        return Action.valueOf(((String) v).toUpperCase());
-    }
+        @Override
+        public void set(String key, Object value) {
+            throw new IllegalStateException("Unsupported");
+        }
 
-    public enum Action {
-        READ,
-        READJSON,
-        READFILE
+        @Override
+        public boolean has(String key) {
+            return context.getVariable(key) != null;
+        }
+
+        @Override
+        public Map<String, Object> toMap() {
+            return context.toMap();
+        }
     }
 }

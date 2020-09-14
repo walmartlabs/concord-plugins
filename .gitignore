@@ -16,3 +16,4 @@ nohup.out
 nb-configuration.xml
 pom.xml.bak
 jmeter.log
+.terraform/

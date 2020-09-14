@@ -24,6 +24,12 @@
             <version>${concord.version}</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>com.walmartlabs.concord.runtime.v2</groupId>
+            <artifactId>concord-runtime-sdk-v2</artifactId>
+            <version>${concord.version}</version>
+            <scope>provided</scope>
+        </dependency>
 
         <dependency>
             <groupId>com.jayway.jsonpath</groupId>

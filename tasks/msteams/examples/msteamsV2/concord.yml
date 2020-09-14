@@ -1,26 +1,30 @@
+configuration:
+  dependencies:
+    - "mvn://com.walmartlabs.concord.plugins:msteams-task:1.32.0"
+
 flows:
   default:
-  - task: msteamsV2
-    in:
-      action: createConversation
-      activity:
-        type: message
-        text: "My First Message"
-      channelId: "myChannelId"
-      ignoreErrors: true
+    - task: msteamsV2
+      in:
+        action: createConversation
+        activity:
+          type: message
+          text: "My First Message"
+        channelId: "myChannelId"
+        ignoreErrors: true
 
-  - log: "Result status: ${result.ok}"
-  - if: "${!result.ok}"
-    then:
-    - throw: "Error occurred while sending a message: ${result.error}"
-    else:
-    - log: "Data: ${result.data}"
-    - log: "Conversation Id: ${result.conversationId}"
+    - log: "Result status: ${result.ok}"
+    - if: "${!result.ok}"
+      then:
+        - throw: "Error occurred while sending a message: ${result.error}"
+      else:
+        - log: "Data: ${result.data}"
+        - log: "Conversation Id: ${result.conversationId}"
 
-  - task: msteamsV2
-    in:
-      action: replyToConversation
-      conversationId: ${result.conversationId}
-      activity:
-        type: message
-        text: "This replies to a previously posted conversation"
+    - task: msteamsV2
+      in:
+        action: replyToConversation
+        conversationId: ${result.conversationId}
+        activity:
+          type: message
+          text: "This replies to a previously posted conversation"

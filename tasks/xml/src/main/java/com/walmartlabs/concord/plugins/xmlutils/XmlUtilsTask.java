@@ -23,22 +23,9 @@ package com.walmartlabs.concord.plugins.xmlutils;
 import com.walmartlabs.concord.sdk.Context;
 import com.walmartlabs.concord.sdk.InjectVariable;
 import com.walmartlabs.concord.sdk.Task;
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 
 import javax.inject.Named;
-import javax.xml.namespace.QName;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathFactory;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -50,42 +37,14 @@ public class XmlUtilsTask implements Task {
      * Evaluates the expression and returns a single {@link String} value.
      */
     public String xpathString(@InjectVariable("workDir") String workDir, String file, String expression) throws Exception {
-        Node n = (Node) eval(workDir, file, expression, XPathConstants.NODE);
-
-        if (n == null) {
-            throw new IllegalArgumentException("Node not found: " + expression + " (file: " + file + ")");
-        }
-
-        if (n.getNodeType() != Node.TEXT_NODE) {
-            throw new IllegalArgumentException("The expression's (" + expression + ") result is not a string: " + n
-                    + " (file: " + file + ")");
-        }
-
-        return n.getTextContent();
+        return delegate(workDir).xpathString(file, expression);
     }
 
     /**
      * Evaluates the expression and returns a list of {@link String} values.
      */
     public List<String> xpathListOfStrings(@InjectVariable("workDir") String workDir, String file, String expression) throws Exception {
-        NodeList l = (NodeList) eval(workDir, file, expression, XPathConstants.NODESET);
-
-        if (l == null) {
-            throw new IllegalArgumentException("Node not found: " + expression + " (file: " + file + ")");
-        }
-
-        List<String> result = new ArrayList<>(l.getLength());
-        for (int i = 0; i < l.getLength(); i++) {
-            Node n = l.item(i);
-            if (n.getNodeType() != Node.TEXT_NODE) {
-                throw new IllegalArgumentException("Node value is not a string: " + n
-                        + " (expression: " + expression + ", file: " + file + ")");
-            }
-
-            result.add(n.getTextContent());
-        }
-
-        return result;
+        return delegate(workDir).xpathListOfStrings(file, expression);
     }
 
     /**
@@ -93,18 +52,7 @@ public class XmlUtilsTask implements Task {
      * Knows how to handle the {@code <parent>} tag, i.e. parent GAV values are merged with the pom's own GAV.
      */
     public Map<String, String> mavenGav(@InjectVariable("workDir") String workDir, String file) throws Exception {
-        Document document = assertDocument(workDir, file);
-        XPath xpath = XPathFactory.newInstance().newXPath();
-
-        Map<String, String> parentGav = toGav(file, xpath, document,
-                "/project/parent/*[local-name()='groupId' or local-name()='artifactId' or local-name()='version']");
-
-        Map<String, String> ownGav = toGav(file, xpath, document,
-                "/project/*[local-name()='groupId' or local-name()='artifactId' or local-name()='version']");
-
-        Map<String, String> result = new HashMap<>(parentGav);
-        result.putAll(ownGav);
-        return result;
+        return delegate(workDir).mavenGav(file);
     }
 
     @Override
@@ -112,38 +60,7 @@ public class XmlUtilsTask implements Task {
         throw new RuntimeException("The task can only be used in expressions");
     }
 
-    private static Object eval(String workDir, String file, String expression, QName returnType) throws Exception {
-        Document document = assertDocument(workDir, file);
-        XPath xpath = XPathFactory.newInstance().newXPath();
-        return xpath.evaluate(expression, document, returnType);
-    }
-
-    private static Document assertDocument(String workDir, String file) throws Exception {
-        Path src = Paths.get(workDir).resolve(file);
-        if (!Files.exists(src)) {
-            throw new IllegalArgumentException("File not found: " + file);
-        }
-
-        DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-        return builder.parse(src.toFile());
-    }
-
-    private static Map<String, String> toGav(String file, XPath xpath, Document document, String expression) throws Exception {
-        NodeList l = (NodeList) xpath.evaluate(expression, document, XPathConstants.NODESET);
-
-        Map<String, String> result = new HashMap<>(l.getLength());
-        for (int i = 0; i < l.getLength(); i++) {
-            Node n = l.item(i);
-            if (n.getNodeType() != Node.ELEMENT_NODE) {
-                throw new IllegalArgumentException("Unknown node type: " + n
-                        + " (expression: " + expression + ", file: " + file + ")."
-                        + " Invalid input data?");
-            }
-
-            String value = n.getFirstChild().getNodeValue();
-            result.put(n.getNodeName(), value);
-        }
-
-        return result;
+    private static XmlUtilsTaskCommon delegate(String workDir) {
+        return new XmlUtilsTaskCommon(Paths.get(workDir));
     }
 }

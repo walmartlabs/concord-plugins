@@ -20,164 +20,19 @@ package com.walmartlabs.concord.plugins.msteams;
  * =====
  */
 
-import com.walmartlabs.concord.sdk.Context;
+public interface TeamsConfiguration {
 
-import java.util.Map;
+    String teamId();
+    String tenantId();
+    String webhookTypeId();
+    String webhookId();
+    String webhookUrl();
+    String rootWebhookUrl();
 
-import static com.walmartlabs.concord.sdk.MapUtils.*;
+    String proxyAddress();
+    int proxyPort();
+    int connectTimeout();
+    int soTimeout();
 
-public class TeamsConfiguration {
-
-    @SuppressWarnings("unchecked")
-    public static TeamsConfiguration from(Context ctx) {
-        Map<String, Object> msteamsParams = (Map<String, Object>) ctx.getVariable(Constants.MSTEAMS_PARAMS_KEY);
-
-        return from(getString(msteamsParams, Constants.TEAM_ID_KEY),
-                getString(msteamsParams, Constants.TENANT_ID_KEY),
-                getString(msteamsParams, Constants.WEBHOOKTYPE_ID_KEY),
-                getString(msteamsParams, Constants.WEBHOOK_ID_KEY),
-                getString(msteamsParams, Constants.ROOT_WEBHOOK_URL_KEY),
-                getString(msteamsParams, Constants.PROXY_ADDRESS_KEY),
-                getInt(msteamsParams, Constants.PROXY_PORT_KEY, Constants.DEFAULT_PROXY_PORT),
-                getBoolean(msteamsParams, Constants.USE_PROXY_KEY, false),
-                getInt(msteamsParams, Constants.CONNECTION_TIMEOUT_KEY, Constants.DEFAULT_CONNECT_TIMEOUT),
-                getInt(msteamsParams, Constants.SO_TIMEOUT_KEY, Constants.DEFAULT_SO_TIMEOUT),
-                getInt(msteamsParams, Constants.RETRY_COUNT_KEY, Constants.DEFAULT_RETRY_COUNT),
-                getString(msteamsParams, Constants.VAR_ACCESS_TOKEN_API),
-                getString(msteamsParams, Constants.VAR_CLIENT_ID),
-                getString(msteamsParams, Constants.VAR_CLIENT_SECRET),
-                getString(msteamsParams, Constants.VAR_ROOT_API));
-    }
-
-
-    public static TeamsConfiguration from(String teamId,
-                                          String tenantId,
-                                          String webhookTypeId,
-                                          String webhookId,
-                                          String rootWebhookUrl,
-                                          String proxyAddress,
-                                          int proxyPort,
-                                          boolean useProxy,
-                                          int connectTimeout,
-                                          int soTimeout,
-                                          int retryCount,
-                                          String accessTokenApi,
-                                          String clientId,
-                                          String clientSecret,
-                                          String rootApi) {
-
-        return new TeamsConfiguration(teamId, tenantId, webhookTypeId, webhookId,
-                rootWebhookUrl, proxyAddress, proxyPort, useProxy, connectTimeout, soTimeout, retryCount, accessTokenApi,
-                clientId, clientSecret, rootApi);
-    }
-
-    private final String teamId;
-    private final String tenantId;
-    private final String webhookTypeId;
-    private final String webhookId;
-    private final String rootWebhookUrl;
-    private final String accessTokenApi;
-    private final String clientId;
-    private final String clientSecret;
-    private final String rootApi;
-
-    private final String proxyAddress;
-    private final int proxyPort;
-    private final boolean useProxy;
-    private final int connectTimeout;
-    private final int soTimeout;
-    private final int retryCount;
-
-    public TeamsConfiguration(String teamId,
-                              String tenantId,
-                              String webhookTypeId,
-                              String webhookId,
-                              String rootWebhookUrl,
-                              String proxyAddress,
-                              int proxyPort,
-                              boolean useProxy,
-                              int connectTimeout,
-                              int soTimeout,
-                              int retryCount,
-                              String accessTokenApi,
-                              String clientId,
-                              String clientSecret,
-                              String rootApi) {
-
-        this.teamId = teamId;
-        this.tenantId = tenantId;
-        this.webhookTypeId = webhookTypeId;
-        this.webhookId = webhookId;
-        this.rootWebhookUrl = rootWebhookUrl;
-        this.proxyAddress = proxyAddress;
-        this.proxyPort = proxyPort;
-        this.useProxy = useProxy;
-        this.connectTimeout = connectTimeout;
-        this.soTimeout = soTimeout;
-        this.retryCount = retryCount;
-        this.accessTokenApi = accessTokenApi;
-        this.clientId = clientId;
-        this.clientSecret = clientSecret;
-        this.rootApi = rootApi;
-    }
-
-    public String getWebhookTypeId() {
-        return webhookTypeId;
-    }
-
-    public String getWebhookId() {
-        return webhookId;
-    }
-
-    public String getRootWebhookUrl() {
-        return rootWebhookUrl;
-    }
-
-    public String getTeamId() {
-        return teamId;
-    }
-
-    public String getTenantId() {
-        return tenantId;
-    }
-
-    public String getProxyAddress() {
-        return proxyAddress;
-    }
-
-    public int getProxyPort() {
-        return proxyPort;
-    }
-
-    public boolean isUseProxy() {
-        return useProxy;
-    }
-
-    public int getConnectTimeout() {
-        return connectTimeout;
-    }
-
-    public int getSoTimeout() {
-        return soTimeout;
-    }
-
-    public int getRetryCount() {
-        return retryCount;
-    }
-
-    public String getAccessTokenApi() {
-        return accessTokenApi;
-    }
-
-    public String getClientId() {
-        return clientId;
-    }
-
-    public String getClientSecret() {
-        return clientSecret;
-    }
-
-    public String getRootApi() {
-        return rootApi;
-    }
+    int retryCount();
 }
