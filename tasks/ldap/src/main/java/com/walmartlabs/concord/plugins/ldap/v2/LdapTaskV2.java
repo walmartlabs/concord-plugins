@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.Map;
 
 @Named("ldap")
+@SuppressWarnings("unused")
 public class LdapTaskV2 implements Task {
 
     private final Context context;
