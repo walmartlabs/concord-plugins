@@ -32,8 +32,6 @@ import java.nio.file.Paths;
 
 public class JsonPathTaskCommon {
 
-    private static final String RESULT_KEY = "result";
-
     private final Path workDir;
 
     public JsonPathTaskCommon() {

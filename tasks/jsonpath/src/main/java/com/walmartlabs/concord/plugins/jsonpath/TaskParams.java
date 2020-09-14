@@ -21,7 +21,6 @@ package com.walmartlabs.concord.plugins.jsonpath;
  */
 
 import com.walmartlabs.concord.runtime.v2.sdk.Variables;
-import com.walmartlabs.concord.sdk.Context;
 
 import java.util.Arrays;
 
