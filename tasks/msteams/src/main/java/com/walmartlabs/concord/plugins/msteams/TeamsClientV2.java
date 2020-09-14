@@ -21,7 +21,6 @@ package com.walmartlabs.concord.plugins.msteams;
  */
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.walmartlabs.concord.sdk.MapUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpHost;
@@ -56,8 +55,8 @@ public class TeamsClientV2 implements AutoCloseable {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public TeamsClientV2(TeamsConfiguration cfg) {
-        this.retryCount = cfg.getRetryCount();
+    public TeamsClientV2(TeamsV2Configuration cfg) {
+        this.retryCount = cfg.retryCount();
         this.connManager = TeamsClient.createConnManager();
         this.client = createClient(cfg, connManager);
     }
@@ -68,12 +67,12 @@ public class TeamsClientV2 implements AutoCloseable {
         connManager.close();
     }
 
-    public Result createConversation(Map<String, Object> cfg, Map<String, Object> activity,
+    public Result createConversation(String tenantId, Map<String, Object> activity,
                                      String channelId, String rootApi) throws IOException {
 
         Map<String, Object> params = new HashMap<>();
         params.put("activity", activity);
-        params.put("tenantId", MapUtils.getString(cfg, Constants.TENANT_ID_KEY));
+        params.put("tenantId", tenantId);
 
         Map<String, Object> channel = Collections.singletonMap("id", URLDecoder.decode(channelId, "UTF-8"));
         Map<String, Object> channelData = Collections.singletonMap("channel", channel);
@@ -130,7 +129,7 @@ public class TeamsClientV2 implements AutoCloseable {
         return new Result(false, "too many requests", null, null, null);
     }
 
-    private static CloseableHttpClient createClient(TeamsConfiguration cfg, HttpClientConnectionManager connManager) {
+    private static CloseableHttpClient createClient(TeamsV2Configuration cfg, HttpClientConnectionManager connManager) {
         String accessToken = generateAccessToken(cfg);
 
         Collection<Header> headers = Collections.singleton(new BasicHeader(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken));
@@ -141,29 +140,29 @@ public class TeamsClientV2 implements AutoCloseable {
                 .build();
     }
 
-    public static RequestConfig createConfig(TeamsConfiguration cfg) {
+    public static RequestConfig createConfig(TeamsV2Configuration cfg) {
         HttpHost proxy = null;
-        if (cfg.isUseProxy()) {
-            proxy = new HttpHost(cfg.getProxyAddress(), cfg.getProxyPort(), "http");
+        if (cfg.useProxy()) {
+            proxy = new HttpHost(cfg.proxyAddress(), cfg.proxyPort(), "http");
         }
 
         return RequestConfig.custom()
-                .setConnectTimeout(cfg.getConnectTimeout())
-                .setSocketTimeout(cfg.getSoTimeout())
+                .setConnectTimeout(cfg.connectTimeout())
+                .setSocketTimeout(cfg.soTimeout())
                 .setProxy(proxy)
                 .build();
     }
 
     @SuppressWarnings("unchecked")
-    private static String generateAccessToken(TeamsConfiguration cfg) {
+    private static String generateAccessToken(TeamsV2Configuration cfg) {
         List<NameValuePair> data = new ArrayList<>();
-        data.add(new BasicNameValuePair("client_id", cfg.getClientId()));
-        data.add(new BasicNameValuePair("client_secret", cfg.getClientSecret()));
+        data.add(new BasicNameValuePair("client_id", cfg.clientId()));
+        data.add(new BasicNameValuePair("client_secret", cfg.clientSecret()));
         data.add(new BasicNameValuePair("scope", Constants.API_BOT_FRAMEWORK_SCOPE));
         data.add(new BasicNameValuePair("grant_type", Constants.API_BOT_FRAMEWORK_GRANT_TYPE));
 
         try {
-            HttpPost request = new HttpPost(cfg.getAccessTokenApi());
+            HttpPost request = new HttpPost(cfg.accessTokenApi());
             request.addHeader("content-type", "application/x-www-form-urlencoded");
             request.setEntity(new UrlEncodedFormEntity(data));
             CloseableHttpClient client = HttpClientBuilder.create().build();
