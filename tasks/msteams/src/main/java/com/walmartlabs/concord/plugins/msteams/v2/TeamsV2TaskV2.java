@@ -20,7 +20,9 @@ package com.walmartlabs.concord.plugins.msteams.v2;
  * =====
  */
 
-import com.walmartlabs.concord.plugins.msteams.*;
+import com.walmartlabs.concord.plugins.msteams.Result;
+import com.walmartlabs.concord.plugins.msteams.TeamsV2TaskCommon;
+import com.walmartlabs.concord.plugins.msteams.TeamsV2TaskParams;
 import com.walmartlabs.concord.runtime.v2.sdk.Context;
 import com.walmartlabs.concord.runtime.v2.sdk.Task;
 import com.walmartlabs.concord.runtime.v2.sdk.TaskResult;

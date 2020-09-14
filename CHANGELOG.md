@@ -4,6 +4,7 @@
 
 ### Added
 
+- msteams: runtime-v2 support;
 - zoom: runtime-v2 support;
 - xml: runtime-v2 support;
 - ldap: runtime-v2 support;
