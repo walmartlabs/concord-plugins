@@ -52,7 +52,6 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
 import java.security.SecureRandom;
-import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.*;
 
@@ -66,7 +65,7 @@ public class ZoomClient implements AutoCloseable {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public ZoomClient(ZoomConfiguration cfg) {
-        this.retryCount = cfg.getRetryCount();
+        this.retryCount = cfg.retryCount();
         this.connManager = createConnManager();
         this.client = createClient(cfg, connManager);
     }
@@ -191,13 +190,13 @@ public class ZoomClient implements AutoCloseable {
 
     @SuppressWarnings("unchecked")
     private static String getAccessToken(ZoomConfiguration cfg, HttpClientConnectionManager connManager) {
-        String authorization = Base64.getEncoder().encodeToString((cfg.getClientId() + ":" + cfg.getClientSecret()).getBytes());
+        String authorization = Base64.getEncoder().encodeToString((cfg.clientId() + ":" + cfg.clientSecret()).getBytes());
 
 
         try {
             Collection<Header> headers = Collections.singleton(new BasicHeader(HttpHeaders.AUTHORIZATION, "Basic " + authorization));
 
-            HttpPost request = new HttpPost(cfg.getAccessTokenApi());
+            HttpPost request = new HttpPost(cfg.accessTokenApi());
             request.addHeader("content-type", "application/json");
             CloseableHttpClient client = HttpClientBuilder.create()
                     .setDefaultRequestConfig(createConfig(cfg))
@@ -230,13 +229,13 @@ public class ZoomClient implements AutoCloseable {
 
     private static RequestConfig createConfig(ZoomConfiguration cfg) {
         HttpHost proxy = null;
-        if (cfg.getProxyAddress() != null) {
-            proxy = new HttpHost(cfg.getProxyAddress(), cfg.getProxyPort(), "http");
+        if (cfg.proxyAddress() != null) {
+            proxy = new HttpHost(cfg.proxyAddress(), cfg.proxyPort(), "http");
         }
 
         return RequestConfig.custom()
-                .setConnectTimeout(cfg.getConnectTimeout())
-                .setSocketTimeout(cfg.getSoTimeout())
+                .setConnectTimeout(cfg.connectTimeout())
+                .setSocketTimeout(cfg.soTimeout())
                 .setProxy(proxy)
                 .build();
     }
@@ -245,11 +244,11 @@ public class ZoomClient implements AutoCloseable {
     private static class DefaultTrustManager implements X509TrustManager {
 
         @Override
-        public void checkClientTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException { // NOSONAR
+        public void checkClientTrusted(X509Certificate[] x509Certificates, String s) { // NOSONAR
         }
 
         @Override
-        public void checkServerTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException { // NOSONAR
+        public void checkServerTrusted(X509Certificate[] x509Certificates, String s) { // NOSONAR
         }
 
         @Override
