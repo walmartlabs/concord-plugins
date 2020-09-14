@@ -4,6 +4,7 @@
 
 ### Added
 
+- xml: runtime-v2 support;
 - ldap: runtime-v2 support;
 - jsonpath: runtime-v2 support;
 - jira: runtime-v2 support;
