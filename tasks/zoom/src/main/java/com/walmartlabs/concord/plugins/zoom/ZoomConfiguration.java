@@ -22,16 +22,26 @@ package com.walmartlabs.concord.plugins.zoom;
 
 
 public interface ZoomConfiguration {
+
     String clientId();
+
     String clientSecret();
+
     String accountId();
+
     String robotJid();
+
     String rootApi();
+
     String accessTokenApi();
 
     String proxyAddress();
+
     int proxyPort();
+
     int connectTimeout();
+
     int soTimeout();
+
     int retryCount();
 }

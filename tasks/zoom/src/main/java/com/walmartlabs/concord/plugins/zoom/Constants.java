@@ -27,13 +27,12 @@ public class Constants {
     public static final int DEFAULT_RETRY_COUNT = 5;
 
     public static final String VAR_ACCESS_TOKEN = "access_token";
-
     public static final String CHAT_POST_MESSAGE_API = "im/chat/messages";
+
     public static final int TOO_MANY_REQUESTS_ERROR = 429;
     public static final int ZOOM_SUCCESS_STATUS_CODE = 201;
     public static final int DEFAULT_RETRY_AFTER = 1;
     public static final int DEFAULT_PROXY_PORT = 9080;
-
 
     private Constants() {
     }
