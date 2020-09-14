@@ -21,108 +21,27 @@ package com.walmartlabs.concord.plugins.zoom;
  */
 
 
-import com.walmartlabs.concord.sdk.Context;
+public interface ZoomConfiguration {
 
-import java.util.Map;
+    String clientId();
 
-import static com.walmartlabs.concord.sdk.MapUtils.getInt;
-import static com.walmartlabs.concord.sdk.MapUtils.getString;
+    String clientSecret();
 
-public class ZoomConfiguration {
+    String accountId();
 
-    @SuppressWarnings("unchecked")
-    public static ZoomConfiguration from(Context ctx) {
-        Map<String, Object> zoomParams = (Map<String, Object>) ctx.getVariable(Constants.VAR_ZOOM_PARAMS);
+    String robotJid();
 
+    String rootApi();
 
-        return from(getString(zoomParams, Constants.VAR_CLIENT_ID), getString(zoomParams, Constants.VAR_CLIENT_SECRET),
-                getString(zoomParams, Constants.VAR_ACCOUNT_ID), getString(zoomParams, Constants.VAR_ROBOT_ID),
-                getString(zoomParams, Constants.VAR_ROOT_API), getString(zoomParams, Constants.VAR_ACCESS_TOKEN_API),
-                getString(zoomParams, Constants.VAR_PROXY_ADDRESS), getInt(zoomParams, Constants.VAR_PROXY_PORT, Constants.DEFAULT_PROXY_PORT),
-                getInt(zoomParams, Constants.VAR_CONNECTION_TIMEOUT, Constants.DEFAULT_CONNECT_TIMEOUT),
-                getInt(zoomParams, Constants.VAR_SO_TIMEOUT, Constants.DEFAULT_SO_TIMEOUT),
-                getInt(zoomParams, Constants.VAR_RETRY_COUNT, Constants.DEFAULT_RETRY_COUNT));
-    }
+    String accessTokenApi();
 
+    String proxyAddress();
 
-    public static ZoomConfiguration from(String clientId, String clientSecret, String accountId,
-                                         String robotJid, String rootApi, String accessTokenApi,
-                                         String proxyAddress, int proxyPort, int connectTimeout, int soTimeout, int retryCount) {
+    int proxyPort();
 
-        return new ZoomConfiguration(clientId, clientSecret, accountId,
-                robotJid, rootApi, accessTokenApi, proxyAddress, proxyPort, connectTimeout, soTimeout, retryCount);
-    }
+    int connectTimeout();
 
-    private final String clientId;
-    private final String clientSecret;
-    private final String accountId;
-    private final String robotJid;
-    private final String rootApi;
-    private final String accessTokenApi;
+    int soTimeout();
 
-    private final String proxyAddress;
-    private final int proxyPort;
-    private final int connectTimeout;
-    private final int soTimeout;
-    private final int retryCount;
-
-    public ZoomConfiguration(String clientId, String clientSecret, String accountId, String robotJid,
-                             String rootApi, String accessTokenApi, String proxyAddress, int proxyPort,
-                             int connectTimeout, int soTimeout, int retryCount) {
-        this.clientId = clientId;
-        this.clientSecret = clientSecret;
-        this.accountId = accountId;
-        this.robotJid = robotJid;
-        this.rootApi = rootApi;
-        this.accessTokenApi = accessTokenApi;
-        this.proxyAddress = proxyAddress;
-        this.proxyPort = proxyPort;
-        this.connectTimeout = connectTimeout;
-        this.soTimeout = soTimeout;
-        this.retryCount = retryCount;
-    }
-
-    public String getAccountId() {
-        return accountId;
-    }
-
-    public String getRobotJid() {
-        return robotJid;
-    }
-
-    public String getClientId() {
-        return clientId;
-    }
-
-    public String getClientSecret() {
-        return clientSecret;
-    }
-
-    public String getRootApi() {
-        return rootApi;
-    }
-
-    public String getAccessTokenApi() {
-        return accessTokenApi;
-    }
-
-    public String getProxyAddress() {
-        return proxyAddress;
-    }
-
-    public int getProxyPort() {
-        return proxyPort;
-    }
-
-    public int getConnectTimeout() {
-        return connectTimeout;
-    }
-
-    public int getSoTimeout() {
-        return soTimeout;
-    }
-
-    public int getRetryCount() {
-        return retryCount;
-    }
+    int retryCount();
 }
