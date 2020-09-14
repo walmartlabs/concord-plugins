@@ -1,10 +1,24 @@
 # Change log
 
+## [Unreleased]
+
+### Added
+
+- gremlin: runtime-v2 support.
+- confluence: runtime-v2 support.
+
+### Changed
+
+- terraform: fix incorrect value of the `hasChanges` property of
+the result object (runtime-v2 version only).
+
+
+
 ## [1.31.1] - 2020-09-04
 
 ### Changed
 
-- terreform: fix `toolUrl` usage. Now it actually uses the downloaded
+- terraform: fix `toolUrl` usage. Now it actually uses the downloaded
 binary;
 - terraform: fix duplicate `Starting [ACTION]...` messages;
 - terraform: Concord 1.63.0 compatibility.
