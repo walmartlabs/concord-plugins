@@ -1,5 +1,13 @@
 # Change log
 
+## [Unreleased]
+
+### Changed
+
+- terraform: runtime-v2 compatibility for Concord 1.67.0+.
+
+
+
 ## [1.32.0] - 2020-09-15
 
 ### Added
