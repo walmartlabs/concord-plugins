@@ -47,7 +47,7 @@ public class TeamsV2TaskV2 implements Task {
     public TaskResult execute(Variables input) {
         Result r = delegate.execute(TeamsV2TaskParams.of(input, context.defaultVariables().toMap()));
 
-        TaskResult result = new TaskResult(r.isOk(), r.getError())
+        TaskResult.SimpleResult result = TaskResult.of(r.isOk(), r.getError())
                 .value("data", r.getData());
 
         if (r.getActivityId() != null && r.getConversationId().contains(r.getActivityId())) {

@@ -59,7 +59,7 @@ public class GitTaskV2Test {
         input.put(GitTask.GIT_URL, "https://github.com/walmartlabs/concord-plugins.git");
 
         GitTaskV2 task = new GitTaskV2(mock(SecretService.class), new WorkingDirectory(workDir));
-        TaskResult result = task.execute(new MapBackedVariables(input));
+        TaskResult.SimpleResult result = task.execute(new MapBackedVariables(input));
         assertTrue(result.ok());
     }
 }

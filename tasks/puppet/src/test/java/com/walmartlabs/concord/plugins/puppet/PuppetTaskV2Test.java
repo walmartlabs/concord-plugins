@@ -79,7 +79,7 @@ public class PuppetTaskV2Test extends AbstractApiTest {
 
         // -- Execute
 
-        TaskResult result = task.execute(input);
+        TaskResult.SimpleResult result = task.execute(input);
 
         // -- Validate
 
@@ -135,7 +135,7 @@ public class PuppetTaskV2Test extends AbstractApiTest {
         // -- Execute
 
         // Normally, this should throw an exception
-        TaskResult result = task.execute(input);
+        TaskResult.SimpleResult result = task.execute(input);
 
         // -- Validate
 
@@ -216,7 +216,7 @@ public class PuppetTaskV2Test extends AbstractApiTest {
 
         // -- Execute - now it should work
 
-        TaskResult result = task.execute(input);
+        TaskResult.SimpleResult result = task.execute(input);
 
         assertNotNull(result);
         assertTrue(result.ok());
@@ -255,7 +255,7 @@ public class PuppetTaskV2Test extends AbstractApiTest {
 
         // -- Execute - now it should work
 
-        TaskResult result = task.execute(input);
+        TaskResult.SimpleResult result = task.execute(input);
 
         assertNotNull(result);
         assertTrue(result.ok());
@@ -299,7 +299,7 @@ public class PuppetTaskV2Test extends AbstractApiTest {
 
         // -- Execute - now it should work
 
-        TaskResult result = task.execute(input);
+        TaskResult.SimpleResult result = task.execute(input);
 
         assertNotNull(result);
         assertTrue(result.ok());
@@ -336,7 +336,7 @@ public class PuppetTaskV2Test extends AbstractApiTest {
 
         // -- Execute - now it should work
 
-        TaskResult result = task.execute(input);
+        TaskResult.SimpleResult result = task.execute(input);
 
         assertNotNull(result);
         assertTrue(result.ok());
@@ -353,7 +353,7 @@ public class PuppetTaskV2Test extends AbstractApiTest {
 
         // -- Execute - now it should work
 
-        TaskResult result = task.execute(input);
+        TaskResult.SimpleResult result = task.execute(input);
 
         assertTrue(result.ok());
         String token = (String) result.values().get("data");

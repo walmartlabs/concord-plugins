@@ -45,7 +45,7 @@ public class ZoomTaskV2 implements Task {
     @Override
     public TaskResult execute(Variables input) {
         Result result = delegate.execute(TaskParams.of(input, context.defaultVariables().toMap()));
-        return new TaskResult(result.isOk(), result.getError())
+        return TaskResult.of(result.isOk(), result.getError())
                 .value("data", result.getData());
     }
 }

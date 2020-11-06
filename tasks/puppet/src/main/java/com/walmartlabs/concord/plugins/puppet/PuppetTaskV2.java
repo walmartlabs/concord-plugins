@@ -56,7 +56,7 @@ public class PuppetTaskV2 implements Task {
     }
 
     @Override
-    public TaskResult execute(Variables input) throws Exception {
+    public TaskResult.SimpleResult execute(Variables input) throws Exception {
         Map<String, Object> vars = input.toMap();
         boolean ignoreErrors = MapUtils.getBoolean(
                 vars,
@@ -77,7 +77,8 @@ public class PuppetTaskV2 implements Task {
             }
         }
 
-        return new TaskResult(result.isOk(), result.getError()).value("data", result.getData());
+        return TaskResult.of(result.isOk(), result.getError())
+                .value("data", result.getData());
     }
 
     private PuppetResult getResult(

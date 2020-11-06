@@ -54,7 +54,7 @@ public class S3TaskV2 implements Task {
         ObjectMapper om = new ObjectMapper();
         Map<String, Object> r = om.convertValue(result, Map.class);
 
-        return new TaskResult(MapUtils.getBoolean(r, "ok", false), MapUtils.getString(r, "error"))
+        return TaskResult.of(MapUtils.getBoolean(r, "ok", false), MapUtils.getString(r, "error"))
                 .values(r);
     }
 }
