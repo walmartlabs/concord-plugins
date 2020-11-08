@@ -347,10 +347,6 @@ public class ConfluenceTaskCommon {
     }
 
     private Object createContent(String template, Map<String, Object> params, String content, String key) {
-        if (template == null) {
-            return Collections.emptyMap();
-        }
-
         Object m;
         try {
             Map<String, Object> templateParams = new HashMap<>(defaultTemplateParams);

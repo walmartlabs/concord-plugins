@@ -37,6 +37,7 @@ public class TaskParams {
     private static final String CLIENT_CONNECTTIMEOUT = "connectTimeout";
     private static final String CLIENT_READTIMEOUT = "readTimeout";
     private static final String CLIENT_WRITETIMEOUT = "writeTimeout";
+    private static final String DEBUG = "debug";
 
     protected final Variables variables;
 
@@ -114,6 +115,10 @@ public class TaskParams {
 
     public boolean ignoreErrors() {
         return variables.getBoolean(IGNORE_ERRORS_KEY, false);
+    }
+
+    public boolean debug() {
+        return variables.getBoolean(DEBUG, false);
     }
 
     public static class CreatePageParams extends TaskParams {

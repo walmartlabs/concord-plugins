@@ -23,6 +23,9 @@ package com.walmartlabs.concord.plugins.confluence;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.*;
+import okhttp3.logging.HttpLoggingInterceptor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,6 +33,8 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class ConfluenceClient {
+
+    private static final Logger log = LoggerFactory.getLogger(ConfluenceClient.class);
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
@@ -41,11 +46,17 @@ public class ConfluenceClient {
 
     public ConfluenceClient(TaskParams in) {
         this.apiUrl = in.apiUrl();
-        this.client = new OkHttpClient.Builder()
+
+        OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
                 .connectTimeout(in.connectTimeout(), TimeUnit.SECONDS)
                 .readTimeout(in.readTimeout(), TimeUnit.SECONDS)
-                .writeTimeout(in.writeTimeout(), TimeUnit.SECONDS)
-                .build();
+                .writeTimeout(in.writeTimeout(), TimeUnit.SECONDS);
+        if (in.debug()) {
+            Interceptor logging = new HttpLoggingInterceptor(log::info)
+                    .setLevel(HttpLoggingInterceptor.Level.BODY);
+            clientBuilder.addInterceptor(logging);
+        }
+        this.client = clientBuilder.build();
         this.auth = Credentials.basic(in.userId(), in.password());
     }
 
