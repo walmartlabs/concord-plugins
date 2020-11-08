@@ -61,7 +61,7 @@
 
         <scm.connection>scm:git:https://github.com/walmartlabs/concord-plugins.git</scm.connection>
 
-        <concord.version>1.67.0</concord.version>
+        <concord.version>1.71.0</concord.version>
     </properties>
 
     <dependencyManagement>

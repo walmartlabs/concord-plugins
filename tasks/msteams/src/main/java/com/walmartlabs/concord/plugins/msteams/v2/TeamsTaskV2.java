@@ -47,7 +47,7 @@ public class TeamsTaskV2 implements Task {
     public TaskResult execute(Variables input) {
         Result r = delegate.execute(TeamsTaskParams.of(input, context.defaultVariables().toMap()));
 
-        return new TaskResult(r.isOk(), r.getError())
+        return TaskResult.of(r.isOk(), r.getError())
                 .value("data", r.getData());
     }
 }

@@ -46,7 +46,7 @@ public class ConfluenceTaskV2 implements Task {
         Result result = new ConfluenceTaskCommon(context.workingDirectory(), context.variables().toMap())
                 .execute(TaskParams.of(input, context.defaultVariables().toMap()));
 
-        TaskResult taskResult = new TaskResult(result.ok, result.error);
+        TaskResult.SimpleResult taskResult = TaskResult.of(result.ok, result.error);
         if (result.pageId != null) {
             taskResult.value("pageId", result.pageId);
         }

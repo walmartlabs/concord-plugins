@@ -42,7 +42,7 @@ public class GitTaskV2 implements Task {
     }
 
     @Override
-    public TaskResult execute(Variables input) throws Exception {
+    public TaskResult.SimpleResult execute(Variables input) throws Exception {
         Map<String, Object> result = delegate.execute(input.toMap());
 
         // we can't change the delegate's return type w/o breaking compatibility with Concord < 1.62.0
@@ -50,8 +50,7 @@ public class GitTaskV2 implements Task {
         // (i.e. there's no support for multiple versions of docs per plugin)
         // so, we have to parse the map back...
 
-        return new TaskResult(MapUtils.getBoolean(result, "ok", true),
-                MapUtils.getString(result, "error"))
+        return TaskResult.of(MapUtils.getBoolean(result, "ok", true), MapUtils.getString(result, "error"))
                 .values(result);
     }
 

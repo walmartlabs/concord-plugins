@@ -27,8 +27,6 @@ import com.walmartlabs.concord.plugins.terraform.backend.BackendFactoryV2;
 import com.walmartlabs.concord.runtime.v2.sdk.*;
 import com.walmartlabs.concord.sdk.Constants;
 import com.walmartlabs.concord.sdk.MapUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -43,8 +41,6 @@ import static com.walmartlabs.concord.plugins.terraform.TerraformTaskCommon.getE
 
 @Named("terraform")
 public class TerraformTaskV2 implements Task {
-
-    private static final Logger log = LoggerFactory.getLogger(TerraformTaskV2.class);
 
     private final Context ctx;
     private final ApiClient apiClient;
@@ -113,7 +109,7 @@ public class TerraformTaskV2 implements Task {
     }
 
     private TaskResult convertResult(TerraformActionResult src) {
-        TaskResult dst = new TaskResult(src.isOk(), src.getError());
+        TaskResult.SimpleResult dst = TaskResult.of(src.isOk(), src.getError());
 
         if (src.getData() != null) {
             dst.value("data", src.getData());

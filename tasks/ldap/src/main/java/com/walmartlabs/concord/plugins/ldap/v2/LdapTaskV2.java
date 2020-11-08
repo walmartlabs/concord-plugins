@@ -47,7 +47,7 @@ public class LdapTaskV2 implements Task {
     @Override
     public TaskResult execute(Variables input) {
         Map<String, Object> result = delegate.execute(TaskParams.of(input, context.defaultVariables().toMap()));
-        return new TaskResult(MapUtils.getBoolean(result, "success", false))
+        return TaskResult.of(MapUtils.getBoolean(result, "success", false))
                 .values(result);
     }
 

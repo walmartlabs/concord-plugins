@@ -47,7 +47,7 @@ public class TaurusTaskV2 implements Task {
     public TaskResult execute(Variables input) throws Exception {
         Taurus.Result result = delegate.execute(TaskParams.of(input, context.defaultVariables().toMap()));
 
-        return new TaskResult(result.isOk(), result.getError())
+        return TaskResult.of(result.isOk(), result.getError())
                 .value("code", result.getCode())
                 .value("stdout", result.getStdout())
                 .value("stderr", result.getStderr());
