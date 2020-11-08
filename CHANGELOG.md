@@ -1,5 +1,14 @@
 # Change log
 
+## [Unreleased]
+
+### Changed
+
+- updated for `TaskResult` changes in Concord 1.71.0+;
+- confluence: fix reading of page content from task input parameters.
+
+
+
 ## [1.32.1] - 2020-10-01
 
 ### Changed
