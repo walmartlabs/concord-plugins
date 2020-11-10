@@ -75,7 +75,7 @@ public class DestroyAction extends Action {
         try {
             init(workDir, dir, !verbose, env, terraform, backend);
 
-            createVarsFile(Utils.getAbsolute(workDir, dir), objectMapper, extraVars);
+            createVarsFile(workDir, objectMapper, extraVars);
 
             Path dirAbsolute = workDir.resolve(dir);
             List<Path> userSuppliedVarFiles = Utils.resolve(workDir, userSuppliedVarFileNames);
