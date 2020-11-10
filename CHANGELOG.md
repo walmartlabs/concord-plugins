@@ -1,5 +1,14 @@
 # Change log
 
+## [1.32.3] - 2020-11-10
+
+### Changed
+
+- terraform: fixed an issue when `extraVars` and `dir` are used
+together.
+
+
+
 ## [1.32.2] - 2020-11-06
 
 ### Changed
