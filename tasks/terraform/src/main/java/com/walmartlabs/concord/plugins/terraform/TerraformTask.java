@@ -25,8 +25,6 @@ import com.walmartlabs.concord.plugins.terraform.actions.TerraformActionResult;
 import com.walmartlabs.concord.plugins.terraform.backend.Backend;
 import com.walmartlabs.concord.plugins.terraform.backend.BackendFactoryV1;
 import com.walmartlabs.concord.sdk.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -37,12 +35,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static com.walmartlabs.concord.plugins.terraform.TerraformTaskCommon.*;
-import static com.walmartlabs.concord.plugins.terraform.Utils.getPath;
 
 @Named("terraform")
 public class TerraformTask implements Task {
-
-    private static final Logger log = LoggerFactory.getLogger(TerraformTask.class);
 
     private final SecretService secretService;
     private final LockService lockService;
@@ -67,10 +62,7 @@ public class TerraformTask implements Task {
 
         Map<String, Object> cfg = createCfg(ctx);
 
-        Path workDir = getPath(cfg, com.walmartlabs.concord.sdk.Constants.Context.WORK_DIR_KEY, null);
-        if (workDir == null) {
-            throw new IllegalArgumentException("Can't determine the current '" + com.walmartlabs.concord.sdk.Constants.Context.WORK_DIR_KEY + "'");
-        }
+        Path workDir = ContextUtils.getWorkDir(ctx);
 
         boolean debug = MapUtils.get(cfg, TaskConstants.DEBUG_KEY, false, Boolean.class);
         Action action = getAction(cfg);
@@ -97,7 +89,7 @@ public class TerraformTask implements Task {
         }
 
         try {
-            TerraformActionResult result = TerraformTaskCommon.execute(terraform, action, backend, cfg, env);
+            TerraformActionResult result = TerraformTaskCommon.execute(terraform, action, backend, workDir, cfg, env);
             ctx.setVariable(TaskConstants.RESULT_KEY, objectMapper.convertValue(result, Map.class));
         } finally {
             gitSshWrapper.cleanup();
@@ -107,7 +99,10 @@ public class TerraformTask implements Task {
     private Map<String, Object> createCfg(Context ctx) {
         Map<String, Object> m = new HashMap<>(defaults != null ? defaults : Collections.emptyMap());
 
-        put(m, com.walmartlabs.concord.sdk.Constants.Context.WORK_DIR_KEY, ctx);
+        // default value for `pwd`
+        String workDir = ContextUtils.assertString(ctx, com.walmartlabs.concord.sdk.Constants.Context.WORK_DIR_KEY);
+        m.put(TaskConstants.PWD_KEY, workDir);
+
         for (String k : TaskConstants.ALL_IN_PARAMS) {
             put(m, k, ctx);
         }

@@ -27,6 +27,7 @@ import com.walmartlabs.concord.sdk.MapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -37,7 +38,12 @@ public final class TerraformTaskCommon {
 
     private static final Logger log = LoggerFactory.getLogger(TerraformTaskCommon.class);
 
-    public static TerraformActionResult execute(Terraform terraform, Action action, Backend backend, Map<String, Object> cfg, Map<String, String> env) throws Exception {
+    public static TerraformActionResult execute(Terraform terraform,
+                                                Action action,
+                                                Backend backend,
+                                                Path workDir,
+                                                Map<String, Object> cfg,
+                                                Map<String, String> env) throws Exception {
         log.info("Starting {}...", action);
 
         try {
@@ -45,19 +51,19 @@ public final class TerraformTaskCommon {
 
             switch (action) {
                 case PLAN: {
-                    PlanAction a = new PlanAction(cfg, env);
+                    PlanAction a = new PlanAction(workDir, cfg, env);
                     return a.exec(terraform, backend);
                 }
                 case APPLY: {
-                    ApplyAction a = new ApplyAction(cfg, env);
+                    ApplyAction a = new ApplyAction(workDir, cfg, env);
                     return a.exec(terraform, backend);
                 }
                 case DESTROY: {
-                    DestroyAction a = new DestroyAction(cfg, env);
+                    DestroyAction a = new DestroyAction(workDir, cfg, env);
                     return a.exec(terraform, backend);
                 }
                 case OUTPUT: {
-                    OutputAction a = new OutputAction(cfg, env, false);
+                    OutputAction a = new OutputAction(workDir, cfg, env, false);
                     return a.exec(terraform, backend);
                 }
                 default:

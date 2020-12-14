@@ -25,7 +25,6 @@ import com.walmartlabs.concord.plugins.terraform.actions.TerraformActionResult;
 import com.walmartlabs.concord.plugins.terraform.backend.Backend;
 import com.walmartlabs.concord.plugins.terraform.backend.BackendFactoryV2;
 import com.walmartlabs.concord.runtime.v2.sdk.*;
-import com.walmartlabs.concord.sdk.Constants;
 import com.walmartlabs.concord.sdk.MapUtils;
 
 import javax.inject.Inject;
@@ -86,7 +85,7 @@ public class TerraformTaskV2 implements Task {
         }
 
         try {
-            TerraformActionResult result = TerraformTaskCommon.execute(terraform, action, backend, cfg, env);
+            TerraformActionResult result = TerraformTaskCommon.execute(terraform, action, backend, workDir, cfg, env);
             return convertResult(result);
         } finally {
             gitSshWrapper.cleanup();
@@ -96,7 +95,8 @@ public class TerraformTaskV2 implements Task {
     private Map<String, Object> createCfg(Path workDir, Variables input, Variables defaults) {
         Map<String, Object> m = new HashMap<>(defaults != null ? defaults.toMap() : Collections.emptyMap());
 
-        m.put(Constants.Context.WORK_DIR_KEY, workDir.toAbsolutePath().toString());
+        // default value for `pwd`
+        m.put(TaskConstants.PWD_KEY, workDir.toAbsolutePath().toString());
 
         for (String k : TaskConstants.ALL_IN_PARAMS) {
             Object v = input.get(k);

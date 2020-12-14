@@ -34,7 +34,6 @@ import java.io.InputStream;
 import java.util.Properties;
 
 import static ca.ibodrov.concord.testcontainers.Utils.randomString;
-import static org.junit.Assert.assertEquals;
 
 /**
  * Integration test. Assumes that the current version of the plugin
@@ -68,18 +67,22 @@ public class TerraformTaskIT {
         String projectName = "project_" + randomString();
         concord.projects().create(orgName, projectName);
 
+        byte[] terraform_file = readToBytes("it/main.tf");
+
         Payload payload = new Payload()
                 .org(orgName)
                 .project(projectName)
-                .file("main.tf", readToBytes("it/main.tf"))
+                .file("main.tf", terraform_file)
+                .file("mydir/main.tf", terraform_file)
+                .file("mydir/nested/main.tf", terraform_file)
                 .concordYml(new String(readToBytes(concordYmlSource))
                         .replace("%%version%%", CURRENT_VERSION));
 
         ConcordProcess proc = concord.processes().start(payload);
-        ProcessEntry pe = proc.waitForStatus(ProcessEntry.StatusEnum.FINISHED);
-        assertEquals(ProcessEntry.StatusEnum.FINISHED, pe.getStatus());
+        proc.waitForStatus(ProcessEntry.StatusEnum.FINISHED);
 
-        proc.assertLog(".*No changes\\..*");
+        proc.assertLog(".*FINISHED.*");
+        proc.assertLogAtLeast(".*No changes\\..*", 3);
     }
 
     private static String getCurrentVersion() {

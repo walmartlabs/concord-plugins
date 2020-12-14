@@ -106,13 +106,20 @@ public class ConcordV2Backend implements Backend {
                 Collections.singletonMap("backend",
                         Collections.singletonMap("http", params)));
 
-        Path p = tfDir.resolve("concord_override.tf.json");
-        try (OutputStream out = Files.newOutputStream(p, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
+        Path configFile = tfDir.resolve("concord_override.tf.json").toAbsolutePath();
+
+        Path parentDir = configFile.getParent();
+        if (!Files.exists(parentDir)) {
+            Path relative = ctx.workingDirectory().relativize(parentDir);
+            throw new IllegalArgumentException("Can't create the backend configuration, the directory doesn't exist: " + relative);
+        }
+
+        try (OutputStream out = Files.newOutputStream(configFile, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
             objectMapper.writeValue(out, cfg);
         }
 
         if (debug) {
-            log.info("init -> created backend configuration file in {}", p.toAbsolutePath().toString());
+            log.info("init -> created backend configuration file in {}", configFile.toAbsolutePath().toString());
         }
     }
 

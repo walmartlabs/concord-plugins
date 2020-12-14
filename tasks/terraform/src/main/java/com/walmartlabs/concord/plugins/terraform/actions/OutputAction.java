@@ -30,13 +30,14 @@ import com.walmartlabs.concord.sdk.MapUtils;
 import java.nio.file.Path;
 import java.util.Map;
 
+import static com.walmartlabs.concord.plugins.terraform.Utils.getAbsolute;
 import static com.walmartlabs.concord.plugins.terraform.Utils.getPath;
 
 public class OutputAction extends Action {
 
     private final boolean debug;
     private final boolean verbose;
-    private final Path workDir;
+    private final Path pwd;
     private final Path dir;
     private final String module;
     private final Map<String, String> env;
@@ -45,18 +46,18 @@ public class OutputAction extends Action {
 
     private final ObjectMapper objectMapper;
 
-    public OutputAction(Map<String, Object> cfg, Map<String, String> env, boolean skipInit) {
+    public OutputAction(Path workDir, Map<String, Object> cfg, Map<String, String> env, boolean skipInit) {
         this.env = env;
 
         this.debug = MapUtils.get(cfg, TaskConstants.DEBUG_KEY, false, Boolean.class);
         this.verbose = MapUtils.get(cfg, TaskConstants.VERBOSE_KEY, false, Boolean.class);
 
-        this.workDir = getPath(cfg, com.walmartlabs.concord.sdk.Constants.Context.WORK_DIR_KEY, null);
-        if (!workDir.isAbsolute()) {
-            throw new IllegalArgumentException("'workDir' must be an absolute path, got: " + workDir);
-        }
+        // the TF's working directory ($PWD)
+        this.pwd = getAbsolute(workDir, getPath(cfg, TaskConstants.PWD_KEY, null));
 
-        this.dir = getPath(cfg, TaskConstants.DIR_KEY, workDir);
+        // the TF files directory
+        this.dir = getPath(cfg, TaskConstants.DIR_KEY, pwd);
+
         this.module = MapUtils.getString(cfg, TaskConstants.MODULE_KEY);
         this.ignoreErrors = MapUtils.get(cfg, TaskConstants.IGNORE_ERRORS_KEY, false, Boolean.class);
         this.skipInit = skipInit;
@@ -70,16 +71,16 @@ public class OutputAction extends Action {
             if (!skipInit) {
                 // normally we'd run `terraform init` in the specified `dir`
                 // the backend configuration must be placed there as well
-                init(workDir, dir, !verbose, env, terraform, backend);
+                init(pwd, dir, !verbose, env, terraform, backend);
             } else {
                 // however, if we're running `terraform output` as a part of the apply action
                 // we skip the `terraform init` run and we need to run `terraform output`
                 // in the root directory
                 // the backend configuration must be in the root directory too
-                backend.init(workDir);
+                backend.init(pwd);
             }
 
-            Terraform.Result r = new OutputCommand(debug, workDir, module, env).exec(terraform);
+            Terraform.Result r = new OutputCommand(debug, pwd, module, env).exec(terraform);
             if (r.getCode() != 0) {
                 throw new RuntimeException("Process finished with code " + r.getCode() + ": " + r.getStderr());
             }

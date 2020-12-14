@@ -5,6 +5,20 @@ configuration:
 
 flows:
   default:
+    # regular run
     - task: terraform
       in:
         action: plan
+
+    # custom $PWD
+    - task: terraform
+      in:
+        action: plan
+        pwd: mydir
+
+    # custom $PWD + [DIR]
+    - task: terraform
+      in:
+        action: plan
+        pwd: mydir
+        dir: nested
