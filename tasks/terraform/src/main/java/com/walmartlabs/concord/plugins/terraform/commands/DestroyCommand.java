@@ -22,8 +22,6 @@ package com.walmartlabs.concord.plugins.terraform.commands;
 
 import com.walmartlabs.concord.plugins.terraform.Terraform;
 import com.walmartlabs.concord.plugins.terraform.Terraform.Result;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -31,8 +29,6 @@ import java.util.List;
 import java.util.Map;
 
 public class DestroyCommand {
-
-    private static final Logger log = LoggerFactory.getLogger(DestroyCommand.class);
 
     private final Path pwd;
     private final Path dir;

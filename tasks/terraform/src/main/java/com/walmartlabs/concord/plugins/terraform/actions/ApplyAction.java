@@ -32,6 +32,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
+import static com.walmartlabs.concord.plugins.terraform.Utils.getAbsolute;
 import static com.walmartlabs.concord.plugins.terraform.Utils.getPath;
 
 public class ApplyAction extends Action {
@@ -39,6 +40,7 @@ public class ApplyAction extends Action {
     private final Map<String, Object> cfg;
     private final boolean verbose;
     private final Path workDir;
+    private final Path pwd;
     private final Path dir;
     private final Path plan;
     private final Map<String, Object> extraVars;
@@ -49,20 +51,20 @@ public class ApplyAction extends Action {
     private final ObjectMapper objectMapper;
 
     @SuppressWarnings("unchecked")
-    public ApplyAction(Map<String, Object> cfg, Map<String, String> env) {
+    public ApplyAction(Path workDir, Map<String, Object> cfg, Map<String, String> env) {
         this.cfg = cfg;
         this.env = env;
 
         this.verbose = MapUtils.get(cfg, TaskConstants.VERBOSE_KEY, false, Boolean.class);
 
-        // the process' working directory (aka the payload directory)
-        this.workDir = getPath(cfg, com.walmartlabs.concord.sdk.Constants.Context.WORK_DIR_KEY, null);
-        if (!workDir.isAbsolute()) {
-            throw new IllegalArgumentException("'workDir' must be an absolute path, got: " + workDir);
-        }
+        // the process' working directory
+        this.workDir = workDir;
+
+        // the TF's working directory ($PWD)
+        this.pwd = getAbsolute(workDir, getPath(cfg, TaskConstants.PWD_KEY, null));
 
         // the TF files directory
-        this.dir = getPath(cfg, TaskConstants.DIR_KEY, workDir);
+        this.dir = getPath(cfg, TaskConstants.DIR_KEY, pwd);
 
         // a file, created by the plan action
         this.plan = getPath(cfg, TaskConstants.PLAN_KEY, null);
@@ -76,24 +78,24 @@ public class ApplyAction extends Action {
 
     public TerraformActionResult exec(Terraform terraform, Backend backend) throws Exception {
         try {
-            init(workDir, dir, !verbose, env, terraform, backend);
+            init(pwd, dir, !verbose, env, terraform, backend);
             if (plan == null) {
                 // running without a previously created plan file
                 // save 'extraVars' into a file that can be automatically picked up by TF
-                createVarsFile(workDir, objectMapper, extraVars);
+                createVarsFile(pwd, objectMapper, extraVars);
             }
 
-            Path dirOrPlanAbsolute = workDir.resolve(plan != null ? plan : dir);
-            List<Path> userSuppliedVarFiles = Utils.resolve(workDir, userSuppliedVarFileNames);
+            Path dirOrPlanAbsolute = pwd.resolve(plan != null ? plan : dir);
+            List<Path> userSuppliedVarFiles = Utils.resolve(pwd, userSuppliedVarFileNames);
 
-            Terraform.Result r = new ApplyCommand(workDir, dirOrPlanAbsolute, userSuppliedVarFiles, env).exec(terraform);
+            Terraform.Result r = new ApplyCommand(pwd, dirOrPlanAbsolute, userSuppliedVarFiles, env).exec(terraform);
             if (r.getCode() != 0) {
                 throw new RuntimeException("Process finished with code " + r.getCode() + ": " + r.getStderr());
             }
 
             Map<String, Object> data = null;
             if (saveOutput) {
-                TerraformActionResult o = new OutputAction(cfg, env, true).exec(terraform, backend);
+                TerraformActionResult o = new OutputAction(workDir, cfg, env, true).exec(terraform, backend);
                 if (!o.isOk()) {
                     return TerraformActionResult.error(o.getError());
                 }
