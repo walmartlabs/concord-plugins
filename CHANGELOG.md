@@ -4,6 +4,8 @@
 
 ### Changed
 
+- packer: the plugin's build is disabled until it is ported
+to the runtime v2;
 - git: updated for `GitClient` changes in Concord 1.78.0+
 ([#44](https://github.com/walmartlabs/concord-plugins/pull/44)).
 
