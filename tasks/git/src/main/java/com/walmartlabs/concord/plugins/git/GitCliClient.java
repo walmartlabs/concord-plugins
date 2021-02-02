@@ -20,6 +20,7 @@ package com.walmartlabs.concord.plugins.git;
  * =====
  */
 
+import com.walmartlabs.concord.repository.FetchRequest;
 import com.walmartlabs.concord.repository.GitClientConfiguration;
 import com.walmartlabs.concord.repository.ImmutableGitClientConfiguration;
 import com.walmartlabs.concord.sdk.Secret;
@@ -39,8 +40,7 @@ public class GitCliClient implements GitClient {
     public void cloneRepo(String uri, String branchName, Secret secret, Path dst) {
         ImmutableGitClientConfiguration.Builder cfg = GitClientConfiguration.builder()
                 .httpLowSpeedLimit(0)
-                .sshTimeout(Duration.ofSeconds(600))
-                .shallowClone(shallowClone);
+                .sshTimeout(Duration.ofSeconds(600));
 
         if (secret instanceof TokenSecret) {
             cfg.oauthToken(((TokenSecret) secret).getToken());
@@ -48,6 +48,13 @@ public class GitCliClient implements GitClient {
         }
 
         new com.walmartlabs.concord.repository.GitClient(cfg.build())
-                .fetch(uri, branchName, null, secret, dst);
+                .fetch(FetchRequest.builder()
+                        .url(uri)
+                        .version(FetchRequest.Version.from(branchName))
+                        .withCommitInfo(false)
+                        .destination(dst)
+                        .secret(secret)
+                        .shallow(shallowClone)
+                        .build());
     }
 }
