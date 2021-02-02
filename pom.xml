@@ -43,7 +43,8 @@
         <module>tasks/jsonpath</module>
         <module>tasks/ldap</module>
         <module>tasks/msteams</module>
-        <module>tasks/packer</module>        
+        <!-- requires migration to concord-plugin-support >= 0.0.18 -->
+        <!-- <module>tasks/packer</module> -->
         <module>tasks/puppet</module>
         <module>tasks/s3</module>
         <module>tasks/taurus</module>
