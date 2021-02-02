@@ -1,5 +1,10 @@
 # Change log
 
+## Unreleased
+
+- git: updated for GitClient changes in Concord 1.78.0+;
+
+
 ## [1.32.3] - 2020-11-10
 
 ### Changed
