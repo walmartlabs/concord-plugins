@@ -2,7 +2,10 @@
 
 ## Unreleased
 
-- git: updated for GitClient changes in Concord 1.78.0+ ([#44](https://github.com/walmartlabs/concord-plugins/pull/44));
+### Changed
+
+- git: updated for `GitClient` changes in Concord 1.78.0+
+([#44](https://github.com/walmartlabs/concord-plugins/pull/44)).
 
 
 ## [1.32.3] - 2020-11-10
