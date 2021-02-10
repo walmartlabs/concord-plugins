@@ -34,7 +34,6 @@ import java.util.Map;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-
 public class HashiVaultTaskV1Test extends AbstractVaultTest {
     private static final Logger log = LoggerFactory.getLogger(HashiVaultTaskV1Test.class);
 
