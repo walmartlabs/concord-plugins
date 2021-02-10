@@ -38,6 +38,7 @@
         <module>tasks/confluence</module>
         <module>tasks/git</module>
         <module>tasks/gremlin</module>
+        <module>tasks/hashivault</module>
         <module>tasks/jenkins</module>
         <module>tasks/jira</module>
         <module>tasks/jsonpath</module>
