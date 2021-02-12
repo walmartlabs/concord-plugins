@@ -39,7 +39,7 @@ public class HashiVaultTask implements Task {
     private Map<String, Object> defaults;
 
     @Override
-    public void execute(Context ctx) throws Exception {
+    public void execute(Context ctx) {
         final TaskParams params = TaskParams.of(new MapBackedVariables(ctx.toMap()), defaults);
         final HashiVaultTaskCommon delegate = new HashiVaultTaskCommon();
         final HashiVaultTaskResult result = delegate.execute(params);
@@ -47,7 +47,7 @@ public class HashiVaultTask implements Task {
         ctx.setVariable("result", result.toMap());
     }
 
-    public Map<String, Object> readKV(String path) throws Exception {
+    public Map<String, Object> readKV(String path) {
         final Map<String, Object> input = new HashMap<>(2);
         input.put(TaskParams.ACTION_KEY, TaskParams.Action.READKV.toString());
         input.put(TaskParams.PATH_KEY, path);
@@ -59,7 +59,20 @@ public class HashiVaultTask implements Task {
         return result.data();
     }
 
-    public void writeKV(String path, Map<String, Object> kvPairs) throws Exception {
+    public String readKV(String path, String key) {
+        final Map<String, Object> input = new HashMap<>(2);
+        input.put(TaskParams.ACTION_KEY, TaskParams.Action.READKV.toString());
+        input.put(TaskParams.PATH_KEY, path);
+        input.put(TaskParams.KEY_KEY, key);
+
+        final TaskParams params = TaskParams.of(new MapBackedVariables(input), defaults);
+        final HashiVaultTaskCommon delegate = new HashiVaultTaskCommon();
+        HashiVaultTaskResult result = delegate.execute(params);
+
+        return result.data();
+    }
+
+    public void writeKV(String path, Map<String, Object> kvPairs) {
         Map<String, Object> input = new HashMap<>(2);
         input.put(TaskParams.ACTION_KEY, TaskParams.Action.WRITEKV.toString());
         input.put(TaskParams.PATH_KEY, path);

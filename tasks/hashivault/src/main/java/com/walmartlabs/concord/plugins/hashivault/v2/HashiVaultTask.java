@@ -53,7 +53,7 @@ public class HashiVaultTask implements Task {
         return TaskResult.of(result.ok(), result.error(), data);
     }
 
-    public Map<String, Object> readKV(String path) throws Exception {
+    public Map<String, Object> readKV(String path) {
         Map<String, Object> vars = new HashMap<>();
         vars.put(TaskParams.ACTION_KEY, TaskParams.Action.READKV.toString());
         vars.put(TaskParams.PATH_KEY, path);
@@ -64,7 +64,19 @@ public class HashiVaultTask implements Task {
         return result.data();
     }
 
-    public void writeKV(String path, Map<String, Object> kvPairs) throws Exception {
+    public String readKV(String path, String field) {
+        Map<String, Object> vars = new HashMap<>();
+        vars.put(TaskParams.ACTION_KEY, TaskParams.Action.READKV.toString());
+        vars.put(TaskParams.PATH_KEY, path);
+        vars.put(TaskParams.KEY_KEY, field);
+
+        final Variables input = new MapBackedVariables(vars);
+        final TaskParams params = TaskParams.of(input, defaults);
+        final HashiVaultTaskResult result = new HashiVaultTaskCommon().execute(params);
+        return result.data();
+    }
+
+    public void writeKV(String path, Map<String, Object> kvPairs) {
         Map<String, Object> vars = new HashMap<>();
         vars.put(TaskParams.ACTION_KEY, TaskParams.Action.WRITEKV.toString());
         vars.put(TaskParams.PATH_KEY, path);

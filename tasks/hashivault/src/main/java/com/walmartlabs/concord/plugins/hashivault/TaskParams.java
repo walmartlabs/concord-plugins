@@ -23,7 +23,6 @@ package com.walmartlabs.concord.plugins.hashivault;
 import com.walmartlabs.concord.runtime.v2.sdk.MapBackedVariables;
 import com.walmartlabs.concord.runtime.v2.sdk.Variables;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -43,6 +42,7 @@ public class TaskParams {
     public static final String VERIFY_SSL_KEY = "verifySsl";
     public static final String ENGINE_VERSION_KEY = "engineVersion";
     public static final String PATH_KEY = "path";
+    public static final String KEY_KEY = "key";
     public static final String KV_PAIRS_KEY = "kvPairs";
 
     protected final Variables variables;
@@ -72,9 +72,7 @@ public class TaskParams {
         try {
             return Action.valueOf(action.trim().toUpperCase());
         } catch (IllegalArgumentException e) {
-            String msg = String.format("Unknown action: '%s'. Available actions (not case-sensitive): %s",
-                    action, Arrays.toString(Action.values()));
-            throw new HashiVaultTaskException(msg);
+            throw new IllegalArgumentException("Unsupported action type: " + action);
         }
     }
 
@@ -108,6 +106,14 @@ public class TaskParams {
 
     public String path() {
         return variables.assertString(PATH_KEY);
+    }
+
+    public boolean hasKeyField() {
+        return variables.has(KEY_KEY);
+    }
+
+    public String key() {
+        return variables.getString(KEY_KEY);
     }
 
     public Map<String, Object> kvPairs() {

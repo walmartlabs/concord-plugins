@@ -68,6 +68,20 @@ public class HashiVaultTaskV2Test extends AbstractVaultTest {
     }
 
     @Test
+    public void testReadKvSingleV2() throws Exception {
+        Map<String, Object> varMap = new HashMap<>();
+        varMap.put("path", "secret/testing");
+        varMap.put("key", "db_password");
+
+        Variables vars = new MapBackedVariables(varMap);
+        SimpleResult result = getTask().execute(vars);
+
+        Assert.assertTrue(result.ok());
+        final String data = MapUtils.getString(result.values(), "data");
+        assertEquals("dbpassword1", data);
+    }
+
+    @Test
     public void testWriteCubbyV2() throws Exception {
         writeAndRead("cubbyhole/newSecretTaskV2", "v2CubbyExecute");
     }
@@ -75,6 +89,14 @@ public class HashiVaultTaskV2Test extends AbstractVaultTest {
     @Test
     public void testWriteKvV2() throws Exception {
         writeAndRead("secret/newSecretTaskV2", "v2SecretExecute");
+    }
+
+    @Test
+    public void testReadKvSinglePublicMethodV2() throws Exception {
+        String path = "secret/testing";
+        String result = getTask().readKV(path, "db_password");
+
+        assertEquals("dbpassword1", result);
     }
 
     @Test

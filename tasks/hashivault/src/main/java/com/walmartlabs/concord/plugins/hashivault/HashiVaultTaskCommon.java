@@ -68,11 +68,12 @@ public class HashiVaultTaskCommon {
 
         switch (params.action()) {
             case READKV:
-                result = new HashiVaultTaskResult(true, readValue(vault, params), null);
+                Map<String, String> data = readValue(vault, params);
+                result = HashiVaultTaskResult.of(true, data, null, params);
                 break;
             case WRITEKV:
                 writeValue(vault, params);
-                result = new HashiVaultTaskResult(true, null, null);
+                result = HashiVaultTaskResult.of(true, null, null, params);
                 break;
             default:
                 throw new HashiVaultTaskException("Unsupported action: " + params.action());
@@ -83,7 +84,9 @@ public class HashiVaultTaskCommon {
 
     private Map<String, String> readValue(Vault vault, TaskParams params) {
         try {
-            final LogicalResponse r = vault.logical().withNameSpace(params.ns()).read(params.path());
+            final LogicalResponse r = vault.logical()
+                    .withNameSpace(params.ns())
+                    .read(params.path());
             final int status = r.getRestResponse().getStatus();
 
             if (status > 400 && status < 599) {

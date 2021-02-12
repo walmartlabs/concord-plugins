@@ -32,19 +32,19 @@ if [ -z "${VAULT_PATH}" ]; then
   exit 1
 fi
 
-echo "Validating pom.xml and test.yml versions match"
+echo "Validating pom.xml and testCLI.yml versions match"
 
 # detect version from pom.xml
 pomVersion=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
 
 # detect version
-ymlVersion=$(grep -e "mvn://.*hashivault-task" test.yml | cut -d':' -f 4 | cut -d'"' -f 1)
+ymlVersion=$(grep -e "mvn://.*hashivault-task" testCLI.yml | cut -d':' -f 4 | cut -d'"' -f 1)
 
 if [ "${pomVersion:-missingpom}" != "${ymlVersion-missingyml}" ]
 then
-  echo "Looks like test.yml plugin version doesn't match pom.xml version."
+  echo "Looks like testCLI.yml plugin version doesn't match pom.xml version."
   echo " pom.xml: ${pomVersion}"
-  echo "test.yml: ${ymlVersion}"
+  echo "testCLI.yml: ${ymlVersion}"
   exit 1
 fi
 
@@ -81,4 +81,4 @@ concord run \
  -e vaultToken="${VAULT_TOKEN}" \
  -e vaultNs="${VAULT_NS}" \
  -e vaultPath="${VAULT_PATH}" \
- test.yml
+ testCLI.yml

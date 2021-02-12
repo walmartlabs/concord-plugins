@@ -25,6 +25,7 @@ flows:
         kvPairs: ${testPairsFull}
       out: result
 
+    # Read all values in a secret
     - task: hashivault
       in:
         path: "${vaultPath}"
@@ -38,6 +39,18 @@ flows:
       then:
         - throw: "Failed to store and retrieve data with full task call"
 
+    # Read a single value
+    - task: hashivault
+      in:
+        path: "${vaultPath}"
+        key: "processId"
+      out: result
+      error:
+        - log: "Vault error: ${lastError.cause}"
+    - if: ${result.data != testPairsFull.processId}
+      then:
+        - throw: "Failed to store and retrieve data with full task call"
+
   shortTest:
     - ${hashivault.writeKV(vaultPath, testPairsPublic)}
     - expr: ${hashivault.readKV(vaultPath)}
@@ -46,5 +59,10 @@ flows:
       then:
         - throw: "Failed to store and retrieve data with public method call"
     - if: ${result.processId != testPairsPublic.processId}
+      then:
+        - throw: "Failed to store and retrieve data with public method call"
+    - expr: ${hashivault.readKV(vaultPath, 'processId')}
+      out: result
+    - if: ${result != testPairsPublic.processId}
       then:
         - throw: "Failed to store and retrieve data with public method call"

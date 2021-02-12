@@ -20,30 +20,31 @@ package com.walmartlabs.concord.plugins.hashivault;
  * =====
  */
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 public class HashiVaultTaskResult {
-    private final Map<String, String> data;
     private final Boolean ok;
     private final String error;
+    private final Object data;
 
-    public HashiVaultTaskResult(boolean ok, Map<String, String> result, String error) {
+    private HashiVaultTaskResult(boolean ok, Object data, String error) {
         this.ok = ok;
-        this.data = result;
         this.error = error;
+        this.data = data;
     }
 
-    public Map<String, Object> data() {
-        if (data == null) {
-            return Collections.emptyMap();
+    public static HashiVaultTaskResult of(boolean ok, Map<String, String> data, String error, TaskParams p) {
+        if (p.hasKeyField()) {
+            return new HashiVaultTaskResult(ok, data.get(p.key()), error);
         }
 
-        HashMap<String, Object> d = new HashMap<>(data.size());
-        d.putAll(data);
+        return new HashiVaultTaskResult(ok, data, error);
+    }
 
-        return d;
+    @SuppressWarnings("unchecked")
+    public <T> T data() {
+        return (T) this.data;
     }
 
     public boolean ok() {
