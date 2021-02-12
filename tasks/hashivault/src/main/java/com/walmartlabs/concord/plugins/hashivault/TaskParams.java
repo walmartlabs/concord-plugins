@@ -22,6 +22,7 @@ package com.walmartlabs.concord.plugins.hashivault;
 
 import com.walmartlabs.concord.runtime.v2.sdk.MapBackedVariables;
 import com.walmartlabs.concord.runtime.v2.sdk.Variables;
+import com.walmartlabs.concord.sdk.MapUtils;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -34,9 +35,14 @@ public class TaskParams {
     private static final boolean DEFAULT_VERIFY_SSL = true;
 
     public static final String DEFAULT_PARAMS_KEY = "hashivaultParams";
+    public static final String TX_ID_KEY = "txId";
 
     public static final String ACTION_KEY = "action";
     public static final String API_TOKEN_KEY = "apiToken";
+    public static final String API_TOKEN_SECRET_KEY = "apiTokenSecret";
+    public static final String ORG_KEY = "org";
+    public static final String NAME_KEY = "name";
+    public static final String PASSWORD_KEY = "password";
     public static final String BASE_URL_KEY = "baseUrl";
     public static final String NAMESPACE_KEY = "namespace";
     public static final String VERIFY_SSL_KEY = "verifySsl";
@@ -51,9 +57,14 @@ public class TaskParams {
         this.variables = variables;
     }
 
-    public static TaskParams of(Variables input, Map<String, Object> defaults) {
+    public static TaskParams of(Variables input, Map<String, Object> defaults, SecretExporter secretExporter) {
         Map<String, Object> variablesMap = new HashMap<>(defaults != null ? defaults : Collections.emptyMap());
         variablesMap.putAll(input.toMap());
+
+        if (variablesMap.containsKey(API_TOKEN_SECRET_KEY)) {
+            Map<String, Object> tokenSecret = MapUtils.assertMap(variablesMap, API_TOKEN_SECRET_KEY);
+            variablesMap.put(API_TOKEN_KEY, exportToken(secretExporter, tokenSecret));
+        }
 
         Variables variables = new MapBackedVariables(variablesMap);
         TaskParams p = new TaskParams(variables);
@@ -65,6 +76,21 @@ public class TaskParams {
             default:
                 throw new IllegalArgumentException("Unsupported action type: " + p.action());
         }
+    }
+
+    private static String exportToken(SecretExporter secretExporter, Map<String, Object> secret) {
+        String o = MapUtils.assertString(secret, ORG_KEY);
+        String n = MapUtils.assertString(secret, NAME_KEY);
+        String p = MapUtils.getString(secret, PASSWORD_KEY);
+
+        String token;
+
+        try {
+            token = secretExporter.exportAsString(o, n, p);
+        } catch (Exception e) {
+            throw new HashiVaultTaskException("Error retrieving API token from Concord secret: " + e.getMessage());
+        }
+        return token;
     }
 
     public Action action() {
@@ -127,5 +153,9 @@ public class TaskParams {
     public enum Action {
         READKV,
         WRITEKV
+    }
+
+    public interface SecretExporter {
+        String exportAsString(String o, String n, String p) throws Exception;
     }
 }

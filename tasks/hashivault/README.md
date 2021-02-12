@@ -45,13 +45,13 @@ VAULT_BASE_URL=http://my-vault-svc:8200 \
 VAULT_TOKEN=my-token \
 VAULT_NS=/my-namespace \
 VAULT_PATH=secret/my-secret \
-./test.sh
+./testCLI.sh
 ```
 
 Or put the variables in a properties file and give that to the script.
 
 ```shell
-PARAM_FILE=~/.my-vault-vars.properties ./test.sh
+PARAM_FILE=~/.my-vault-vars.properties ./testCLI.sh
 ```
 
 ## Test with Concord Payload
@@ -72,5 +72,5 @@ VAULT_PATH=secret/my-secret \
 Or put the variables in a properties file and give that to the script.
 
 ```shell
-PARAM_FILE=~/.my-vault-vars.properties ./test.sh
+PARAM_FILE=~/.my-vault-vars.properties ./testPayload.sh
 ```

@@ -24,10 +24,9 @@ import com.walmartlabs.concord.plugins.hashivault.HashiVaultTaskCommon;
 import com.walmartlabs.concord.plugins.hashivault.HashiVaultTaskResult;
 import com.walmartlabs.concord.plugins.hashivault.TaskParams;
 import com.walmartlabs.concord.runtime.v2.sdk.MapBackedVariables;
-import com.walmartlabs.concord.sdk.Context;
-import com.walmartlabs.concord.sdk.InjectVariable;
-import com.walmartlabs.concord.sdk.Task;
+import com.walmartlabs.concord.sdk.*;
 
+import javax.inject.Inject;
 import javax.inject.Named;
 import java.util.HashMap;
 import java.util.Map;
@@ -38,48 +37,78 @@ public class HashiVaultTask implements Task {
     @InjectVariable(TaskParams.DEFAULT_PARAMS_KEY)
     private Map<String, Object> defaults;
 
+    private final SecretService secretService;
+
+    @Inject
+    public HashiVaultTask(SecretService secretService) {
+        this.secretService = secretService;
+    }
+
     @Override
     public void execute(Context ctx) {
-        final TaskParams params = TaskParams.of(new MapBackedVariables(ctx.toMap()), defaults);
+        final TaskParams params = createParams(ctx, ctx.toMap());
         final HashiVaultTaskCommon delegate = new HashiVaultTaskCommon();
         final HashiVaultTaskResult result = delegate.execute(params);
 
         ctx.setVariable("result", result.toMap());
     }
 
-    public Map<String, Object> readKV(String path) {
+    private TaskParams createParams(Context ctx, Map<String, Object> input) {
+        final MapBackedVariables vars = new MapBackedVariables(input);
+        final SecretExporterV1 exporterV1 = new SecretExporterV1(ctx, secretService);
+        return TaskParams.of(vars, defaults, exporterV1);
+    }
+
+    public Map<String, Object> readKV(@InjectVariable("context") Context ctx, String path) {
         final Map<String, Object> input = new HashMap<>(2);
         input.put(TaskParams.ACTION_KEY, TaskParams.Action.READKV.toString());
         input.put(TaskParams.PATH_KEY, path);
 
-        final TaskParams params = TaskParams.of(new MapBackedVariables(input), defaults);
+        final TaskParams params = createParams(ctx, input);
         final HashiVaultTaskCommon delegate = new HashiVaultTaskCommon();
         HashiVaultTaskResult result = delegate.execute(params);
 
         return result.data();
     }
 
-    public String readKV(String path, String key) {
+    public String readKV(@InjectVariable("context") Context ctx, String path, String key) {
         final Map<String, Object> input = new HashMap<>(2);
         input.put(TaskParams.ACTION_KEY, TaskParams.Action.READKV.toString());
         input.put(TaskParams.PATH_KEY, path);
         input.put(TaskParams.KEY_KEY, key);
 
-        final TaskParams params = TaskParams.of(new MapBackedVariables(input), defaults);
+        final TaskParams params = createParams(ctx, input);
         final HashiVaultTaskCommon delegate = new HashiVaultTaskCommon();
-        HashiVaultTaskResult result = delegate.execute(params);
+        final HashiVaultTaskResult result = delegate.execute(params);
 
         return result.data();
     }
 
-    public void writeKV(String path, Map<String, Object> kvPairs) {
-        Map<String, Object> input = new HashMap<>(2);
+    public void writeKV(@InjectVariable("context") Context ctx, String path, Map<String, Object> kvPairs) {
+        final Map<String, Object> input = new HashMap<>(2);
         input.put(TaskParams.ACTION_KEY, TaskParams.Action.WRITEKV.toString());
         input.put(TaskParams.PATH_KEY, path);
         input.put(TaskParams.KV_PAIRS_KEY, kvPairs);
 
-        final TaskParams params = TaskParams.of(new MapBackedVariables(input), defaults);
+        final TaskParams params = createParams(ctx, input);
         final HashiVaultTaskCommon delegate = new HashiVaultTaskCommon();
         delegate.execute(params);
+    }
+
+    private static class SecretExporterV1 implements TaskParams.SecretExporter {
+        private final SecretService secretService;
+        private final Context ctx;
+        private final String txId;
+
+        SecretExporterV1(Context ctx, SecretService secretService) {
+            this.secretService = secretService;
+            this.ctx = ctx;
+            this.txId = ContextUtils.assertString(ctx, TaskParams.TX_ID_KEY);
+        }
+
+        @Override
+        public String exportAsString(String o, String n, String p) throws Exception {
+            return secretService.exportAsString(ctx, txId, o, n, p);
+        }
     }
 }

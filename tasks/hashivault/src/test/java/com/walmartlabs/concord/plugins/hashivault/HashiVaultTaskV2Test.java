@@ -20,20 +20,22 @@ package com.walmartlabs.concord.plugins.hashivault;
  * =====
  */
 
+import com.walmartlabs.concord.plugins.hashivault.model.MockContextV2;
+import com.walmartlabs.concord.plugins.hashivault.model.MockSecretServiceDelegate;
+import com.walmartlabs.concord.plugins.hashivault.model.MockSecretServiceV2;
 import com.walmartlabs.concord.plugins.hashivault.v2.HashiVaultTask;
-import com.walmartlabs.concord.runtime.v2.sdk.Compiler;
-import com.walmartlabs.concord.runtime.v2.sdk.*;
+import com.walmartlabs.concord.runtime.v2.sdk.Context;
+import com.walmartlabs.concord.runtime.v2.sdk.MapBackedVariables;
+import com.walmartlabs.concord.runtime.v2.sdk.SecretService;
 import com.walmartlabs.concord.runtime.v2.sdk.TaskResult.SimpleResult;
+import com.walmartlabs.concord.runtime.v2.sdk.Variables;
 import com.walmartlabs.concord.sdk.MapUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.io.Serializable;
-import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -41,12 +43,30 @@ import static org.junit.Assert.assertTrue;
 public class HashiVaultTaskV2Test extends AbstractVaultTest {
 
     @Test
+    public void testReadTokenFromSecretV2() throws Exception {
+        Map<String, Object> varMap = new HashMap<>();
+        Map<String, Object> secretInfo = new HashMap<>(3);
+        secretInfo.put("org", "my-org");
+        secretInfo.put("name", "my-secret");
+        varMap.put("apiTokenSecret", secretInfo);
+        varMap.put("baseUrl", getBaseUrl());
+        varMap.put("path", "cubbyhole/hello");
+
+        Variables vars = new MapBackedVariables(varMap);
+        SimpleResult result = getTask(false).execute(vars);
+
+        Assert.assertTrue(result.ok());
+        final Map<String, Object> data = MapUtils.assertMap(result.values(), "data");
+        assertEquals("cubbyVal", data.get("cubbyKey"));
+    }
+
+    @Test
     public void testCubbyV2() throws Exception {
         Map<String, Object> varMap = new HashMap<>();
         varMap.put("path", "cubbyhole/hello");
 
         Variables vars = new MapBackedVariables(varMap);
-        SimpleResult result = getTask().execute(vars);
+        SimpleResult result = getTask(true).execute(vars);
 
         Assert.assertTrue(result.ok());
         final Map<String, Object> data = MapUtils.assertMap(result.values(), "data");
@@ -59,7 +79,7 @@ public class HashiVaultTaskV2Test extends AbstractVaultTest {
         varMap.put("path", "secret/testing");
 
         Variables vars = new MapBackedVariables(varMap);
-        SimpleResult result = getTask().execute(vars);
+        SimpleResult result = getTask(true).execute(vars);
 
         Assert.assertTrue(result.ok());
         final Map<String, Object> data = MapUtils.assertMap(result.values(), "data");
@@ -74,7 +94,7 @@ public class HashiVaultTaskV2Test extends AbstractVaultTest {
         varMap.put("key", "db_password");
 
         Variables vars = new MapBackedVariables(varMap);
-        SimpleResult result = getTask().execute(vars);
+        SimpleResult result = getTask(true).execute(vars);
 
         Assert.assertTrue(result.ok());
         final String data = MapUtils.getString(result.values(), "data");
@@ -92,26 +112,26 @@ public class HashiVaultTaskV2Test extends AbstractVaultTest {
     }
 
     @Test
-    public void testReadKvSinglePublicMethodV2() throws Exception {
+    public void testReadKvSinglePublicMethodV2() {
         String path = "secret/testing";
-        String result = getTask().readKV(path, "db_password");
+        String result = getTask(true).readKV(path, "db_password");
 
         assertEquals("dbpassword1", result);
     }
 
     @Test
-    public void testWriteCubbyPublicMethodV2() throws Exception {
+    public void testWriteCubbyPublicMethodV2() {
         String path = "cubbyhole/newSecretTaskPublicMethodV2";
         Map<String, Object> kvPairs = new HashMap<>();
         kvPairs.put("key1", "cubbyValue1");
         kvPairs.put("key2", "cubbyValue2");
 
-        HashiVaultTask task = getTask();
+        HashiVaultTask task = getTask(true);
         task.writeKV(path, kvPairs);
 
         // -- now get the values back
 
-        task = getTask(); // resets context
+        task = getTask(true); // resets context
         Map<String, Object> data = task.readKV(path);
 
         assertEquals("cubbyValue1", MapUtils.getString(data, "key1"));
@@ -119,18 +139,18 @@ public class HashiVaultTaskV2Test extends AbstractVaultTest {
     }
 
     @Test
-    public void testWriteKvPublicMethodV2() throws Exception {
+    public void testWriteKvPublicMethodV2() {
         String path = "secret/newSecretTaskPublicMethodV2";
         Map<String, Object> kvPairs = new HashMap<>();
         kvPairs.put("key1", "value1");
         kvPairs.put("key2", "value2");
 
-        HashiVaultTask task = getTask();
+        HashiVaultTask task = getTask(true);
         task.writeKV(path, kvPairs);
 
         // -- now get the values back
 
-        task = getTask(); // resets context
+        task = getTask(true); // resets context
         Map<String, Object> data = task.readKV(path);
 
         assertEquals("value1", MapUtils.getString(data, "key1"));
@@ -138,7 +158,7 @@ public class HashiVaultTaskV2Test extends AbstractVaultTest {
     }
 
     private void writeAndRead(String path, String prefix) throws Exception {
-        HashiVaultTask task = getTask();
+        HashiVaultTask task = getTask(true);
         Map<String, Object> vars1 = new HashMap<>();
         vars1.put("action", "writeKV");
         vars1.put("path", path);
@@ -155,7 +175,7 @@ public class HashiVaultTaskV2Test extends AbstractVaultTest {
 
         // -- now get the values back
 
-        task = getTask(); // resets context
+        task = getTask(true); // resets context
 
         Map<String, Object> vars2 = new HashMap<>();
         vars2.put("action", "readKV");
@@ -172,105 +192,25 @@ public class HashiVaultTaskV2Test extends AbstractVaultTest {
         assertEquals(prefix + "Value2", MapUtils.getString(data, "key2"));
     }
 
-    private HashiVaultTask getTask() {
-        Map<String, Object> defaults = new HashMap<>();
-        defaults.put("baseUrl", getBaseUrl());
-        defaults.put("apiToken", getApiToken());
-
+    private HashiVaultTask getTask(boolean setDefaults) {
         Map<String, Object> vars = new HashMap<>();
-        vars.put("hashivaultParams", defaults);
 
-        Context ctx = new MockContext(vars, null);
+        if (setDefaults) {
+            Map<String, Object> defaults = new HashMap<>();
+            defaults.put("baseUrl", getBaseUrl());
+            defaults.put("apiToken", getApiToken());
 
-        return new HashiVaultTask(ctx);
-    }
-
-    private static class MockContext implements Context {
-
-        private final Variables variables;
-        private final Variables defaultVariables;
-
-        MockContext(Map<String, Object> vars, Map<String, Object> defs) {
-            this.variables = new MapBackedVariables(vars);
-            this.defaultVariables = new MapBackedVariables(defs);
+            vars.put("hashivaultParams", defaults);
         }
 
-        @Override
-        public Path workingDirectory() {
-            return null;
-        }
+        Context ctx = new MockContextV2(vars, null);
+        SecretService s = new MockSecretServiceV2(new MockSecretServiceDelegate() {
+            @Override
+            public String exportString(String o, String n, String p) {
+                return getApiToken();
+            }
+        });
 
-        @Override
-        public UUID processInstanceId() {
-            return null;
-        }
-
-        @Override
-        public Variables variables() {
-            return variables;
-        }
-
-        @Override
-        public Variables defaultVariables() {
-            return defaultVariables;
-        }
-
-        @Override
-        public FileService fileService() {
-            return null;
-        }
-
-        @Override
-        public DockerService dockerService() {
-            return null;
-        }
-
-        @Override
-        public SecretService secretService() {
-            return null;
-        }
-
-        @Override
-        public LockService lockService() {
-            return null;
-        }
-
-        @Override
-        public ApiConfiguration apiConfiguration() {
-            return null;
-        }
-
-        @Override
-        public ProcessConfiguration processConfiguration() {
-            return null;
-        }
-
-        @Override
-        public Execution execution() {
-            return null;
-        }
-
-        @Override
-        public Compiler compiler() {
-            return null;
-        }
-
-        @Override
-        public <T> T eval(Object o, Class<T> aClass) {
-            return null;
-        }
-
-        @Override
-        public <T> T eval(Object o, Map<String, Object> map, Class<T> aClass) {
-            return null;
-        }
-
-        @Override
-        public void suspend(String s) {
-        }
-
-        @Override
-        public void reentrantSuspend(String s, Map<String, Serializable> map) {
-        }
+        return new HashiVaultTask(ctx, s);
     }
 }

@@ -20,11 +20,11 @@ package com.walmartlabs.concord.plugins.hashivault;
  * =====
  */
 
+import com.walmartlabs.concord.plugins.hashivault.model.MockSecretServiceDelegate;
+import com.walmartlabs.concord.plugins.hashivault.model.MockSecretServiceV1;
 import com.walmartlabs.concord.plugins.hashivault.v1.HashiVaultTask;
 import com.walmartlabs.concord.sdk.*;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Field;
 import java.util.Collections;
@@ -35,21 +35,30 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class HashiVaultTaskV1Test extends AbstractVaultTest {
-    private static final Logger log = LoggerFactory.getLogger(HashiVaultTaskV1Test.class);
 
     private Context ctx;
+    private final SecretService secretService = new MockSecretServiceV1(new MockSecretServiceDelegate() {
+        @Override
+        public String exportString(String o, String n, String p) {
+            return getApiToken();
+        }
+    });
 
-    private HashiVaultTask getTask() {
+    private HashiVaultTask getTask(boolean setDefaults) {
         ctx = new MockContext(new HashMap<>());
+        HashiVaultTask t = new HashiVaultTask( secretService);
+        injectVariable(t, "execution", ctx);
 
-        Map<String, Object> defaults = new HashMap<>(2);
-        defaults.put("apiToken", getApiToken());
-        defaults.put("baseUrl", getBaseUrl());
+        ctx.setVariable("txId", "643cd26e-6d64-11eb-81f9-0800273425d4");
+        if (setDefaults) {
+            Map<String, Object> defaults = new HashMap<>(2);
+            defaults.put("apiToken", getApiToken());
+            defaults.put("baseUrl", getBaseUrl());
 
-        ctx.setVariable("hashivaultParams", defaults);
+            ctx.setVariable("hashivaultParams", defaults);
+            injectVariable(t, "hashivaultParams", defaults);
+        }
 
-        HashiVaultTask t = new HashiVaultTask();
-        injectVariable(t, "hashivaultParams", defaults);
         return t;
     }
 
@@ -83,8 +92,29 @@ public class HashiVaultTaskV1Test extends AbstractVaultTest {
     }
 
     @Test
+    public void testReadTokenFromSecretV1() throws Exception {
+        Task task = getTask(false);
+        Map<String, Object> secretInfo = new HashMap<>(3);
+        secretInfo.put("org", "my-org");
+        secretInfo.put("name", "my-secret");
+        ctx.setVariable("apiTokenSecret", secretInfo);
+        ctx.setVariable("baseUrl", getBaseUrl());
+        ctx.setVariable("path", "cubbyhole/hello");
+
+        // apiToken wasn't given directly, it should be read from SecretService
+        task.execute(ctx);
+        Map<String, Object> result = ContextUtils.assertMap(ctx, "result");
+
+        assertTrue(MapUtils.getBoolean(result,"ok", false));
+
+        Map<String, Object> data = MapUtils.getMap(result, "data", Collections.emptyMap());
+        assertEquals("cubbyVal", MapUtils.getString(data, "cubbyKey"));
+    }
+
+
+    @Test
     public void testReadCubbyV1() throws Exception {
-        Task task = getTask();
+        Task task = getTask(true);
         ctx.setVariable("path", "cubbyhole/hello");
 
         task.execute(ctx);
@@ -94,13 +124,11 @@ public class HashiVaultTaskV1Test extends AbstractVaultTest {
 
         Map<String, Object> data = MapUtils.getMap(result, "data", Collections.emptyMap());
         assertEquals("cubbyVal", MapUtils.getString(data, "cubbyKey"));
-
-        log.info("{}", ContextUtils.assertMap(ctx, "result"));
     }
 
     @Test
     public void testReadKvV1() throws Exception {
-        Task task = getTask();
+        Task task = getTask(true);
         ctx.setVariable("path", "secret/testing");
 
         task.execute(ctx);
@@ -115,7 +143,7 @@ public class HashiVaultTaskV1Test extends AbstractVaultTest {
 
     @Test
     public void testReadKvSingleV1() throws Exception {
-        Task task = getTask();
+        Task task = getTask(true);
         ctx.setVariable("path", "secret/testing");
         ctx.setVariable("key", "db_password");
 
@@ -139,7 +167,7 @@ public class HashiVaultTaskV1Test extends AbstractVaultTest {
     }
 
     private void testWriteAndRead(String path, String prefix) throws Exception {
-        Task task = getTask();
+        Task task = getTask(true);
         ctx.setVariable("action", "writeKV");
         ctx.setVariable("path", path);
 
@@ -155,7 +183,7 @@ public class HashiVaultTaskV1Test extends AbstractVaultTest {
 
         // -- now get the values back
 
-        task = getTask(); // resets context
+        task = getTask(true); // resets context
         ctx.setVariable("action", "readKV");
         ctx.setVariable("path", path);
 
@@ -168,46 +196,46 @@ public class HashiVaultTaskV1Test extends AbstractVaultTest {
     }
 
     @Test
-    public void testReadKvSinglePublicMethodV1() throws Exception {
+    public void testReadKvSinglePublicMethodV1() {
         String path = "secret/testing";
-        String result = getTask().readKV(path, "db_password");
+        String result = getTask(true).readKV(ctx, path, "db_password");
 
         assertEquals("dbpassword1", result);
     }
 
     @Test
-    public void testWriteCubbyPublicMethodV1() throws Exception {
+    public void testWriteCubbyPublicMethodV1() {
         String path = "cubbyhole/newSecretTaskPublicMethodV1";
         Map<String, Object> kvPairs = new HashMap<>(2);
         kvPairs.put("key1", "cubbyValue1");
         kvPairs.put("key2", "cubbyValue2");
 
-        HashiVaultTask task = getTask();
-        task.writeKV(path, kvPairs);
+        HashiVaultTask task = getTask(true);
+        task.writeKV(ctx, path, kvPairs);
 
         // -- now get the values back
 
-        task = getTask(); // resets context
-        Map<String, Object> data = task.readKV(path);
+        task = getTask(true); // resets context
+        Map<String, Object> data = task.readKV(ctx, path);
 
         assertEquals("cubbyValue1", MapUtils.getString(data, "key1"));
         assertEquals("cubbyValue2", MapUtils.getString(data, "key2"));
     }
 
     @Test
-    public void testWriteKvPublicMethodV1() throws Exception {
+    public void testWriteKvPublicMethodV1() {
         String path = "secret/newSecretTaskPublicMethodV1";
         Map<String, Object> kvPairs = new HashMap<>(2);
         kvPairs.put("key1", "value1");
         kvPairs.put("key2", "value2");
 
-        HashiVaultTask task = getTask();
-        task.writeKV(path, kvPairs);
+        HashiVaultTask task = getTask(true);
+        task.writeKV(ctx, path, kvPairs);
 
         // -- now get the values back
 
-        task = getTask(); // resets context
-        Map<String, Object> data = task.readKV(path);
+        task = getTask(true); // resets context
+        Map<String, Object> data = task.readKV(ctx, path);
 
         assertEquals("value1", MapUtils.getString(data, "key1"));
         assertEquals("value2", MapUtils.getString(data, "key2"));

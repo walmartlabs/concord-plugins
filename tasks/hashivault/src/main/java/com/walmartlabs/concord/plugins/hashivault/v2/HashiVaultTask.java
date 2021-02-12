@@ -36,15 +36,17 @@ import java.util.Map;
 public class HashiVaultTask implements Task {
 
     private final Map<String, Object> defaults;
+    private final SecretService secretService;
 
     @Inject
-    public HashiVaultTask(Context ctx) {
+    public HashiVaultTask(Context ctx, SecretService secretService) {
+        this.secretService = secretService;
         this.defaults = ctx.variables().getMap(TaskParams.DEFAULT_PARAMS_KEY, Collections.emptyMap());
     }
 
     @Override
     public TaskResult.SimpleResult execute(Variables input) throws Exception {
-        final TaskParams params = TaskParams.of(input, defaults);
+        final TaskParams params = createParams(input);
         final HashiVaultTaskCommon delegate = new HashiVaultTaskCommon();
         final HashiVaultTaskResult result = delegate.execute(params);
         final Map<String, Object> data = new HashMap<>(1);
@@ -53,13 +55,18 @@ public class HashiVaultTask implements Task {
         return TaskResult.of(result.ok(), result.error(), data);
     }
 
+    private TaskParams createParams(Variables input) {
+        final SecretExporterV2 exporterV2 = new SecretExporterV2(secretService);
+        return TaskParams.of(input, defaults, exporterV2);
+    }
+
     public Map<String, Object> readKV(String path) {
         Map<String, Object> vars = new HashMap<>();
         vars.put(TaskParams.ACTION_KEY, TaskParams.Action.READKV.toString());
         vars.put(TaskParams.PATH_KEY, path);
 
         final Variables input = new MapBackedVariables(vars);
-        final TaskParams params = TaskParams.of(input, defaults);
+        final TaskParams params = createParams(input);
         final HashiVaultTaskResult result = new HashiVaultTaskCommon().execute(params);
         return result.data();
     }
@@ -71,7 +78,7 @@ public class HashiVaultTask implements Task {
         vars.put(TaskParams.KEY_KEY, field);
 
         final Variables input = new MapBackedVariables(vars);
-        final TaskParams params = TaskParams.of(input, defaults);
+        final TaskParams params = createParams(input);
         final HashiVaultTaskResult result = new HashiVaultTaskCommon().execute(params);
         return result.data();
     }
@@ -83,8 +90,21 @@ public class HashiVaultTask implements Task {
         vars.put(TaskParams.KV_PAIRS_KEY, kvPairs);
 
         final Variables input = new MapBackedVariables(vars);
-        final TaskParams params = TaskParams.of(input, defaults);
+        final TaskParams params = createParams(input);
         final HashiVaultTaskCommon delegate = new HashiVaultTaskCommon();
         delegate.execute(params);
+    }
+
+    private static class SecretExporterV2 implements TaskParams.SecretExporter {
+        private final SecretService secretService;
+
+        SecretExporterV2(SecretService secretService) {
+            this.secretService = secretService;
+        }
+
+        @Override
+        public String exportAsString(String o, String n, String p) throws Exception {
+            return secretService.exportAsString(o, n, p);
+        }
     }
 }

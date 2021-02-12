@@ -84,7 +84,7 @@ public class HashiVaultTaskCommon {
 
     private Map<String, String> readValue(Vault vault, TaskParams params) {
         try {
-            final LogicalResponse r = vault.logical()
+            final LogicalResponse r = vault.withRetries(3, 5000).logical()
                     .withNameSpace(params.ns())
                     .read(params.path());
             final int status = r.getRestResponse().getStatus();
@@ -109,7 +109,7 @@ public class HashiVaultTaskCommon {
 
     private void writeValue(Vault vault, TaskParams params) {
         try {
-            final LogicalResponse r = vault.logical()
+            final LogicalResponse r = vault.withRetries(3, 5000).logical()
                     .withNameSpace(params.ns())
                     .write(params.path(), params.kvPairs());
             final int status = r.getRestResponse().getStatus();

@@ -23,20 +23,31 @@ package com.walmartlabs.concord.plugins.hashivault;
 import com.walmartlabs.concord.runtime.v2.sdk.MapBackedVariables;
 import com.walmartlabs.concord.runtime.v2.sdk.Variables;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.Assert.*;
 
 public class UnitTest {
+
+    private static final TaskParams.SecretExporter exporter =
+            (o, n, p) -> "a-secret";
+
+    @Before
+    public void setup() {
+
+    }
 
     @Test
     public void defaultActionTest() {
         Map<String, Object> vars = new HashMap<>();
         vars.put("baseUrl", "http://example.com:8200");
 
-        TaskParams params = TaskParams.of(new MapBackedVariables(vars), null);
+        TaskParams params = TaskParams.of(new MapBackedVariables(vars), null, exporter);
         Assert.assertEquals(TaskParams.Action.READKV, params.action());
     }
 
@@ -45,12 +56,12 @@ public class UnitTest {
         Map<String, Object> vars = new HashMap<>();
         vars.put("action", "not-an-action");
 
-        TaskParams.of(new MapBackedVariables(vars), null);
+        TaskParams.of(new MapBackedVariables(vars), null, exporter);
     }
 
     @Test
     public void requiredParametersTest() {
-        TaskParams params = TaskParams.of(new MapBackedVariables(getMap()), null);
+        TaskParams params = TaskParams.of(new MapBackedVariables(getMap()), null, exporter);
         try {
             params.baseUrl();
         } catch (IllegalArgumentException e) {
@@ -72,7 +83,8 @@ public class UnitTest {
         params.kvPairs(); // default action
 
         // kvPairs required when action is writeKv
-        params = TaskParams.of(new MapBackedVariables(getMap("action", "writeKv")), null);
+        params = TaskParams.of(
+                new MapBackedVariables(getMap("action", "writeKv")), null, exporter);
         try {
             params.kvPairs();
         } catch (IllegalArgumentException e) {
@@ -81,7 +93,7 @@ public class UnitTest {
 
         // cubbyhole is a v1 engine
         params = TaskParams.of(new MapBackedVariables(
-                getMap("path", "cubbyhole/mysecret", "engineVersion", 2)), null);
+                getMap("path", "cubbyhole/mysecret", "engineVersion", 2)), null, exporter);
         assertEquals(1, params.engineVersion());
     }
 
@@ -93,7 +105,7 @@ public class UnitTest {
     @Test
     public void mapDataTest(){
         Variables vars = new MapBackedVariables(getMap("path", "secret/mysecret"));
-        TaskParams params = TaskParams.of(vars, null);
+        TaskParams params = TaskParams.of(vars, null, exporter);
 
         HashiVaultTaskResult result = HashiVaultTaskResult
                 .of(true, getMap("top_secret", "value"), null, params);
@@ -114,7 +126,7 @@ public class UnitTest {
     public void stringDataTest() {
         Variables vars = new MapBackedVariables(
                 getMap("path", "secret/mysecret", "key", "top_secret"));
-        TaskParams params = TaskParams.of(vars, null);
+        TaskParams params = TaskParams.of(vars, null, exporter);
 
         HashiVaultTaskResult result = HashiVaultTaskResult
                 .of(true, getMap("top_secret", "value"), null, params);

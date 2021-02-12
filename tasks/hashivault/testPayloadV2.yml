@@ -22,7 +22,7 @@ flows:
       in:
         action: "writeKV"
         path: "${vaultPath}"
-        kvPairs: ${testPairsFull}
+        kvPairs: "${testPairsFull}"
       out: result
 
     # Read all values in a secret
