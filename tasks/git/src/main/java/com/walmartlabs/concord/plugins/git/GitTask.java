@@ -36,6 +36,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -125,8 +127,7 @@ public class GitTask {
             client.cloneRepo(uri, baseBranch, secret, dstDir);
             return toResult(true, ResultStatus.SUCCESS, "", Collections.emptySet());
         } catch (Exception e) {
-            String error = "Error while cloning the repository.\n" + e.getMessage();
-            return handleError(error, e, in, dstDir);
+            return handleError("Error while cloning the repository", e, in, dstDir, secret);
         }
     }
 
@@ -134,7 +135,8 @@ public class GitTask {
         Path dstDir = prepareTargetDirectory(in);
         String remoteBranch = assertString(in, GIT_PULL_REMOTE_BRANCH);
 
-        TransportConfigCallback transportCallback = JGitClient.createTransportConfigCallback(getSecret(in));
+        Secret secret = getSecret(in);
+        TransportConfigCallback transportCallback = JGitClient.createTransportConfigCallback(secret);
 
         // TODO: Research if there is a way to pass uri. For now defaulting it to a name
         String remote = "origin";
@@ -191,8 +193,7 @@ public class GitTask {
 
             return Collections.emptyMap();
         } catch (Exception e) {
-            String error = "Error occurred during git pull action.\n" + e.getMessage();
-            return handleError(error, e, in, dstDir);
+            return handleError("Error occurred during git pull action", e, in, dstDir, secret);
         }
     }
 
@@ -332,8 +333,7 @@ public class GitTask {
         try {
             client.cloneRepo(uri, baseBranch, secret, dstDir);
         } catch (Exception e) {
-            String error = "Error while cloning the repository.\n" + e.getMessage();
-            return handleError(error, e, in, dstDir);
+            return handleError("Error while cloning the repository", e, in, dstDir, secret);
         }
 
         try (Git git = Git.open(dstDir.toFile())) {
@@ -352,11 +352,9 @@ public class GitTask {
             } else {
                 log.warn("Skipping push operation as 'pushBranch' parameter is set to 'false' by default. If you want to push your new branch to origin, set it to 'true' in your git createBranch action");
             }
-            log.info("Done");
             return toResult(true, ResultStatus.SUCCESS, "", Collections.emptySet());
         } catch (Exception e) {
-            String error = "Error while cloning the repository.\n" + e.getMessage();
-            return handleError(error, e, in, dstDir);
+            return handleError( "Error while creating the branch", e, in, dstDir, secret);
         }
     }
 
@@ -374,8 +372,7 @@ public class GitTask {
         try {
             client.cloneRepo(uri, destinationBranch, secret, dstDir);
         } catch (Exception e) {
-            String error = "Error while cloning the repository.\n" + e.getMessage();
-            return handleError(error, e, in, dstDir);
+            return handleError("Error while cloning the repository", e, in, dstDir, secret);
         }
 
         try (Git git = Git.open(dstDir.toFile())){
@@ -421,8 +418,7 @@ public class GitTask {
                 }
             }
         } catch (Exception e) {
-            String error = "Error while cloning a repository\n" + e.getMessage();
-            return handleError(error, e, in, dstDir);
+            return handleError("Error while merging a repository", e, in, dstDir, secret);
         }
     }
 
@@ -512,18 +508,42 @@ public class GitTask {
         return getBoolean(in, IGNORE_ERRORS_KEY, false);
     }
 
-    private static Map<String, Object> handleError(String error, Exception e, Map<String, Object> in, Path dstDir) {
+    private static Map<String, Object> handleError(String errorPrefix, Exception e, Map<String, Object> in, Path dstDir, Secret secret) {
         try {
             IOUtils.deleteRecursively(dstDir);
         } catch (Exception ex) {
             log.info("cleanup -> error: " + ex.getMessage());
         }
 
+        String errorMessage = hideSensitiveData(errorPrefix + ": " + e.getMessage(), secret);
         if (!isIgnoreErrors(in)) {
-            throw new IllegalArgumentException(error, e);
+            log.error("{}: {}", errorPrefix, hideSensitiveData(stacktraceToString(e), secret));
+            throw new RuntimeException(errorMessage);
         }
 
-        return toResult(false, ResultStatus.FAILURE, error, Collections.emptySet());
+        return toResult(false, ResultStatus.FAILURE, errorMessage, Collections.emptySet());
+    }
+
+    private static String stacktraceToString(Throwable t) {
+        StringWriter w = new StringWriter();
+        t.printStackTrace(new PrintWriter(w));
+        return w.toString();
+    }
+
+    private static String hideSensitiveData(String s, Secret secret) {
+        if (s == null) {
+            return null;
+        }
+        if (secret instanceof UsernamePassword) {
+            char[] password = ((UsernamePassword) secret).getPassword();
+            if (password != null) {
+                s = s.replaceAll(new String(password), "***");
+            }
+        } else if (secret instanceof TokenSecret) {
+            String token = ((TokenSecret) secret).getToken();
+            s = s.replaceAll(token, "***");
+        }
+        return s;
     }
 
     private static Map<String, Object> toResult(boolean ok, ResultStatus resultStatus, String error, Set<String> changeList) {
