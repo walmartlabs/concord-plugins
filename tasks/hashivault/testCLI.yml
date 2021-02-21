@@ -1,0 +1,23 @@
+configuration:
+  dependencies:
+  - mvn://com.walmartlabs.concord.plugins:hashivault-task:1.33.1-SNAPSHOT
+  arguments:
+    hashivaultParams:
+      baseUrl: "${vaultBaseUrl}"
+      debug: true
+  runtime: concord-v2
+
+flows:
+  default:
+    - task: hashivault
+      in:
+        baseUrl: "${vaultBaseUrl}"
+        path: "${vaultPath}"
+        namespace: "${vaultNs}"
+        apiToken: "${vaultToken}"
+      out: result
+      error:
+        - log: "Vault error: ${lastError.cause}"
+    - log: ${resource.prettyPrintJson(result)}
+    - log: "${result.ok}"
+    - log: "${result.data}"

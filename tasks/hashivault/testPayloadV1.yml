@@ -1,0 +1,64 @@
+configuration:
+  arguments:
+    hashivaultParams:
+      baseUrl: "${vaultBaseUrl}"
+      apiToken: "${vaultToken}"
+      namespace: "${vaultNs}"
+    testPairsFull:
+      processId: "${txId}"
+      theDate: "${datetime.current()}"
+    testPairsPublic:
+      processId: "${txId}"
+      sessionToken: "${processInfo.sessionToken}"
+
+flows:
+  default:
+    - call: fullTest
+    - call: shortTest
+
+  fullTest:
+    - task: hashivault
+      in:
+        action: "writeKV"
+        path: "${vaultPath}"
+        kvPairs: ${testPairsFull}
+
+    # Read all values in a secret
+    - task: hashivault
+      in:
+        path: "${vaultPath}"
+      error:
+        - log: "Vault error: ${lastError.cause}"
+    - if: ${result.data.theDate != testPairsFull.theDate}
+      then:
+        - throw: "Failed to store and retrieve data with full task call"
+    - if: ${result.data.processId != testPairsFull.processId}
+      then:
+        - throw: "Failed to store and retrieve data with full task call"
+
+    # Read a single value
+    - task: hashivault
+      in:
+        path: "${vaultPath}"
+        key: "processId"
+      error:
+        - log: "Vault error: ${lastError.cause}"
+    - if: ${result.data != testPairsFull.processId}
+      then:
+        - throw: "Failed to store and retrieve data with full task call"
+
+  shortTest:
+    - ${hashivault.writeKV(vaultPath, testPairsPublic)}
+    - expr: ${hashivault.readKV(vaultPath)}
+      out: result
+    - if: ${result.sessionToken != testPairsPublic.sessionToken}
+      then:
+        - throw: "Failed to store and retrieve data with public method call"
+    - if: ${result.processId != testPairsPublic.processId}
+      then:
+        - throw: "Failed to store and retrieve data with public method call"
+    - expr: ${hashivault.readKV(vaultPath, 'processId')}
+      out: result
+    - if: ${result != testPairsPublic.processId}
+      then:
+        - throw: "Failed to store and retrieve data with public method call"
