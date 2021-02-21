@@ -1,5 +1,18 @@
 # Change log
 
+## [Unreleased]
+
+### Added
+
+- new plugin: `tasks/hashivault`
+([#46](https://github.com/walmartlabs/concord-plugins/pull/46));
+- git: new `createBranch` parameter - `baseRef`
+([#47](https://github.com/walmartlabs/concord-plugins/pull/47));
+- git: hide sensitive data in logs
+([#48](https://github.com/walmartlabs/concord-plugins/pull/48)).
+
+
+
 ## [1.33.0] - 2021-02-02
 
 ### Changed
