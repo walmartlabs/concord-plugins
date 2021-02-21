@@ -53,6 +53,7 @@ public class GitTask {
     public static final String ACTION_KEY = "action";
     public static final String GIT_AUTH_KEY = "auth";
     public static final String GIT_BASE_BRANCH = "baseBranch";
+    public static final String GIT_BASE_REF = "baseRef";
     public static final String GIT_BASIC_KEY = "basic";
     public static final String GIT_COMMIT_MSG = "commitMessage";
     public static final String GIT_COMMITTER_EMAIL = "commitEmail";
@@ -314,11 +315,7 @@ public class GitTask {
     private Map<String, Object> doCreateNewBranch(Map<String, Object> in) throws Exception {
         String uri = assertString(in, GIT_URL);
 
-        String baseBranch = getString(in, GIT_BASE_BRANCH, null);
-        if (baseBranch == null) {
-            baseBranch = "master";
-            log.info("User input for 'baseBranch' parameter is not provided. The default 'master' branch is used as the base to create the new branch.");
-        }
+        String baseRef = getString(in, GIT_BASE_REF, getString(in, GIT_BASE_BRANCH, "master"));
 
         //New Branch variables
         String newBranchName = assertString(in, GIT_NEW_BRANCH_NAME);
@@ -331,14 +328,14 @@ public class GitTask {
         Secret secret = getSecret(in);
         GitClient client = GitClientFactory.create(in);
         try {
-            client.cloneRepo(uri, baseBranch, secret, dstDir);
+            client.cloneRepo(uri, baseRef, secret, dstDir);
         } catch (Exception e) {
             return handleError("Error while cloning the repository", e, in, dstDir, secret);
         }
 
         try (Git git = Git.open(dstDir.toFile())) {
             git.checkout().setCreateBranch(true).setName(newBranchName).call();
-            log.info("Created new branch '{}'", newBranchName);
+            log.info("Created new branch '{}' from '{}'", newBranchName, baseRef);
             //Push created Branch to remote Origin on user input
             if (pushNewBranchToOrigin) {
                 TransportConfigCallback transportCallback = JGitClient.createTransportConfigCallback(secret);
@@ -576,20 +573,5 @@ public class GitTask {
         SUCCESS,
         FAILURE,
         NO_CHANGES
-    }
-
-    public static class Result {
-
-        private final boolean ok;
-        private final ResultStatus status;
-        private final String error;
-        private final Set<String> changeList;
-
-        public Result(boolean ok, ResultStatus status, String error, Set<String> changeList) {
-            this.ok = ok;
-            this.status = status;
-            this.error = error;
-            this.changeList = changeList;
-        }
     }
 }
