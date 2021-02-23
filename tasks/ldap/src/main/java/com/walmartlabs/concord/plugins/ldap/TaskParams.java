@@ -23,10 +23,7 @@ package com.walmartlabs.concord.plugins.ldap;
 import com.walmartlabs.concord.runtime.v2.sdk.MapBackedVariables;
 import com.walmartlabs.concord.runtime.v2.sdk.Variables;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class TaskParams implements LdapSearchParams {
 
@@ -129,6 +126,7 @@ public class TaskParams implements LdapSearchParams {
 
         private static final String LDAP_GROUP = "group";
         private static final String LDAP_SECURITY_ENABLED = "securityEnabled";
+        private static final String LDAP_SECURITY_GROUP_TYPES = "securityGroupTypes";
 
         public GetGroupParams(Variables variables) {
             super(variables);
@@ -141,6 +139,10 @@ public class TaskParams implements LdapSearchParams {
         public boolean securityEnabled() {
             return variables.assertBoolean(LDAP_SECURITY_ENABLED);
         }
+
+        public List<String> securityGroupTypes() {
+            return variables.getList(LDAP_SECURITY_GROUP_TYPES, Collections.emptyList());
+        }
     }
 
     public static class MemberOfParams extends TaskParams {
@@ -148,6 +150,7 @@ public class TaskParams implements LdapSearchParams {
         private static final String LDAP_USER = "user";
         private static final String LDAP_GROUP = "group";
         private static final String LDAP_SECURITY_ENABLED = "securityEnabled";
+        private static final String LDAP_SECURITY_GROUP_TYPES = "securityGroupTypes";
 
         public MemberOfParams(Variables variables) {
             super(variables);
@@ -163,6 +166,10 @@ public class TaskParams implements LdapSearchParams {
 
         public boolean securityEnabled() {
             return variables.assertBoolean(LDAP_SECURITY_ENABLED);
+        }
+
+        public List<String> securityGroupTypes() {
+            return variables.getList(LDAP_SECURITY_GROUP_TYPES, Collections.emptyList());
         }
     }
 

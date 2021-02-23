@@ -64,7 +64,7 @@ public class LdapTaskCommon {
                 log.info("Starting 'GetGroup' Action");
 
                 GetGroupParams p = (GetGroupParams) in;
-                SearchResult searchResult = getGroup(p, p.searchBase(), p.group(), p.securityEnabled());
+                SearchResult searchResult = getGroup(p, p.searchBase(), p.group(), p.securityGroupTypes(), p.securityEnabled());
                 return toResult(searchResult);
             }
             case ISMEMBEROF: {
@@ -140,7 +140,7 @@ public class LdapTaskCommon {
         }
     }
 
-    private SearchResult getGroup(LdapConnectionCfg cfg, String searchBase, String group, boolean securityEnabled) {
+    private SearchResult getGroup(LdapConnectionCfg cfg, String searchBase, String group, List<String> securityGroupTypes, boolean securityEnabled) {
         try {
             // create custom filter for group
             String searchFilter = "(name=" + group + ")";
@@ -148,12 +148,16 @@ public class LdapTaskCommon {
             // use private method search
             NamingEnumeration<SearchResult> results = withRetry(MAX_RETRIES, RETRY_DELAY, () -> search(cfg, searchBase, searchFilter));
 
-            SearchResult result;
             while (results.hasMoreElements()) {
-                result = results.nextElement();
-                String dn = getAttrValue(result, "distinguishedName");
+                SearchResult result = results.nextElement();
 
+                String dn = getAttrValue(result, "distinguishedName");
                 if (dn != null && dn.toLowerCase().contains("ou=security") == securityEnabled) {
+                    return result;
+                }
+
+                String groupType = getAttrValue(result, "groupType");
+                if (groupType != null && securityGroupTypes.stream().anyMatch(groupType::equals) == securityEnabled) {
                     return result;
                 }
             }
@@ -169,7 +173,7 @@ public class LdapTaskCommon {
 
         try {
             SearchResult user = getUser(in, in.searchBase(), in.user());
-            SearchResult group = getGroup(in, in.searchBase(), in.group(), in.securityEnabled());
+            SearchResult group = getGroup(in, in.searchBase(), in.group(), in.securityGroupTypes(), in.securityEnabled());
 
             if (user != null && group != null) {
                 String userDn = getAttrValue(user, "distinguishedName");
