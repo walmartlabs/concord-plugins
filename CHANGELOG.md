@@ -4,13 +4,22 @@
 
 ### Added
 
+- ldap: new `securityGroupTypes` parameter to filter users based
+on their LDAP groups if their DN belongs to the `security` OU
+([#49](https://github.com/walmartlabs/concord-plugins/pull/49)).
+
+
+
+## [1.34.0] - 2021-02-21
+
+### Added
+
 - new plugin: `tasks/hashivault`
 ([#46](https://github.com/walmartlabs/concord-plugins/pull/46));
 - git: new `createBranch` parameter - `baseRef`
 ([#47](https://github.com/walmartlabs/concord-plugins/pull/47));
 - git: hide sensitive data in logs
 ([#48](https://github.com/walmartlabs/concord-plugins/pull/48)).
-
 
 
 ## [1.33.0] - 2021-02-02
