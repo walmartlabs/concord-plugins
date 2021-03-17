@@ -299,8 +299,16 @@ public class GitHubTask {
         try {
             log.info("Getting commit {}", gitHubCommitSha);
             RepositoryCommit repositoryCommit = commitService.getCommit(repo, gitHubCommitSha);
+            Map data = new ObjectMapper().convertValue(repositoryCommit, Map.class);
 
-            Object data = new ObjectMapper().convertValue(repositoryCommit, Map.class);
+            log.info("Calling repository service to get the default branch");
+            RepositoryService repositoryService = new RepositoryService(client);
+            Repository repository = repositoryService.getRepository(repo);
+            String defaultBranch = repository.getDefaultBranch();
+
+            if (defaultBranch != null && ! defaultBranch.trim().isEmpty()) {
+                data.put("defaultBranch", defaultBranch);
+            }
             return Collections.singletonMap("result", makeResult(data));
         } catch (IOException e) {
             throw new RuntimeException("Failed to get commit data: " + e.getMessage());
