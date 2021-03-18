@@ -1,5 +1,15 @@
 # Change log
 
+## [Unreleased]
+
+### Added
+
+- git: on the `getCommit()` method, additionally fetch
+the repository's `default_branch`
+([#50](https://github.com/walmartlabs/concord-plugins/pull/50)).
+
+
+
 ## [1.35.0] - 2021-03-03
 
 ### Added
