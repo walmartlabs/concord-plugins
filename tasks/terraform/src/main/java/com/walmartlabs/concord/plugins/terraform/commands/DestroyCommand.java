@@ -32,10 +32,11 @@ public class DestroyCommand {
 
     private final Path pwd;
     private final Path dir;
+    private final String target;
     private final List<Path> userSuppliedVarFiles;
     private final Map<String, String> env;
 
-    public DestroyCommand(Path pwd, Path dir, List<Path> userSuppliedVarFiles, Map<String, String> env) {
+    public DestroyCommand(Path pwd, Path dir, String target, List<Path> userSuppliedVarFiles, Map<String, String> env) {
         if (!pwd.isAbsolute()) {
             throw new IllegalArgumentException("'pwd' must be an absolute path, got: " + pwd);
         }
@@ -46,6 +47,7 @@ public class DestroyCommand {
         }
         this.dir = dir;
 
+        this.target = target;
         this.userSuppliedVarFiles = userSuppliedVarFiles;
         this.env = env;
     }
@@ -55,6 +57,11 @@ public class DestroyCommand {
         args.add("destroy");
         args.add("-input=false");
         args.add("-auto-approve");
+
+        if (target != null) {
+            args.add("-target");
+            args.add(target);
+        }
 
         userSuppliedVarFiles.forEach(f -> args.add("-var-file=" + f.toAbsolutePath().toString()));
 

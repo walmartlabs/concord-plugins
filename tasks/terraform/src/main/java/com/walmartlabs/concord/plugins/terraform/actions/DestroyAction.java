@@ -42,6 +42,7 @@ public class DestroyAction extends Action {
     private final Path workDir;
     private final Path pwd;
     private final Path dir;
+    private final String target;
     private final Map<String, Object> extraVars;
     private final List<String> userSuppliedVarFileNames;
     private final Map<String, String> env;
@@ -65,6 +66,7 @@ public class DestroyAction extends Action {
         // the TF files directory
         this.dir = getPath(cfg, TaskConstants.DIR_KEY, pwd);
 
+        this.target = MapUtils.getString(cfg, TaskConstants.TARGET_KEY);
         this.extraVars = MapUtils.get(cfg, TaskConstants.EXTRA_VARS_KEY, null, Map.class);
         this.userSuppliedVarFileNames = MapUtils.get(cfg, TaskConstants.VARS_FILES, null, List.class);
         this.ignoreErrors = MapUtils.get(cfg, TaskConstants.IGNORE_ERRORS_KEY, false, Boolean.class);
@@ -81,7 +83,7 @@ public class DestroyAction extends Action {
             Path dirAbsolute = pwd.resolve(dir);
             List<Path> userSuppliedVarFiles = Utils.resolve(pwd, userSuppliedVarFileNames);
 
-            Terraform.Result r = new DestroyCommand(pwd, dirAbsolute, userSuppliedVarFiles, env).exec(terraform);
+            Terraform.Result r = new DestroyCommand(pwd, dirAbsolute, target, userSuppliedVarFiles, env).exec(terraform);
             if (r.getCode() != 0) {
                 throw new RuntimeException("Process finished with code " + r.getCode() + ": " + r.getStderr());
             }

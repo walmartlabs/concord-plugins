@@ -41,6 +41,7 @@ public final class TaskConstants {
     public static final String RESULT_KEY = "result";
     public static final String SAVE_OUTPUT_KEY = "saveOutput";
     public static final String STATE_ID_KEY = "stateId";
+    public static final String TARGET_KEY = "target";
     public static final String TOKEN_KEY = "token";
     public static final String TOOL_URL_KEY = "toolUrl";
     public static final String TOOL_VERSION_KEY = "toolVersion";
@@ -51,8 +52,8 @@ public final class TaskConstants {
 
     public static final String[] ALL_IN_PARAMS = {ACTION_KEY, BACKEND_KEY, DEBUG_KEY, DEFAULT_ENV_KEY, DESTROY_KEY,
             DIR_KEY, EXTRA_ENV_KEY, EXTRA_VARS_KEY, VARS_FILES, GIT_SSH_KEY, IGNORE_ERRORS_KEY, IGNORE_LOCAL_BINARY_KEY,
-            MODULE_KEY, PLAN_KEY, PWD_KEY, RESULT_KEY, SAVE_OUTPUT_KEY, STATE_ID_KEY, VERBOSE_KEY, TOOL_VERSION_KEY,
-            TOOL_URL_KEY};
+            MODULE_KEY, PLAN_KEY, PWD_KEY, RESULT_KEY, SAVE_OUTPUT_KEY, STATE_ID_KEY, VERBOSE_KEY, TARGET_KEY,
+            TOOL_VERSION_KEY, TOOL_URL_KEY};
 
     private TaskConstants() {
     }
