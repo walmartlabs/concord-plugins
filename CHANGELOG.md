@@ -1,5 +1,14 @@
 # Change log
 
+## [Unreleased]
+
+### Added
+
+- terraform: support for `destroy -target [name]`
+([#51](https://github.com/walmartlabs/concord-plugins/pull/51)).
+
+
+
 ## [1.36.0] - 2021-03-18
 
 ### Added
