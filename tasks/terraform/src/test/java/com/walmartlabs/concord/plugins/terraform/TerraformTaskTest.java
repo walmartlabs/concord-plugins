@@ -403,7 +403,13 @@ public class TerraformTaskTest {
 
         public OKHttpDownloadManager(String tool) {
             this.toolDir = new File(System.getProperty("user.home"), ".m2/tools/" + tool);
-            this.toolDir.mkdirs();
+            try {
+                if (!this.toolDir.mkdirs()) {
+                    throw new Exception();
+                }
+            } catch (Exception e) {
+                throw new RuntimeException("Unable to create cache directory for terraform executable.");
+            }
         }
 
         @Override

@@ -20,7 +20,6 @@ package com.walmartlabs.concord.plugins.terraform.actions;
  * =====
  */
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.walmartlabs.concord.plugins.terraform.TaskConstants;
 import com.walmartlabs.concord.plugins.terraform.Terraform;
 import com.walmartlabs.concord.plugins.terraform.Utils;
@@ -35,64 +34,47 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static com.walmartlabs.concord.plugins.terraform.Utils.getAbsolute;
 import static com.walmartlabs.concord.plugins.terraform.Utils.getPath;
 
 public class PlanAction extends Action {
 
-    private final boolean debug;
     private final boolean destroy;
-    private final boolean verbose;
-    private final Path pwd;
-    private final Path dir;
     private final Path plan;
-    private final Map<String, Object> extraVars;
     private final List<String> userSuppliedVarFileNames;
     private final Map<String, String> env;
-    private final boolean ignoreErrors;
-    private final ObjectMapper objectMapper;
 
     @SuppressWarnings("unchecked")
     public PlanAction(Path workDir, Map<String, Object> cfg, Map<String, String> env) {
+        super(workDir, cfg);
+
         this.env = env;
-
-        this.debug = MapUtils.get(cfg, TaskConstants.DEBUG_KEY, false, Boolean.class);
         this.destroy = MapUtils.get(cfg, TaskConstants.DESTROY_KEY, false, Boolean.class);
-        this.verbose = MapUtils.get(cfg, TaskConstants.VERBOSE_KEY, false, Boolean.class);
-
-        // the TF's working directory ($PWD)
-        this.pwd = getAbsolute(workDir, getPath(cfg, TaskConstants.PWD_KEY, null));
-
-        // the TF files directory
-        this.dir = getPath(cfg, TaskConstants.DIR_KEY, pwd);
+        this.userSuppliedVarFileNames = MapUtils.get(cfg, TaskConstants.VARS_FILES, null, List.class);
 
         // a file, created by the plan action
         this.plan = getPath(cfg, TaskConstants.PLAN_KEY, null);
-
-        this.extraVars = MapUtils.get(cfg, TaskConstants.EXTRA_VARS_KEY, null, Map.class);
-        this.userSuppliedVarFileNames = MapUtils.get(cfg, TaskConstants.VARS_FILES, null, List.class);
-        this.ignoreErrors = MapUtils.get(cfg, TaskConstants.IGNORE_ERRORS_KEY, false, Boolean.class);
-        this.objectMapper = new ObjectMapper();
     }
 
     public TerraformActionResult exec(Terraform terraform, Backend backend) throws Exception {
         try {
-            init(pwd, dir, !verbose, env, terraform, backend);
+            init(env, terraform, backend);
 
             // save 'extraVars' into a file that can be automatically picked up by TF
-            createVarsFile(pwd, objectMapper, extraVars);
+            createVarsFile(getExtraVars());
 
-            Path dirOrPlanAbsolute = pwd.resolve(plan != null ? plan : dir);
-            List<Path> userSuppliedVarFiles = Utils.resolve(pwd, userSuppliedVarFileNames);
+            Path dirOrPlanAbsolute = getPwd().resolve(plan != null ? plan : getTFDir());
+            List<Path> userSuppliedVarFiles = Utils.resolve(getPwd(), userSuppliedVarFileNames);
 
             Path outFile = null;
             String outFileStr = null;
             if (backend.supportsOutFiles()) {
-                outFile = getOutFile(pwd);
-                outFileStr = pwd.relativize(outFile).toString();
+                outFile = getOutFile(getPwd());
+                outFileStr = getPwd().relativize(outFile).toString();
             }
 
-            Terraform.Result r = new PlanCommand(debug, destroy, pwd, dirOrPlanAbsolute, userSuppliedVarFiles, outFile, env).exec(terraform);
+            Terraform.Result r = new PlanCommand(isDebug(), destroy, getPwd(),
+                    dirOrPlanAbsolute, userSuppliedVarFiles, outFile, env).exec(terraform);
+
             switch (r.getCode()) {
                 case 0: {
                     return TerraformActionResult.noChanges(r.getStdout(), outFileStr);
@@ -107,7 +89,7 @@ public class PlanAction extends Action {
                     throw new IllegalStateException("Unsupported Terraform exit code: " + r.getCode());
             }
         } catch (Exception e) {
-            if (!ignoreErrors) {
+            if (!isIgnoreErrors()) {
                 throw e;
             }
 

@@ -20,7 +20,6 @@ package com.walmartlabs.concord.plugins.terraform.actions;
  * =====
  */
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.walmartlabs.concord.plugins.terraform.TaskConstants;
 import com.walmartlabs.concord.plugins.terraform.Terraform;
 import com.walmartlabs.concord.plugins.terraform.Utils;
@@ -32,80 +31,43 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
-import static com.walmartlabs.concord.plugins.terraform.Utils.getAbsolute;
 import static com.walmartlabs.concord.plugins.terraform.Utils.getPath;
 
 public class ApplyAction extends Action {
 
-    private final Map<String, Object> cfg;
-    private final boolean verbose;
-    private final Path workDir;
-    private final Path pwd;
-    private final Path dir;
     private final Path plan;
-    private final Map<String, Object> extraVars;
     private final List<String> userSuppliedVarFileNames;
     private final Map<String, String> env;
-    private final boolean ignoreErrors;
-    private final boolean saveOutput;
-    private final ObjectMapper objectMapper;
 
     @SuppressWarnings("unchecked")
     public ApplyAction(Path workDir, Map<String, Object> cfg, Map<String, String> env) {
-        this.cfg = cfg;
+        super(workDir, cfg);
+
         this.env = env;
-
-        this.verbose = MapUtils.get(cfg, TaskConstants.VERBOSE_KEY, false, Boolean.class);
-
-        // the process' working directory
-        this.workDir = workDir;
-
-        // the TF's working directory ($PWD)
-        this.pwd = getAbsolute(workDir, getPath(cfg, TaskConstants.PWD_KEY, null));
-
-        // the TF files directory
-        this.dir = getPath(cfg, TaskConstants.DIR_KEY, pwd);
+        this.userSuppliedVarFileNames = MapUtils.get(cfg, TaskConstants.VARS_FILES, null, List.class);
 
         // a file, created by the plan action
         this.plan = getPath(cfg, TaskConstants.PLAN_KEY, null);
-
-        this.extraVars = MapUtils.get(cfg, TaskConstants.EXTRA_VARS_KEY, null, Map.class);
-        this.userSuppliedVarFileNames = MapUtils.get(cfg, TaskConstants.VARS_FILES, null, List.class);
-        this.ignoreErrors = MapUtils.get(cfg, TaskConstants.IGNORE_ERRORS_KEY, false, Boolean.class);
-        this.saveOutput = MapUtils.get(cfg, TaskConstants.SAVE_OUTPUT_KEY, false, Boolean.class);
-        this.objectMapper = new ObjectMapper();
     }
 
     public TerraformActionResult exec(Terraform terraform, Backend backend) throws Exception {
         try {
-            init(pwd, dir, !verbose, env, terraform, backend);
+            init(env, terraform, backend);
             if (plan == null) {
                 // running without a previously created plan file
                 // save 'extraVars' into a file that can be automatically picked up by TF
-                createVarsFile(pwd, objectMapper, extraVars);
+                createVarsFile(getExtraVars());
             }
 
-            Path dirOrPlanAbsolute = pwd.resolve(plan != null ? plan : dir);
-            List<Path> userSuppliedVarFiles = Utils.resolve(pwd, userSuppliedVarFileNames);
+            Path dirOrPlanAbsolute = getPwd().resolve(plan != null ? plan : getTFDir());
+            List<Path> userSuppliedVarFiles = Utils.resolve(getPwd(), userSuppliedVarFileNames);
 
-            Terraform.Result r = new ApplyCommand(pwd, dirOrPlanAbsolute, userSuppliedVarFiles, env).exec(terraform);
-            if (r.getCode() != 0) {
-                throw new RuntimeException("Process finished with code " + r.getCode() + ": " + r.getStderr());
-            }
+            Terraform.Result r = new ApplyCommand(getPwd(), dirOrPlanAbsolute, userSuppliedVarFiles, env)
+                    .exec(terraform);
 
-            Map<String, Object> data = null;
-            if (saveOutput) {
-                TerraformActionResult o = new OutputAction(workDir, cfg, env, true).exec(terraform, backend);
-                if (!o.isOk()) {
-                    return TerraformActionResult.error(o.getError());
-                }
-
-                data = o.getData();
-            }
-
-            return TerraformActionResult.ok(data, r.getStdout());
+            return handleBasicCommandResult(r, env, terraform, backend);
         } catch (Exception e) {
-            if (!ignoreErrors) {
+            if (!isIgnoreErrors()) {
                 throw e;
             }
 

@@ -109,7 +109,7 @@ public class ConcordV2Backend implements Backend {
         Path configFile = tfDir.resolve("concord_override.tf.json").toAbsolutePath();
 
         Path parentDir = configFile.getParent();
-        if (!Files.exists(parentDir)) {
+        if (parentDir != null && !Files.exists(parentDir)) {
             Path relative = ctx.workingDirectory().relativize(parentDir);
             throw new IllegalArgumentException("Can't create the backend configuration, the directory doesn't exist: " + relative);
         }
