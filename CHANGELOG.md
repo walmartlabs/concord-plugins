@@ -7,6 +7,12 @@
 - terraform: support for `destroy -target [name]`
 ([#51](https://github.com/walmartlabs/concord-plugins/pull/51)).
 
+### Changed
+
+- terraform: copy the `*.auto.tfvars.json` file generated to hold
+`extraVars` to the `dir` parameter's directory
+([#53](https://github.com/walmartlabs/concord-plugins/pull/53)).
+
 
 
 ## [1.36.0] - 2021-03-18
