@@ -20,7 +20,7 @@ package com.walmartlabs.concord.plugins.terraform.actions;
  * =====
  */
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.walmartlabs.concord.plugins.terraform.TaskConstants;
 import com.walmartlabs.concord.plugins.terraform.Terraform;
 import com.walmartlabs.concord.plugins.terraform.backend.Backend;
@@ -30,65 +30,45 @@ import com.walmartlabs.concord.sdk.MapUtils;
 import java.nio.file.Path;
 import java.util.Map;
 
-import static com.walmartlabs.concord.plugins.terraform.Utils.getAbsolute;
-import static com.walmartlabs.concord.plugins.terraform.Utils.getPath;
-
 public class OutputAction extends Action {
 
-    private final boolean debug;
-    private final boolean verbose;
-    private final Path pwd;
-    private final Path dir;
     private final String module;
     private final Map<String, String> env;
-    private final boolean ignoreErrors;
     private final boolean skipInit;
 
-    private final ObjectMapper objectMapper;
-
     public OutputAction(Path workDir, Map<String, Object> cfg, Map<String, String> env, boolean skipInit) {
+        super(workDir, cfg);
+
         this.env = env;
-
-        this.debug = MapUtils.get(cfg, TaskConstants.DEBUG_KEY, false, Boolean.class);
-        this.verbose = MapUtils.get(cfg, TaskConstants.VERBOSE_KEY, false, Boolean.class);
-
-        // the TF's working directory ($PWD)
-        this.pwd = getAbsolute(workDir, getPath(cfg, TaskConstants.PWD_KEY, null));
-
-        // the TF files directory
-        this.dir = getPath(cfg, TaskConstants.DIR_KEY, pwd);
-
         this.module = MapUtils.getString(cfg, TaskConstants.MODULE_KEY);
-        this.ignoreErrors = MapUtils.get(cfg, TaskConstants.IGNORE_ERRORS_KEY, false, Boolean.class);
         this.skipInit = skipInit;
-
-        this.objectMapper = new ObjectMapper();
     }
 
-    @SuppressWarnings("unchecked")
     public TerraformActionResult exec(Terraform terraform, Backend backend) throws Exception {
         try {
             if (!skipInit) {
                 // normally we'd run `terraform init` in the specified `dir`
                 // the backend configuration must be placed there as well
-                init(pwd, dir, !verbose, env, terraform, backend);
+                init(env, terraform, backend);
             } else {
                 // however, if we're running `terraform output` as a part of the apply action
                 // we skip the `terraform init` run and we need to run `terraform output`
                 // in the root directory
                 // the backend configuration must be in the root directory too
-                backend.init(pwd);
+                backend.init(getPwd());
             }
 
-            Terraform.Result r = new OutputCommand(debug, pwd, module, env).exec(terraform);
+            Terraform.Result r = new OutputCommand(isDebug(), getPwd(), module, env).exec(terraform);
             if (r.getCode() != 0) {
                 throw new RuntimeException("Process finished with code " + r.getCode() + ": " + r.getStderr());
             }
 
-            Map<String, Object> data = objectMapper.readValue(r.getStdout(), Map.class);
+            TypeReference<Map<String, Object>> mapType = new TypeReference<Map<String, Object>>() {};
+
+            Map<String, Object> data = getObjectMapper().readValue(r.getStdout(), mapType);
             return TerraformActionResult.ok(data);
         } catch (Exception e) {
-            if (!ignoreErrors) {
+            if (!isIgnoreErrors()) {
                 throw e;
             }
 

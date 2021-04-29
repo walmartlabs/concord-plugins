@@ -159,6 +159,9 @@ public class TerraformBinaryResolver {
 
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(proc.getInputStream()))) {
                 String s = reader.readLine();
+                if (s == null) {
+                    throw new RuntimeException("Unable to locate terraform binary.");
+                }
                 return Paths.get(s.trim());
             }
         } catch (IOException e) {
