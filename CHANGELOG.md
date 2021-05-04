@@ -5,7 +5,9 @@
 ### Added
 
 - terraform: support for `destroy -target [name]`
-([#51](https://github.com/walmartlabs/concord-plugins/pull/51)).
+([#51](https://github.com/walmartlabs/concord-plugins/pull/51));
+- git: new action `getPR`
+([#54](https://github.com/walmartlabs/concord-plugins/pull/54)).
 
 ### Changed
 
