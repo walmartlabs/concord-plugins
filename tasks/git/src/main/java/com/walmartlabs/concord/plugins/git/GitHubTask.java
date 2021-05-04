@@ -46,6 +46,7 @@ public class GitHubTask {
     private static final String GITHUB_ORGNAME = "org";
     private static final String GITHUB_REPONAME = "repo";
     private static final String GITHUB_BRANCH = "branch";
+    private static final String GITHUB_PRNUMBER = "prNumber";
     private static final String GITHUB_PRTITLE = "prTitle";
     private static final String GITHUB_PRBODY = "prBody";
     private static final String GITHUB_PRCOMMENT = "prComment";
@@ -120,6 +121,9 @@ public class GitHubTask {
             }
             case GETBRANCHLIST: {
                 return getBranchList(in, gitHubUri);
+            }
+            case GETPR: {
+                return getPR(in, gitHubUri);
             }
             case GETPRLIST: {
                 return getPRList(in, gitHubUri);
@@ -580,6 +584,32 @@ public class GitHubTask {
         }
     }
 
+    private static Map<String, Object> getPR(Map<String, Object> in, String gitHubUri) {
+        String gitHubAccessToken = assertString(in, GITHUB_ACCESSTOKEN);
+        String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
+        int gitHubPRNumber = assertInt(in, GITHUB_PRNUMBER);
+        String gitHubRepoName = assertString(in, GITHUB_REPONAME);
+
+        GitHubClient client = GitHubClient.createClient(gitHubUri);
+
+        try {
+            //Connect to GitHub
+            client.setOAuth2Token(gitHubAccessToken);
+            IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
+
+            //Get PR
+            PullRequestService prService = new PullRequestService(client);
+
+            log.info("Getting PR {} from '{}/{}'...", gitHubPRNumber, gitHubOrgName, gitHubRepoName);
+            PullRequest pullRequest = prService.getPullRequest(repo, gitHubPRNumber);
+
+            ObjectMapper om = new ObjectMapper();
+            return Collections.singletonMap("pr", om.convertValue(pullRequest, Object.class));
+        } catch (Exception e) {
+            throw new RuntimeException("Error occurred while getting PR: " + e.getMessage());
+        }
+    }
+
     private static Map<String, Object> getPRList(Map<String, Object> in, String gitHubUri) {
         String gitHubAccessToken = assertString(in, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
@@ -776,6 +806,7 @@ public class GitHubTask {
         GETSTATUSES,
         FORKREPO,
         GETBRANCHLIST,
+        GETPR,
         GETPRLIST,
         GETTAGLIST,
         GETLATESTSHA,
