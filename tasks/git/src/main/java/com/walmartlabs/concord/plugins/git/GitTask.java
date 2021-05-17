@@ -23,10 +23,13 @@ package com.walmartlabs.concord.plugins.git;
 import com.walmartlabs.concord.common.IOUtils;
 import com.walmartlabs.concord.common.secret.KeyPair;
 import com.walmartlabs.concord.common.secret.UsernamePassword;
+import com.walmartlabs.concord.plugins.git.model.exception.RefNotFoundException;
 import com.walmartlabs.concord.sdk.MapUtils;
 import com.walmartlabs.concord.sdk.Secret;
 import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.api.MergeResult.MergeStatus;
+import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.transport.PushResult;
 import org.eclipse.jgit.transport.RefSpec;
@@ -76,6 +79,9 @@ public class GitTask {
     public static final String STATUS_KEY = "status";
     public static final String OK_KEY = "ok";
     public static final String ERROR_KEY = "error";
+    public static final String HEAD_SHA = "headSHA";
+
+    private static final String DEFAULT_REMOTE = "origin";
 
     private final GitSecretService secretService;
     private final Path processWorkDir;
@@ -126,7 +132,7 @@ public class GitTask {
         log.info("Cloning {} to {}...", uri, dstDir);
         try {
             client.cloneRepo(uri, baseBranch, secret, dstDir);
-            return toResult(true, ResultStatus.SUCCESS, "", Collections.emptySet());
+            return toResult(true, ResultStatus.SUCCESS, "", Collections.emptySet(), getHeadSHA(dstDir));
         } catch (Exception e) {
             return handleError("Error while cloning the repository", e, in, dstDir, secret);
         }
@@ -140,7 +146,7 @@ public class GitTask {
         TransportConfigCallback transportCallback = JGitClient.createTransportConfigCallback(secret);
 
         // TODO: Research if there is a way to pass uri. For now defaulting it to a name
-        String remote = "origin";
+        String remote = DEFAULT_REMOTE;
 
         try (Git git = Git.open(dstDir.toFile())) {
             PullCommand pullCommand = git.pull();
@@ -216,24 +222,24 @@ public class GitTask {
             org.eclipse.jgit.api.Status status = git.status().call();
             if (status.getUncommittedChanges().isEmpty()) {
                 log.warn("No changes detected on your local git repo.Skipping git commit and git push actions.");
-                return toResult(true, ResultStatus.NO_CHANGES, "", Collections.emptySet());
+                return toResult(true, ResultStatus.NO_CHANGES, "", Collections.emptySet(), getHeadSHA(dstDir));
             }
 
             Map<String, Object> commitResult;
-            log.info("Changes detected in the following files: " + status.getUncommittedChanges());
+            log.info("Changes detected in the following files: {}", status.getUncommittedChanges());
             CommitCommand commitCommand = git.commit()
                     .setMessage(commitMessage)
                     .setCommitter(committerUId, committerEmail);
             try {
                 commitCommand.call();
                 log.info("Committer userid and email are '{}', '{}'", committerUId, committerEmail);
-                commitResult = toResult(true, ResultStatus.SUCCESS, "", status.getUncommittedChanges());
+                commitResult = toResult(true, ResultStatus.SUCCESS, "", status.getUncommittedChanges(), getHeadSHA(dstDir));
             } catch (Exception e) {
                 String error = "Problem committing changes.\n" + e.getMessage();
                 if (!ignoreErrors) {
                     throw new IllegalArgumentException(error, e);
                 }
-                return toResult(false, ResultStatus.FAILURE, error, status.getUncommittedChanges());
+                return toResult(false, ResultStatus.FAILURE, error, status.getUncommittedChanges(), getHeadSHA(dstDir));
             }
 
             if (!pushChangesToOrigin) {
@@ -244,7 +250,7 @@ public class GitTask {
             PushCommand cmd = git.push();
 
             Iterable<PushResult> results = cmd.setTransportConfigCallback(transportCallback)
-                    .setRemote("origin")
+                    .setRemote(DEFAULT_REMOTE)
                     .add(baseBranch)
                     .call();
 
@@ -272,7 +278,7 @@ public class GitTask {
                             throw new IllegalArgumentException(error);
                         }
 
-                        return toResult(false, ResultStatus.FAILURE, error, status.getUncommittedChanges());
+                        return toResult(false, ResultStatus.FAILURE, error, status.getUncommittedChanges(), getHeadSHA(dstDir));
                     }
                     case REJECTED_NONFASTFORWARD: {
                         String error = "failed to push some refs to origin'\n" +
@@ -284,7 +290,7 @@ public class GitTask {
                             throw new IllegalArgumentException(error);
                         }
 
-                        return toResult(false, ResultStatus.FAILURE, error, status.getUncommittedChanges());
+                        return toResult(false, ResultStatus.FAILURE, error, status.getUncommittedChanges(), getHeadSHA(dstDir));
                     }
                     case UP_TO_DATE: {
                         String error = "Everything up-to-date. Nothing to push to origin. Status Code:" + pushStatus;
@@ -292,11 +298,11 @@ public class GitTask {
                             throw new IllegalArgumentException(error);
                         }
 
-                        return toResult(false, ResultStatus.FAILURE, error, status.getUncommittedChanges());
+                        return toResult(false, ResultStatus.FAILURE, error, status.getUncommittedChanges(), getHeadSHA(dstDir));
                     }
                     case OK: {
                         log.info("Successfully pushed the changes to origin");
-                        return toResult(true, ResultStatus.SUCCESS, "", status.getUncommittedChanges());
+                        return toResult(true, ResultStatus.SUCCESS, "", status.getUncommittedChanges(), getHeadSHA(dstDir));
                     }
                 }
             }
@@ -308,7 +314,7 @@ public class GitTask {
                 throw new IllegalArgumentException(error, e);
             }
 
-            return toResult(false, ResultStatus.FAILURE, error, Collections.emptySet());
+            return toResult(false, ResultStatus.FAILURE, error, Collections.emptySet(), getHeadSHA(dstDir));
         }
     }
 
@@ -335,21 +341,21 @@ public class GitTask {
 
         try (Git git = Git.open(dstDir.toFile())) {
             git.checkout().setCreateBranch(true).setName(newBranchName).call();
-            log.info("Created new branch '{}' from '{}'", newBranchName, baseRef);
+            log.info("Created new branch '{}' from '{}'", newBranchName, getHeadSHA(dstDir));
             //Push created Branch to remote Origin on user input
             if (pushNewBranchToOrigin) {
                 TransportConfigCallback transportCallback = JGitClient.createTransportConfigCallback(secret);
 
                 PushCommand cmd = git.push();
                 cmd.setTransportConfigCallback(transportCallback)
-                        .setRemote("origin")
+                        .setRemote(DEFAULT_REMOTE)
                         .setRefSpecs(new RefSpec(newBranchName))
                         .call();
                 log.info("Pushed '{}' to the remote's origin", newBranchName);
             } else {
                 log.warn("Skipping push operation as 'pushBranch' parameter is set to 'false' by default. If you want to push your new branch to origin, set it to 'true' in your git createBranch action");
             }
-            return toResult(true, ResultStatus.SUCCESS, "", Collections.emptySet());
+            return toResult(true, ResultStatus.SUCCESS, "", Collections.emptySet(), getHeadSHA(dstDir));
         } catch (Exception e) {
             return handleError( "Error while creating the branch", e, in, dstDir, secret);
         }
@@ -381,6 +387,8 @@ public class GitTask {
             cmd.include(repo.findRef(sourceBranch_ref)); //Get Reference of From Branch
             MergeResult res = cmd.call();
 
+            String headSHA = res.getNewHead().name();
+
             MergeResult.MergeStatus mergeStatus = res.getMergeStatus();
             switch (mergeStatus) {
                 //Throw Exception if there are conflicts when merging
@@ -393,12 +401,12 @@ public class GitTask {
                     if (!isIgnoreErrors(in)) {
                         throw new IllegalAccessException(error);
                     }
-                    return toResult(false, ResultStatus.FAILURE, error, Collections.emptySet());
+                    return toResult(false, ResultStatus.FAILURE, error, Collections.emptySet(), headSHA);
                 }
 
                 case ALREADY_UP_TO_DATE: {
                     log.info("Branch already up-to-date. No merging required");
-                    return toResult(true, ResultStatus.NO_CHANGES, "", Collections.emptySet());
+                    return toResult(true, ResultStatus.NO_CHANGES, "", Collections.emptySet(), headSHA);
                 }
                 default: {
                     log.info("Merged '{}' with '{}'", sourceBranch, destinationBranch);
@@ -407,11 +415,11 @@ public class GitTask {
 
                     PushCommand pushCommand = git.push();
                     pushCommand.setTransportConfigCallback(transportCallback)
-                            .setRemote("origin")
+                            .setRemote(DEFAULT_REMOTE)
                             .setRefSpecs(new RefSpec(destinationBranch))
                             .call();
                     log.info("Pushed '{}' to the remote's origin", destinationBranch);
-                    return toResult(true, ResultStatus.SUCCESS, "", Collections.emptySet());
+                    return toResult(true, ResultStatus.SUCCESS, "", Collections.emptySet(), headSHA);
                 }
             }
         } catch (Exception e) {
@@ -518,7 +526,7 @@ public class GitTask {
             throw new RuntimeException(errorMessage);
         }
 
-        return toResult(false, ResultStatus.FAILURE, errorMessage, Collections.emptySet());
+        return toResult(false, ResultStatus.FAILURE, errorMessage, Collections.emptySet(), null);
     }
 
     private static String stacktraceToString(Throwable t) {
@@ -543,13 +551,42 @@ public class GitTask {
         return s;
     }
 
-    private static Map<String, Object> toResult(boolean ok, ResultStatus resultStatus, String error, Set<String> changeList) {
+    private static Map<String, Object> toResult(boolean ok, ResultStatus resultStatus, String error, Set<String> changeList, String headSHA) {
         Map<String, Object> result = new HashMap<>();
         result.put(OK_KEY, ok);
         result.put(STATUS_KEY, resultStatus);
         result.put(ERROR_KEY, error);
         result.put(CHANGE_LIST_KEY, changeList);
+        result.put(HEAD_SHA, headSHA);
         return result;
+    }
+
+    /**
+     * Gets the HEAD SHA value for a given git repository
+     * @param dstDir git repository location
+     * @return SHA value for HEAD in the current branch of the given repository
+     * @throws RefNotFoundException on error determining HEAD SHA
+     */
+    private static String getHeadSHA(Path dstDir) throws RefNotFoundException {
+        try (Git git = Git.open(dstDir.toFile())) {
+            Repository repo = git.getRepository();
+            String branchName = repo.getBranch();
+            Ref ref = repo.findRef("HEAD");
+            if (ref == null) {
+                throw new RefNotFoundException("HEAD ref not found for branch: " + branchName);
+            }
+
+            ObjectId oId = ref.getObjectId();
+            if (oId == null) {
+                throw new RefNotFoundException("HEAD ref not found for branch: " + branchName);
+            }
+
+            return oId.getName();
+        } catch (RefNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RefNotFoundException("Unexpected error locating HEAD SHA: " + e.getMessage());
+        }
     }
 
     private static Action getAction(Map<String, Object> in) {
@@ -557,7 +594,7 @@ public class GitTask {
         try {
             return Action.valueOf(v.trim().toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new RuntimeException("Unknown action: '" + v + "'. Available actions: " + Arrays.toString(Action.values()));
+            throw new IllegalArgumentException("Unknown action: '" + v + "'. Available actions: " + Arrays.toString(Action.values()));
         }
     }
 
