@@ -229,7 +229,7 @@ public class LdapTaskCommon {
     private static String getAttrValue(SearchResult result, String id) {
         NamingEnumeration<String> values = getAttrValues(result, id);
 
-        if (values.hasMoreElements()) {
+        if (values != null && values.hasMoreElements()) {
             return values.nextElement();
         }
 
