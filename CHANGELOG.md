@@ -1,5 +1,15 @@
 # Change log
 
+## [Unreleased]
+
+### Added
+
+git: Return HEAD SHA after performing action ([#56](https://github.com/walmartlabs/concord-plugins/pull/56))
+
+### Changed
+
+LDAP: NPE fix ([#57](https://github.com/walmartlabs/concord-plugins/pull/57))
+
 ## [1.37.0] - 2021-05-04
 
 ### Added
