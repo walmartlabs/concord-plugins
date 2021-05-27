@@ -15,7 +15,7 @@
 
     <properties>
         <jaxrs-api.version>1.0.1.Final</jaxrs-api.version>
-        <guave.version>27.1-jre</guave.version>
+        <guave.version>29.0-jre</guave.version>
         <okhttp.version>3.11.0</okhttp.version>
     </properties>
 
