@@ -140,14 +140,14 @@ public class GitTask {
             config.setString("remote", "origin", "fetch", "+" + R_HEADS + "*:" + R_REMOTES + "origin" + "/*");
             config.save();
 
-            return toResult(true, ResultStatus.SUCCESS, null, Collections.emptySet());
+            return toResult(true, ResultStatus.SUCCESS, null, Collections.emptySet(), null);
         } catch (Exception e) {
             String error = "Exception occurred while initializing the git repo\n" + e.getMessage();
             if (!isIgnoreErrors(in)) {
                 throw new IllegalArgumentException(error, e);
             }
 
-            return toResult(false, ResultStatus.FAILURE, error, Collections.emptySet());
+            return toResult(false, ResultStatus.FAILURE, error, Collections.emptySet(), null);
         }
     }
 
@@ -395,7 +395,7 @@ public class GitTask {
             }
             return toResult(true, ResultStatus.SUCCESS, "", Collections.emptySet(), getHeadSHA(dstDir));
         } catch (Exception e) {
-            return handleError( "Error while creating the branch", e, in, dstDir, secret);
+            return handleError("Error while creating the branch", e, in, dstDir, secret);
         }
     }
 
@@ -416,7 +416,7 @@ public class GitTask {
             return handleError("Error while cloning the repository", e, in, dstDir, secret);
         }
 
-        try (Git git = Git.open(dstDir.toFile())){
+        try (Git git = Git.open(dstDir.toFile())) {
             //Merge Branch and Push to Origin if there are no conflicts
             String sourceBranch_ref = REFS_REMOTES.concat(sourceBranch);
             Repository repo = git.getRepository();
@@ -601,6 +601,7 @@ public class GitTask {
 
     /**
      * Gets the HEAD SHA value for a given git repository
+     *
      * @param dstDir git repository location
      * @return SHA value for HEAD in the current branch of the given repository
      * @throws RefNotFoundException on error determining HEAD SHA
