@@ -13,6 +13,10 @@
     <artifactId>git</artifactId>
     <packaging>takari-jar</packaging>
 
+    <properties>
+        <jgit.version>5.11.0.202103091610-r</jgit.version>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>com.walmartlabs.concord</groupId>
@@ -57,11 +61,17 @@
         <dependency>
             <groupId>org.eclipse.jgit</groupId>
             <artifactId>org.eclipse.jgit</artifactId>
+            <version>${jgit.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jgit</groupId>
+            <artifactId>org.eclipse.jgit.ssh.jsch</artifactId>
+            <version>${jgit.version}</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.mylyn.github</groupId>
             <artifactId>org.eclipse.egit.github.core</artifactId>
-            <version>5.4.0.201906121030-r</version>
+            <version>5.11.0.202103091610-r</version>
         </dependency>
         <dependency>
             <groupId>com.google.code.gson</groupId>

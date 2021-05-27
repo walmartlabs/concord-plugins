@@ -31,6 +31,7 @@ import org.eclipse.jgit.api.MergeResult.MergeStatus;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.transport.PushResult;
 import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.transport.RemoteRefUpdate;
@@ -48,6 +49,8 @@ import java.util.*;
 import static com.walmartlabs.concord.plugins.git.Utils.getBoolean;
 import static com.walmartlabs.concord.sdk.MapUtils.assertString;
 import static com.walmartlabs.concord.sdk.MapUtils.getString;
+import static org.eclipse.jgit.lib.Constants.R_HEADS;
+import static org.eclipse.jgit.lib.Constants.R_REMOTES;
 
 public class GitTask {
 
@@ -58,10 +61,12 @@ public class GitTask {
     public static final String GIT_BASE_BRANCH = "baseBranch";
     public static final String GIT_BASE_REF = "baseRef";
     public static final String GIT_BASIC_KEY = "basic";
+    public static final String GIT_ALLOW_EMPTY_COMMIT = "allowEmptyCommit";
     public static final String GIT_COMMIT_MSG = "commitMessage";
     public static final String GIT_COMMITTER_EMAIL = "commitEmail";
     public static final String GIT_COMMITTER_USERNAME = "commitUsername";
     public static final String GIT_DESTINATION_BRANCH = "destinationBranch";
+    public static final String GIT_INIT_BRANCH = "initBranch";
     public static final String GIT_NEW_BRANCH_NAME = "newBranch";
     public static final String GIT_PASSWORD = "password";
     public static final String GIT_PRIVATE_KEY = "privateKey";
@@ -96,6 +101,9 @@ public class GitTask {
         log.info("Starting '{}' action...", action);
 
         switch (action) {
+            case INIT: {
+                return doInit(in);
+            }
             case CLONE: {
                 return doClone(in);
             }
@@ -113,6 +121,33 @@ public class GitTask {
             }
             default:
                 throw new IllegalArgumentException("Unsupported action type: " + action);
+        }
+    }
+
+    private Map<String, Object> doInit(Map<String, Object> in) {
+        String uri = assertString(in, GIT_URL);
+        String initBranch = assertString(in, GIT_INIT_BRANCH);
+        String dst = getDest(in);
+        Path dstDir = processWorkDir.resolve(dst);
+
+        log.info("Initializing repository in '{}' with url '{}' and branch '{}'...", dst, uri, initBranch);
+
+        try (Git git = Git.init()
+                .setInitialBranch(initBranch)
+                .setDirectory(dstDir.toFile()).call()) {
+            StoredConfig config = git.getRepository().getConfig();
+            config.setString("remote", "origin", "url", uri);
+            config.setString("remote", "origin", "fetch", "+" + R_HEADS + "*:" + R_REMOTES + "origin" + "/*");
+            config.save();
+
+            return toResult(true, ResultStatus.SUCCESS, null, Collections.emptySet());
+        } catch (Exception e) {
+            String error = "Exception occurred while initializing the git repo\n" + e.getMessage();
+            if (!isIgnoreErrors(in)) {
+                throw new IllegalArgumentException(error, e);
+            }
+
+            return toResult(false, ResultStatus.FAILURE, error, Collections.emptySet());
         }
     }
 
@@ -212,6 +247,7 @@ public class GitTask {
         String committerEmail = assertString(in, GIT_COMMITTER_EMAIL);
         boolean pushChangesToOrigin = getBoolean(in, GIT_PUSH_CHANGES_TO_ORIGIN, false);
         boolean ignoreErrors = isIgnoreErrors(in);
+        boolean allowEmptyCommit = getBoolean(in, GIT_ALLOW_EMPTY_COMMIT, false);
 
         TransportConfigCallback transportCallback = JGitClient.createTransportConfigCallback(getSecret(in));
 
@@ -220,7 +256,7 @@ public class GitTask {
             git.add().addFilepattern(".").call();
             git.add().setUpdate(true).addFilepattern(".").call();
             org.eclipse.jgit.api.Status status = git.status().call();
-            if (status.getUncommittedChanges().isEmpty()) {
+            if (status.getUncommittedChanges().isEmpty() && !allowEmptyCommit) {
                 log.warn("No changes detected on your local git repo.Skipping git commit and git push actions.");
                 return toResult(true, ResultStatus.NO_CHANGES, "", Collections.emptySet(), getHeadSHA(dstDir));
             }
@@ -228,6 +264,8 @@ public class GitTask {
             Map<String, Object> commitResult;
             log.info("Changes detected in the following files: {}", status.getUncommittedChanges());
             CommitCommand commitCommand = git.commit()
+                    .setSign(false)
+                    .setAllowEmpty(allowEmptyCommit)
                     .setMessage(commitMessage)
                     .setCommitter(committerUId, committerEmail);
             try {
@@ -599,6 +637,7 @@ public class GitTask {
     }
 
     public enum Action {
+        INIT,
         CLONE,
         CREATEBRANCH,
         MERGE,
