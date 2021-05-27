@@ -4,11 +4,17 @@
 
 ### Added
 
-git: Return HEAD SHA after performing action ([#56](https://github.com/walmartlabs/concord-plugins/pull/56))
+- git: add `init` action, update jgit version
+([#55](https://github.com/walmartlabs/concord-plugins/pull/55));
+- git: return HEAD SHA after performing action
+([#56](https://github.com/walmartlabs/concord-plugins/pull/56)).
 
 ### Changed
 
-LDAP: NPE fix ([#57](https://github.com/walmartlabs/concord-plugins/pull/57))
+- ldap: NPE fix
+([#57](https://github.com/walmartlabs/concord-plugins/pull/57)).
+
+
 
 ## [1.37.0] - 2021-05-04
 
