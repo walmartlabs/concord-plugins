@@ -106,7 +106,15 @@ public class Utils {
             } else {
                 objTargetType = Collections.singletonMap("type", "Random");
 
-                objCount = Collections.singletonMap("exact", in.containerCount(1));
+                Integer count = in.containerCount();
+                if (count != null) {
+                    objCount = Collections.singletonMap("exact", count);
+                }
+
+                Integer percent = in.containerPercent();
+                if (percent != null) {
+                    objCount = Collections.singletonMap("percent", percent);
+                }
 
                 Map<String, Object> objLabel = Collections.singletonMap("labels", in.containerLabels());
                 objTargetContainers = Collections.singletonMap("containers", objLabel);

@@ -144,6 +144,7 @@ public class TaskParams implements GremlinClientParams {
         private static final String ATTACK_TARGET_CONTAINER_IDS = "containerIds";
         private static final String ATTACK_TARGET_CONTAINER_LABELS = "containerLabels";
         private static final String ATTACK_TARGET_CONTAINER_COUNT = "containerCount";
+        private static final String ATTACK_TARGET_CONTAINER_PERCENT = "containerPercent";
 
         public AttackParams(Variables variables) {
             super(variables);
@@ -169,8 +170,20 @@ public class TaskParams implements GremlinClientParams {
             return variables.assertList(ATTACK_TARGET_CONTAINER_IDS);
         }
 
-        public Object containerCount(int defaultValue) {
-            return variables.getInt(ATTACK_TARGET_CONTAINER_COUNT, defaultValue);
+        public Integer containerCount() {
+            Number result = variables.getNumber(ATTACK_TARGET_CONTAINER_COUNT, null);
+            if (result == null) {
+                return null;
+            }
+            return result.intValue();
+        }
+
+        public Integer containerPercent() {
+            Number result = variables.getNumber(ATTACK_TARGET_CONTAINER_PERCENT, null);
+            if (result == null) {
+                return null;
+            }
+            return result.intValue();
         }
 
         public Map<String, String> containerLabels() {
