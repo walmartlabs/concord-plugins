@@ -1,5 +1,16 @@
 # Change log
 
+## [Unreleased]
+
+### Added
+
+- jenkins: runtime-v2 support
+([#63](https://github.com/walmartlabs/concord-plugins/pull/63));
+- gremlin: allow specifying percentage of the targets
+([#64](https://github.com/walmartlabs/concord-plugins/pull/64)).
+
+
+
 ## [1.38.0] - 2021-05-27
 
 ### Added
