@@ -4,14 +4,14 @@ package com.walmartlabs.concord.plugins.gremlin;
  * *****
  * Concord
  * -----
- * Copyright (C) 2017 - 2019 Walmart Inc.
+ * Copyright (C) 2017 - 2021 Walmart Inc., Concord Authors
  * -----
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,15 +20,22 @@ package com.walmartlabs.concord.plugins.gremlin;
  * =====
  */
 
-import java.util.Arrays;
-import java.util.List;
+public class K8SAttackResult extends AttackResult {
 
-public class Constants {
+    public K8SAttackResult(String id) {
+        super(id);
+    }
 
-    public static final List<String> GREMLIN_VALID_PROTOCOLS = Arrays.asList("TCP", "UDP", "ICMP");
-    public static final String GREMLIN_DEFAULT_TARGET_TYPE = "Exact";
-    public static final List<String> GREMLIN_VALID_UNIT_OPTION = Arrays.asList("GB", "MB", "PERCENT");
-
-    private Constants() {
+    @Override
+    public String details(TaskParams.AttackParams in) {
+        try {
+            return gson.toJson(new GremlinClient(in)
+                    .url("kubernetes/attacks/" + id())
+                    .teamId(in.teamId())
+                    .successCode(200)
+                    .get());
+        } catch (Exception e) {
+            throw new RuntimeException("Error occurred while getting attack details", e);
+        }
     }
 }

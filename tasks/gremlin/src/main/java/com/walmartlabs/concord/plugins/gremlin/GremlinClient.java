@@ -44,6 +44,7 @@ public class GremlinClient {
 
     private String url;
     private int successCode;
+    private String teamId;
 
     public GremlinClient(GremlinClientParams params) {
         this.params = params;
@@ -59,11 +60,22 @@ public class GremlinClient {
         return this;
     }
 
+    public GremlinClient teamId(String teamId) {
+        this.teamId = teamId;
+        return this;
+    }
+
     public Map<String, Object> post(Map<String, Object> data) throws IOException {
         RequestBody body = RequestBody.create(
                 MediaType.parse("application/json; charset=utf-8"), gson.toJson(data));
+
+        HttpUrl.Builder urlBuilder = HttpUrl.parse(url).newBuilder();
+        if (teamId != null) {
+            urlBuilder.addQueryParameter("teamId", teamId);
+        }
+
         Request request = requestBuilder()
-                .url(url)
+                .url(urlBuilder.build())
                 .post(body)
                 .build();
 
@@ -71,8 +83,13 @@ public class GremlinClient {
     }
 
     public Map<String, Object> get() throws IOException {
+        HttpUrl.Builder urlBuilder = HttpUrl.parse(url).newBuilder();
+        if (teamId != null) {
+            urlBuilder.addQueryParameter("teamId", teamId);
+        }
+
         Request request = getRequestBuilder()
-                .url(url)
+                .url(urlBuilder.build())
                 .get()
                 .build();
         return call(request);
@@ -111,8 +128,7 @@ public class GremlinClient {
                 results = responseBody.string();
             }
             Map<String, Object> objResults = Collections.singletonMap("results", results);
-            gson.toJson(objResults);
-            assertResponseCode(statusCode, objResults.toString(), successCode);
+            assertResponseCode(statusCode, results, successCode);
 
             return gson.fromJson(objResults.toString(), Map.class);
         }
