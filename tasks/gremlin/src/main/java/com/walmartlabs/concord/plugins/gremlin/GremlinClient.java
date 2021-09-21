@@ -23,6 +23,7 @@ package com.walmartlabs.concord.plugins.gremlin;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.squareup.okhttp.*;
+import com.squareup.okhttp.logging.HttpLoggingInterceptor;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
@@ -63,7 +64,7 @@ public class GremlinClient {
         RequestBody body = RequestBody.create(
                 MediaType.parse("application/json; charset=utf-8"), gson.toJson(data));
         Request request = requestBuilder()
-                .url(url)
+                .addHeader("Content-Type", "application/json")
                 .post(body)
                 .build();
 
@@ -71,32 +72,29 @@ public class GremlinClient {
     }
 
     public Map<String, Object> get() throws IOException {
-        Request request = getRequestBuilder()
-                .url(url)
+        Request request = requestBuilder()
                 .get()
                 .build();
         return call(request);
     }
 
     public void delete() throws IOException {
-        Request request = getRequestBuilder()
-                .url(url)
+        Request request = requestBuilder()
                 .delete()
                 .build();
         deleteCall(request);
     }
 
     private Request.Builder requestBuilder() {
-        return new Request.Builder()
-                .addHeader("Content-Type", "application/json")
-                .addHeader("X-Gremlin-Agent", "concord/" + Version.getVersion())
-                .addHeader("Authorization", "Key " + params.apiKey());
-    }
+        HttpUrl.Builder urlBuilder = HttpUrl.parse(url).newBuilder();
+        if (params.teamId() != null) {
+            urlBuilder.addQueryParameter("teamId", params.teamId());
+        }
 
-    private Request.Builder getRequestBuilder() {
         return new Request.Builder()
                 .addHeader("X-Gremlin-Agent", "concord/" + Version.getVersion())
-                .addHeader("Authorization", "Key " + params.apiKey());
+                .addHeader("Authorization", "Key " + params.apiKey())
+                .url(urlBuilder.build());
     }
 
     @SuppressWarnings("unchecked")
@@ -111,9 +109,7 @@ public class GremlinClient {
                 results = responseBody.string();
             }
             Map<String, Object> objResults = Collections.singletonMap("results", results);
-            gson.toJson(objResults);
             assertResponseCode(statusCode, objResults.toString(), successCode);
-
             return gson.fromJson(objResults.toString(), Map.class);
         }
     }
@@ -168,6 +164,10 @@ public class GremlinClient {
             client.setConnectTimeout(params.connectTimeout(), TimeUnit.SECONDS);
             client.setReadTimeout(params.readTimeout(), TimeUnit.SECONDS);
             client.setWriteTimeout(params.writeTimeout(), TimeUnit.SECONDS);
+
+            if (params.debug()) {
+                client.interceptors().add(new HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BODY));
+            }
 
             if (params.useProxy()) {
                 // Create a trust manager that does not validate certificate chains

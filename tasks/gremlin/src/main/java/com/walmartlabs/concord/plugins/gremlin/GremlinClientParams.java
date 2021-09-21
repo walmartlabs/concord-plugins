@@ -24,6 +24,8 @@ public interface GremlinClientParams {
 
     String apiUrl();
     String apiKey();
+    String teamId();
+    boolean debug();
 
     long connectTimeout();
     long readTimeout();
