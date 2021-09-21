@@ -31,7 +31,6 @@ public class K8SAttackResult extends AttackResult {
         try {
             return gson.toJson(new GremlinClient(in)
                     .url("kubernetes/attacks/" + id())
-                    .teamId(in.teamId())
                     .successCode(200)
                     .get());
         } catch (Exception e) {

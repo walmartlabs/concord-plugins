@@ -199,7 +199,6 @@ public class Utils {
         try {
             Map<String, Object> results = new GremlinClient(in)
                     .url("kubernetes/attacks/new")
-                    .teamId(in.teamId())
                     .successCode(201)
                     .post(request);
             String attackGuid = results.get("results").toString();
@@ -216,7 +215,6 @@ public class Utils {
         try {
             Map<String, Object> result = new GremlinClient(in)
                     .url("kubernetes/targets")
-                    .teamId(in.teamId())
                     .successCode(200)
                     .get();
             targets = MapUtils.getList(result, "results", Collections.emptyList());
