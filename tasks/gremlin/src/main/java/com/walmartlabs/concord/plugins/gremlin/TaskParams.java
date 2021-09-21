@@ -75,6 +75,8 @@ public class TaskParams implements GremlinClientParams {
 
     private static final String ACTION_KEY = "action";
     private static final String GREMLIN_API_KEY = "apiKey";
+    private static final String TEAM_ID_KEY = "teamId";
+    private static final String DEBUG_KEY = "debug";
 
     protected final Variables variables;
 
@@ -99,6 +101,16 @@ public class TaskParams implements GremlinClientParams {
     @Override
     public String apiKey() {
         return variables.assertString(GREMLIN_API_KEY);
+    }
+
+    @Override
+    public String teamId() {
+        return variables.getString(TEAM_ID_KEY);
+    }
+
+    @Override
+    public boolean debug() {
+        return variables.getBoolean(DEBUG_KEY, false);
     }
 
     @Override
