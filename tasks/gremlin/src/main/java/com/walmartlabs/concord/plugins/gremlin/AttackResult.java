@@ -38,13 +38,13 @@ public class AttackResult {
     }
 
     public String details(TaskParams.AttackParams in) {
-            try {
-                return gson.toJson(new GremlinClient(in)
-                        .url("attacks/" + id)
-                        .successCode(200)
-                        .get());
-            } catch (Exception e) {
-                throw new RuntimeException("Error occurred while getting attack details", e);
-            }
+        try {
+            return gson.toJson(new GremlinClient(in)
+                    .url("attacks/" + id)
+                    .successCode(200)
+                    .get());
+        } catch (Exception e) {
+            throw new RuntimeException("Error occurred while getting attack details", e);
+        }
     }
 }
