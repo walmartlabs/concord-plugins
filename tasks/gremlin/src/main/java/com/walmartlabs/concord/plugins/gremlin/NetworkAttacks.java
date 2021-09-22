@@ -20,21 +20,14 @@ package com.walmartlabs.concord.plugins.gremlin;
  * =====
  */
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 import static com.walmartlabs.concord.plugins.gremlin.TaskParams.*;
-import static com.walmartlabs.concord.plugins.gremlin.Utils.createAttack;
-import static com.walmartlabs.concord.plugins.gremlin.Utils.getAttackDetails;
 
 public class NetworkAttacks {
-
-    private static final Logger log = LoggerFactory.getLogger(GremlinTask.class);
-
-    private static final String ATTACK_GUID = "attackGuid";
-    private static final String ATTACK_DETAILS = "attackDetails";
 
     public Map<String, Object> blackhole(BlackHoleParams in) {
         int length = in.length();
@@ -69,10 +62,7 @@ public class NetworkAttacks {
             args.add(ingressPorts);
         }
 
-        Map<String, Object> objAttack = Collections.singletonMap("type", "blackhole");
-        Map<String, Object> objArgs = Collections.singletonMap("args", args);
-
-        return processAttack(in, objAttack, objArgs);
+        return Utils.performAttack(in, "blackhole", args);
     }
 
     public Map<String, Object> dns(DnsParams in) {
@@ -99,10 +89,7 @@ public class NetworkAttacks {
             args.add(device);
         }
 
-        Map<String, Object> objAttack = Collections.singletonMap("type", "dns");
-        Map<String, Object> objArgs = Collections.singletonMap("args", args);
-
-        return processAttack(in, objAttack, objArgs);
+        return Utils.performAttack(in, "dns", args);
     }
 
     public Map<String, Object> latency(LatencyParams in) {
@@ -138,10 +125,7 @@ public class NetworkAttacks {
             args.add(sourcePorts);
         }
 
-        Map<String, Object> objAttack = Collections.singletonMap("type", "latency");
-        Map<String, Object> objArgs = Collections.singletonMap("args", args);
-
-        return processAttack(in, objAttack, objArgs);
+        return Utils.performAttack(in, "latency", args);
     }
 
     public Map<String, Object> packetLoss(PacketLossParams in) {
@@ -182,10 +166,7 @@ public class NetworkAttacks {
             args.add("--corrupt");
         }
 
-        Map<String, Object> objAttack = Collections.singletonMap("type", "packet_loss");
-        Map<String, Object> objArgs = Collections.singletonMap("args", args);
-
-        return processAttack(in, objAttack, objArgs);
+        return Utils.performAttack(in, "packet_loss", args);
     }
 
     private void configureProtocol(String protocol, List<String> args) {
@@ -199,17 +180,5 @@ public class NetworkAttacks {
                 throw new IllegalArgumentException("Invalid Protocol. Allowed values are only TCP, UDP, ICMP");
             }
         }
-    }
-
-
-    private Map<String, Object> processAttack(AttackParams in, Map<String, Object> objAttack, Map<String, Object> objArgs) {
-        String attackGuid = createAttack(in, objAttack, objArgs);
-        String attackDetails = getAttackDetails(in, attackGuid);
-        log.info("URL of Gremlin Attack report: {}", in.appUrl() + attackGuid);
-
-        Map<String, Object> result = new HashMap<>();
-        result.put(ATTACK_DETAILS, attackDetails);
-        result.put(ATTACK_GUID, attackGuid);
-        return result;
     }
 }

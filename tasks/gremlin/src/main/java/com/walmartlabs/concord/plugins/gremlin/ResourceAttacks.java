@@ -20,31 +20,18 @@ package com.walmartlabs.concord.plugins.gremlin;
  * =====
  */
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.*;
 
 import static com.walmartlabs.concord.plugins.gremlin.TaskParams.*;
-import static com.walmartlabs.concord.plugins.gremlin.Utils.createAttack;
-import static com.walmartlabs.concord.plugins.gremlin.Utils.getAttackDetails;
 
 public class ResourceAttacks {
-
-    private static final Logger log = LoggerFactory.getLogger(GremlinTask.class);
-    private static final String ATTACK_GUID = "attackGuid";
-    private static final String ATTACK_DETAILS = "attackDetails";
 
     public Map<String, Object> cpu(CpuParams in) {
         int cores = in.cores();
         int length = in.length();
 
         List<String> args = new ArrayList<>(Arrays.asList("-l", Integer.toString(length), "-c", Integer.toString(cores)));
-
-        Map<String, Object> objAttack = Collections.singletonMap("type", "cpu");
-        Map<String, Object> objArgs = Collections.singletonMap("args", args);
-
-        return processAttack(in, objAttack, objArgs);
+        return Utils.performAttack(in, "cpu", args);
     }
 
     public Map<String, Object> memory(MemoryParams in) {
@@ -74,10 +61,7 @@ public class ResourceAttacks {
             throw new IllegalArgumentException("Invalid Protocol. Allowed values are only GB, MB, PERCENT");
         }
 
-        Map<String, Object> objAttack = Collections.singletonMap("type", "memory");
-        Map<String, Object> objArgs = Collections.singletonMap("args", args);
-
-        return processAttack(in, objAttack, objArgs);
+        return Utils.performAttack(in, "memory", args);
     }
 
     public Map<String, Object> disk(DiskParams in) {
@@ -90,10 +74,7 @@ public class ResourceAttacks {
         List<String> args = new ArrayList<>(Arrays.asList("-d", dir, "--length", Integer.toString(length),
                 "-p", Integer.toString(percent), "-w", Integer.toString(workers), "-b", Integer.toString(blockSize)));
 
-        Map<String, Object> objAttack = Collections.singletonMap("type", "disk");
-        Map<String, Object> objArgs = Collections.singletonMap("args", args);
-
-        return processAttack(in, objAttack, objArgs);
+        return Utils.performAttack(in, "disk", args);
     }
 
     public Map<String, Object> io(IOParams in) {
@@ -107,20 +88,6 @@ public class ResourceAttacks {
         List<String> args = new ArrayList<>(Arrays.asList("-d", dir, "-l", Integer.toString(length),
                 "-m", mode, "-w", Integer.toString(workers), "-s", Integer.toString(blockSize), "-c", Integer.toString(blockCount)));
 
-        Map<String, Object> objAttack = Collections.singletonMap("type", "io");
-        Map<String, Object> objArgs = Collections.singletonMap("args", args);
-
-        return processAttack(in, objAttack, objArgs);
-    }
-
-    private Map<String, Object> processAttack(AttackParams in, Map<String, Object> objAttack, Map<String, Object> objArgs) {
-        String attackGuid = createAttack(in, objAttack, objArgs);
-        String attackDetails = getAttackDetails(in, attackGuid);
-        log.info("URL of Gremlin Attack report: {}", in.appUrl() + attackGuid);
-
-        Map<String, Object> result = new HashMap<>();
-        result.put(ATTACK_DETAILS, attackDetails);
-        result.put(ATTACK_GUID, attackGuid);
-        return result;
+        return Utils.performAttack(in, "io", args);
     }
 }

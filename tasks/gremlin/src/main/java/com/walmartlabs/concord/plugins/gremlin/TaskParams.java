@@ -24,6 +24,7 @@ import com.walmartlabs.concord.runtime.v2.sdk.MapBackedVariables;
 import com.walmartlabs.concord.runtime.v2.sdk.Variables;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class TaskParams implements GremlinClientParams {
 
@@ -85,12 +86,7 @@ public class TaskParams implements GremlinClientParams {
     }
 
     public Action action() {
-        String action = variables.assertString(ACTION_KEY);
-        try {
-            return Action.valueOf(action.trim().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new RuntimeException("Unknown action: '" + action + "'. Available actions: " + Arrays.toString(Action.values()));
-        }
+        return assertEnum(variables, ACTION_KEY, Action.class);
     }
 
     @Override
@@ -147,7 +143,69 @@ public class TaskParams implements GremlinClientParams {
         return variables.assertString("appUrl");
     }
 
+    public static class KubernetesParams {
+
+        public static final String CLUSTER_KEY = "cluster";
+        public static final String NAMESPACE_KEY = "namespace";
+        public static final String DEPLOYMENTS_KEY = "deployments";
+        public static final String DAEMON_SETS_KEY = "daemonSets";
+        public static final String STATEFUL_SETS_KEY = "statefulSets";
+        public static final String PODS_KEY = "pods";
+
+        public enum SelectionType {
+            /**
+             * Gremlin will target all containers within each pod at runtime
+             */
+            ALL,
+
+            /**
+             * Gremlin will target a single container within each pod at runtime
+             */
+            ANY
+        }
+
+        private final Variables variables;
+
+        public KubernetesParams(Variables variables) {
+            this.variables = variables;
+        }
+
+        public String cluster() {
+            return variables.assertString(CLUSTER_KEY);
+        }
+
+        public String namespace() {
+            return variables.getString(NAMESPACE_KEY);
+        }
+
+        public List<String> deployments() {
+            return variables.getList(DEPLOYMENTS_KEY, Collections.emptyList());
+        }
+
+        public List<String> daemonSets() {
+            return variables.getList(DAEMON_SETS_KEY, Collections.emptyList());
+        }
+
+        public List<String> statefulSets() {
+            return variables.getList(STATEFUL_SETS_KEY, Collections.emptyList());
+        }
+
+        public List<String> pods() {
+            return variables.getList(PODS_KEY, Collections.emptyList());
+        }
+
+        public SelectionType selectionType() {
+            return getEnum(variables, AttackParams.ATTACK_TARGET_TYPE, SelectionType.class, SelectionType.ALL);
+        }
+    }
+
     public static class AttackParams extends TaskParams {
+
+        public enum EndpointType {
+            HOSTS,
+            CONTAINERS,
+            KUBERNETES
+        }
 
         private static final String ATTACK_TARGET_TYPE = "targetType";
         private static final String ATTACK_ENDPOINT_TYPE = "endPointType";
@@ -157,6 +215,7 @@ public class TaskParams implements GremlinClientParams {
         private static final String ATTACK_TARGET_CONTAINER_LABELS = "containerLabels";
         private static final String ATTACK_TARGET_CONTAINER_COUNT = "containerCount";
         private static final String ATTACK_TARGET_CONTAINER_PERCENT = "containerPercent";
+        private static final String TEAM_ID_KEY = "teamId";
 
         public AttackParams(Variables variables) {
             super(variables);
@@ -166,8 +225,8 @@ public class TaskParams implements GremlinClientParams {
             return variables.getString(ATTACK_TARGET_TYPE, Constants.GREMLIN_DEFAULT_TARGET_TYPE);
         }
 
-        public String endPointType() {
-            return variables.getString(ATTACK_ENDPOINT_TYPE, Constants.GREMLIN_DEFAULT_ENDPOINT_TYPE);
+        public EndpointType endPointType() {
+            return getEnum(variables, ATTACK_ENDPOINT_TYPE, EndpointType.class, EndpointType.HOSTS);
         }
 
         public Map<String, String> targetTags() {
@@ -200,6 +259,14 @@ public class TaskParams implements GremlinClientParams {
 
         public Map<String, String> containerLabels() {
             return variables.assertMap(ATTACK_TARGET_CONTAINER_LABELS);
+        }
+
+        public KubernetesParams k8s() {
+            return new KubernetesParams(new MapBackedVariables(variables.getMap("k8s", Collections.emptyMap())));
+        }
+
+        public String teamId() {
+            return variables.getString(TEAM_ID_KEY);
         }
     }
 
@@ -608,6 +675,32 @@ public class TaskParams implements GremlinClientParams {
         Map<String, Object> variablesMap = new HashMap<>(defaults != null ? defaults : Collections.emptyMap());
         variablesMap.putAll(variables.toMap());
         return new MapBackedVariables(variablesMap);
+    }
+
+
+    public static <E extends Enum<E>> E assertEnum(Variables variables, String name, Class<E> enumData) {
+        E result = getEnum(variables, name, enumData, null);
+        if (result != null) {
+            return result;
+        }
+        throw new IllegalArgumentException("Mandatory variable '" + name + "' is required");
+    }
+
+    public static <E extends Enum<E>> E getEnum(Variables variables, String name, Class<E> enumData, E defaultValue) {
+        String v = variables.getString(name);
+        if (v == null) {
+            return defaultValue;
+        }
+
+        String normalizedValue = v.trim().toUpperCase();
+        for (Enum<E> enumVal : enumData.getEnumConstants()) {
+            if (enumVal.name().equals(normalizedValue)) {
+                return Enum.valueOf(enumData, normalizedValue);
+            }
+        }
+        throw new IllegalArgumentException("Invalid variable '" + name + "' type, expected one of: " +
+                Arrays.stream(enumData.getEnumConstants()).map(Enum::name).collect(Collectors.toList()) +
+                ", got: " + v);
     }
 
     public enum Action {
