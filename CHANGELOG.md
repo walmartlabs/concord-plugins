@@ -4,6 +4,8 @@
 
 ### Added
 
+- gremlin: support for kubernetes targets
+([#65](https://github.com/walmartlabs/concord-plugins/pull/65));
 - gremlin: add teamId parameter to specify team identifier
 ([#66](https://github.com/walmartlabs/concord-plugins/pull/66)).
 
