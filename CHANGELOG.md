@@ -1,6 +1,6 @@
 # Change log
 
-## [Unreleased]
+## [1.40.0] - 2021-09-23
 
 ### Added
 
