@@ -84,7 +84,10 @@ public final class TerraformTaskCommon {
         m.putAll(backend.prepareEnv(cfg));
 
         // user env
-        Map<String, String> extraEnv = MapUtils.getMap(cfg, TaskConstants.EXTRA_ENV_KEY, Collections.emptyMap());
+        Map<String, String> extraEnv = MapUtils.getMap(cfg, TaskConstants.EXTRA_ENV_KEY, Collections.emptyMap())
+                .entrySet().stream()
+                .filter(e -> e.getValue() != null)
+                .collect(Collectors.toMap(e -> e.getKey().toString(), e -> e.getValue().toString()));
         m.putAll(extraEnv);
 
         return m;
