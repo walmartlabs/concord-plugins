@@ -1,5 +1,15 @@
 # Change log
 
+## [Unreleased]
+
+### Changed
+
+- terraform: convert `extraEnv` values to string. Fixes
+ClassCastException when `extraEnv` contains non-string values
+([#68](https://github.com/walmartlabs/concord-plugins/pull/68)).
+
+
+
 ## [1.40.0] - 2021-09-23
 
 ### Added
