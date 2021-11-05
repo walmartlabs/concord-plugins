@@ -9,9 +9,9 @@ package com.walmartlabs.concord.plugins.ldap;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,10 +22,19 @@ package com.walmartlabs.concord.plugins.ldap;
 
 import com.walmartlabs.concord.runtime.v2.sdk.MapBackedVariables;
 import com.walmartlabs.concord.runtime.v2.sdk.Variables;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
 public class TaskParams implements LdapSearchParams {
+    private static final Logger log = LoggerFactory.getLogger(TaskParams.class);
 
     public static TaskParams of(Variables input, Map<String, Object> defaults) {
         Variables variables = merge(input, defaults);
@@ -60,6 +69,7 @@ public class TaskParams implements LdapSearchParams {
     private static final String LDAP_BIND_USER_DN = "bindUserDn";
     private static final String LDAP_BIND_PASSWORD = "bindPassword";
     private static final String LDAP_SEARCH_BASE = "searchBase";
+    private static final String LDAP_CERTIFICATE = "certificate";
 
     protected final Variables variables;
 
@@ -72,7 +82,7 @@ public class TaskParams implements LdapSearchParams {
         try {
             return Action.valueOf(action.trim().toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new RuntimeException("Unknown action: '" + action + "'. Available actions: " + Arrays.toString(Action.values()));
+            throw new IllegalArgumentException("Unknown action: '" + action + "'. Available actions: " + Arrays.toString(Action.values()));
         }
     }
 
@@ -94,6 +104,56 @@ public class TaskParams implements LdapSearchParams {
     @Override
     public String searchBase() {
         return variables.assertString(LDAP_SEARCH_BASE);
+    }
+
+    @Override
+    public boolean certificate() {
+        Map<String, Object> certificate = variables.getMap(LDAP_CERTIFICATE, null);
+
+        if (certificate == null || certificate.isEmpty()) {
+            return false;
+        }
+
+        Path certPath = Paths.get(CustomSocketFactory.CERT_PATH);
+
+        cleanExistingCerts(certPath);
+        copyCertFile((String) certificate.get("file"), certPath);
+        writeCertString((String) certificate.get("text"), certPath);
+        // TODO support secret source?
+
+        return true;
+    }
+
+    private static void cleanExistingCerts(Path certs) {
+        try {
+            Files.deleteIfExists(certs);
+        } catch (IOException e) {
+            log.error("Error cleaning existing LDAP CA certs", e);
+        }
+    }
+
+    private static void copyCertFile(String src, Path dest) {
+        if (src == null || src.trim().isEmpty()) {
+            return;
+        }
+
+        try {
+            Files.copy(Paths.get(src), dest);
+        } catch (Exception e) {
+            log.error("Error copying custom cert file", e);
+        }
+    }
+
+    private static void writeCertString(String certString, Path dest) {
+        if (certString == null || certString.trim().isEmpty()) {
+            return;
+        }
+
+        try (FileOutputStream fos = new FileOutputStream(dest.toString(), true)) {
+            fos.write(certString.getBytes(StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            log.error("Error writing CA cert file", e);
+        }
     }
 
     public static class SearchByDnParams extends TaskParams {

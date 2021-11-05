@@ -44,6 +44,8 @@ public class LdapTaskCommon {
     private static final int MAX_RETRIES = 3;
     private static final long RETRY_DELAY = 3000;
 
+    private LdapContext activeConnection = null;
+
     public Map<String, Object> execute(TaskParams in) {
         switch (in.action()) {
             case SEARCHBYDN: {
@@ -189,9 +191,7 @@ public class LdapTaskCommon {
     }
 
     private NamingEnumeration<SearchResult> search(LdapConnectionCfg cfg, String searchBase, String searchFilter) {
-        LdapContext connection = null;
         try {
-            connection = establishConnection(cfg);
             SearchControls searchControls = new SearchControls();
             searchControls.setSearchScope(SearchControls.SUBTREE_SCOPE);
 
@@ -200,9 +200,9 @@ public class LdapTaskCommon {
         } catch (Exception e) {
             throw new IllegalArgumentException("Error occurred while searching " + e);
         } finally {
-            if (connection != null) {
+            if (activeConnection != null) {
                 try {
-                    connection.close();
+                    activeConnection.close();
                 } catch (NamingException e) {
                     throw new IllegalArgumentException("Error occurred while closing connection " + e);
                 }
@@ -219,8 +219,13 @@ public class LdapTaskCommon {
         env.put(javax.naming.Context.SECURITY_CREDENTIALS, cfg.bindPassword());
         env.put("java.naming.ldap.version", "3");
 
+        if (cfg.certificate()) { // use custom CA trust store for SSL connections
+            env.put("java.naming.ldap.factory.socket", CustomSocketFactory.class.getCanonicalName());
+        }
+
         try {
-            return new InitialLdapContext(env, null);
+            activeConnection = new InitialLdapContext(env, null);
+            return activeConnection;
         } catch (Exception e) {
             throw new IllegalArgumentException("Error while establishing connection " + e);
         }

@@ -27,4 +27,6 @@ public interface LdapConnectionCfg {
     String bindUserDn();
 
     String bindPassword();
+
+    boolean certificate();
 }
