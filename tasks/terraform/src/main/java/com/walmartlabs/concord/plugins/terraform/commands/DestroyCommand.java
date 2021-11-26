@@ -22,6 +22,7 @@ package com.walmartlabs.concord.plugins.terraform.commands;
 
 import com.walmartlabs.concord.plugins.terraform.Terraform;
 import com.walmartlabs.concord.plugins.terraform.Terraform.Result;
+import com.walmartlabs.concord.plugins.terraform.VersionUtils;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -54,6 +55,10 @@ public class DestroyCommand {
 
     public Result exec(Terraform terraform) throws Exception {
         List<String> args = new ArrayList<>();
+        boolean hasChdir = VersionUtils.ge(terraform, 0, 14, 0);
+        if (hasChdir) {
+            args.add("-chdir=" + dir.toString());
+        }
         args.add("destroy");
         args.add("-input=false");
         args.add("-auto-approve");
@@ -65,7 +70,9 @@ public class DestroyCommand {
 
         userSuppliedVarFiles.forEach(f -> args.add("-var-file=" + f.toAbsolutePath().toString()));
 
-        args.add(dir.toString());
+        if (!hasChdir) {
+            args.add(dir.toString());
+        }
 
         return terraform.exec(pwd, "\u001b[35mdestroy\u001b[0m", false, env, args);
     }

@@ -22,6 +22,7 @@ package com.walmartlabs.concord.plugins.terraform.commands;
 
 import com.walmartlabs.concord.plugins.terraform.Terraform;
 import com.walmartlabs.concord.plugins.terraform.Terraform.Result;
+import com.walmartlabs.concord.plugins.terraform.VersionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,6 +66,11 @@ public class PlanCommand {
 
     public Result exec(Terraform terraform) throws Exception {
         List<String> args = new ArrayList<>();
+        boolean hasChdir = VersionUtils.ge(terraform, 0, 14, 0);
+        if (hasChdir) {
+            args.add("-chdir=" + dirOrPlan.toString());
+        }
+
         args.add("plan");
         args.add("-input=false");
         args.add("-detailed-exitcode");
@@ -82,7 +88,9 @@ public class PlanCommand {
             args.add("-out=" + outFile.toAbsolutePath().toString());
         }
 
-        args.add(dirOrPlan.toString());
+        if (!hasChdir) {
+            args.add(dirOrPlan.toString());
+        }
 
         return terraform.exec(pwd, "\u001b[32mplan\u001b[0m", false, env, args);
     }

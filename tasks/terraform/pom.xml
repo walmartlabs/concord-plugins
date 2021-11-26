@@ -32,12 +32,6 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>com.walmartlabs.concord.runtime.v2</groupId>
-            <artifactId>concord-runtime-model-v2</artifactId>
-            <version>${concord.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
             <groupId>com.walmartlabs.concord</groupId>
             <artifactId>concord-client</artifactId>
             <version>${concord.version}</version>
