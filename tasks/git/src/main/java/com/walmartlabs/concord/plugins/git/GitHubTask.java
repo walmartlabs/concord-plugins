@@ -63,6 +63,7 @@ public class GitHubTask {
     private static final String GITHUB_MERGEHEAD = "head";
     private static final String GITHUB_MERGEBASE = "base";
     private static final String GITHUB_MERGECOMMITMSG = "commitMessage";
+    private static final String GITHUB_MERGE_METHOD = "mergeMethod";
     private static final String GITHUB_FORKTARGETORG = "targetOrg";
 
     private static final String STATUS_CHECK_STATE = "state";
@@ -212,16 +213,23 @@ public class GitHubTask {
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
         int gitHubPRID = assertInt(in, GITHUB_PRID);
         String commitMessage = getString(in, GITHUB_MERGECOMMITMSG, "GitHub PR Merge");
-
+        String mergeMethod = getString(in, GITHUB_MERGE_METHOD);
         GitHubClient client = GitHubClient.createClient(gitHubUri);
         client.setOAuth2Token(gitHubAccessToken);
         IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
 
-        PullRequestService prService = new PullRequestService(client);
         try {
             log.info("Using PR# {}", gitHubPRID);
-            prService.merge(repo, gitHubPRID, commitMessage);
-            log.info("Merged PR# {}", gitHubPRID);
+
+            String repoId = repo.generateId();
+            Map<String, Object> body = new HashMap<>();
+            body.put("commit_message", commitMessage);
+            if (mergeMethod != null) {
+                body.put("merge_method", mergeMethod);
+            }
+            String uri = "/repos/" + repoId + "/pulls/" + gitHubPRID + "/merge";
+            MergeStatus result = client.put(uri, body, MergeStatus.class);
+            log.info("Merged PR# {}, sha: {}", gitHubPRID, result.getSha());
 
             return Collections.emptyMap();
         } catch (IOException e) {
