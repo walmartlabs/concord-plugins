@@ -4,6 +4,8 @@
 
 ### Changed
 
+- github: allows to specify mergeMethod for mergePR action 
+([#72](https://github.com/walmartlabs/concord-plugins/pull/72)).
 - terraform: convert `extraEnv` values to string. Fixes
 ClassCastException when `extraEnv` contains non-string values
 ([#68](https://github.com/walmartlabs/concord-plugins/pull/68)).
