@@ -22,7 +22,9 @@ package com.walmartlabs.concord.plugins.terraform.commands;
 
 import com.walmartlabs.concord.plugins.terraform.Terraform;
 import com.walmartlabs.concord.plugins.terraform.Terraform.Result;
+import com.walmartlabs.concord.plugins.terraform.VersionUtils;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -52,13 +54,19 @@ public class ApplyCommand {
 
     public Result exec(Terraform terraform) throws Exception {
         List<String> args = new ArrayList<>();
+        boolean hasChdir = VersionUtils.ge(terraform, 0, 14, 0);
+        if (hasChdir && Files.isDirectory(dirOrPlan)) {
+            args.add("-chdir=" + dirOrPlan);
+        }
         args.add("apply");
         args.add("-input=false");
         args.add("-auto-approve");
 
-        userSuppliedVarFiles.forEach(f -> args.add("-var-file=" + f.toAbsolutePath().toString()));
+        userSuppliedVarFiles.forEach(f -> args.add("-var-file=" + f.toAbsolutePath()));
 
-        args.add(dirOrPlan.toString());
+        if (Files.isRegularFile(dirOrPlan)) {
+            args.add(dirOrPlan.toString());
+        }
 
         return terraform.exec(pwd, "\u001b[35mapply\u001b[0m", false, env, args);
     }

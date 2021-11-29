@@ -20,6 +20,10 @@ package com.walmartlabs.concord.plugins.terraform;
  * =====
  */
 
+import com.fasterxml.jackson.core.Version;
+import com.fasterxml.jackson.core.util.VersionUtil;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,17 +45,21 @@ public class Terraform {
     private final Path binary;
     private final Map<String, String> baseEnv;
     private final ExecutorService executor;
+    private final Version version;
 
     /**
      * @param debug   enable/disable additional debug output
-     * @param baseEnv
-     * @throws Exception
      */
     public Terraform(TerraformBinaryResolver binaryResolver, boolean debug, Map<String, String> baseEnv) throws Exception {
         this.debug = debug;
         this.baseEnv = baseEnv;
         this.binary = binaryResolver.resolve();
         this.executor = Executors.newCachedThreadPool();
+        this.version = getBinaryVersion();
+    }
+
+    public Version version() {
+        return version;
     }
 
     public Result exec(Path pwd, String logPrefix, String... args) throws Exception {
@@ -86,6 +94,47 @@ public class Terraform {
 
         int code = p.waitFor();
         return new Result(code, stdout.get(), stderr.get());
+    }
+
+    private Version getBinaryVersion() throws Exception {
+        Result result = exec(binary.getParent().toAbsolutePath(), "version", !debug, Collections.emptyMap(), Arrays.asList("version", "-json"));
+        if (result.getCode() != 0) {
+            throw new RuntimeException("Can't get terraform version. Process finished with code " + result.getCode() + ": " + result.getStderr());
+        }
+
+        String version;
+        if (result.stdout.startsWith("{")) {
+            version = getVersionFromJson(result.stdout);
+        } else {
+            version = getVersionFromString(result.stdout);
+        }
+
+        if (!debug) {
+            log.info("Using terraform version '" + version + "'");
+        }
+        Version parsedVersion = VersionUtil.parseVersion(version, null, null);
+        if (parsedVersion == Version.unknownVersion()) {
+            throw new RuntimeException("Can't parse version: '" + version + "'");
+        }
+        return parsedVersion;
+    }
+
+    private static String getVersionFromJson(String stdout) throws Exception {
+        JsonNode versionObj = new ObjectMapper().readTree(stdout);
+        JsonNode terraformVersion = versionObj.get("terraform_version");
+        if (terraformVersion == null) {
+            throw new RuntimeException("Can't get terraform version. Can't find 'terraform_version' field in result: " + stdout);
+        }
+
+        return terraformVersion.asText();
+    }
+
+    private static String getVersionFromString(String stdout) {
+        int i = 0;
+        while (i < stdout.length() && !Character.isDigit(stdout.charAt(i))) {
+            i++;
+        }
+        return stdout.substring(i);
     }
 
     private static void log(String prefix, String s) {
