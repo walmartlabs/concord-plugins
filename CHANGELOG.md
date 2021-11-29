@@ -8,7 +8,9 @@
 ([#72](https://github.com/walmartlabs/concord-plugins/pull/72)).
 - terraform: convert `extraEnv` values to string. Fixes
 ClassCastException when `extraEnv` contains non-string values
-([#68](https://github.com/walmartlabs/concord-plugins/pull/68)).
+([#68](https://github.com/walmartlabs/concord-plugins/pull/68));
+- terraform: support for Terraform binary 0.15.0+
+([#73](https://github.com/walmartlabs/concord-plugins/pull/73)).
 
 
 
