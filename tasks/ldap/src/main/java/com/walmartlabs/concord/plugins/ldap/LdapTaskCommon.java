@@ -44,8 +44,6 @@ public class LdapTaskCommon {
     private static final int MAX_RETRIES = 3;
     private static final long RETRY_DELAY = 3000;
 
-    private LdapContext activeConnection = null;
-
     public Map<String, Object> execute(TaskParams in) {
         switch (in.action()) {
             case SEARCHBYDN: {
@@ -106,7 +104,7 @@ public class LdapTaskCommon {
             String searchFilter = "(distinguishedName=" + dn + ")";
 
             // use private method search
-            NamingEnumeration<SearchResult> results = withRetry(MAX_RETRIES, RETRY_DELAY, () -> search(cfg, searchBase, searchFilter));
+            NamingEnumeration<SearchResult> results = searchWithRetry(cfg, searchBase, searchFilter);
 
             if (results.hasMoreElements()) {
                 return results.nextElement();
@@ -130,7 +128,7 @@ public class LdapTaskCommon {
                     + ")";
 
             // use private method search
-            NamingEnumeration<SearchResult> results = withRetry(MAX_RETRIES, RETRY_DELAY, () -> search(cfg, searchBase, searchFilter));
+            NamingEnumeration<SearchResult> results = searchWithRetry(cfg, searchBase, searchFilter);
 
             if (results.hasMoreElements()) {
                 return results.nextElement();
@@ -148,7 +146,7 @@ public class LdapTaskCommon {
             String searchFilter = "(name=" + group + ")";
 
             // use private method search
-            NamingEnumeration<SearchResult> results = withRetry(MAX_RETRIES, RETRY_DELAY, () -> search(cfg, searchBase, searchFilter));
+            NamingEnumeration<SearchResult> results = searchWithRetry(cfg, searchBase, searchFilter);
 
             while (results.hasMoreElements()) {
                 SearchResult result = results.nextElement();
@@ -190,24 +188,28 @@ public class LdapTaskCommon {
         }
     }
 
-    private NamingEnumeration<SearchResult> search(LdapConnectionCfg cfg, String searchBase, String searchFilter) {
-        try {
-            SearchControls searchControls = new SearchControls();
-            searchControls.setSearchScope(SearchControls.SUBTREE_SCOPE);
+    private NamingEnumeration<SearchResult> searchWithRetry(LdapConnectionCfg cfg,
+                                                            String searchBase,
+                                                            String searchFilter) throws Exception {
+        SearchControls searchControls = new SearchControls();
+        searchControls.setSearchScope(SearchControls.SUBTREE_SCOPE);
 
-            // create SearchRequest
-            return withRetry(MAX_RETRIES, RETRY_DELAY, () -> establishConnection(cfg).search(searchBase, searchFilter, searchControls));
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Error occurred while searching " + e);
-        } finally {
-            if (activeConnection != null) {
-                try {
-                    activeConnection.close();
-                } catch (NamingException e) {
-                    throw new IllegalArgumentException("Error occurred while closing connection " + e);
+        // create SearchRequest
+        return withRetry(MAX_RETRIES, RETRY_DELAY, () -> {
+            LdapContext connection = null;
+            try {
+                connection = establishConnection(cfg);
+                return connection.search(searchBase, searchFilter, searchControls);
+            } finally {
+                if (connection != null) {
+                    try {
+                        connection.close();
+                    } catch (NamingException e) {
+                        // ignore
+                    }
                 }
             }
-        }
+        });
     }
 
     private LdapContext establishConnection(LdapConnectionCfg cfg) {
@@ -224,8 +226,7 @@ public class LdapTaskCommon {
         }
 
         try {
-            activeConnection = new InitialLdapContext(env, null);
-            return activeConnection;
+            return new InitialLdapContext(env, null);
         } catch (Exception e) {
             throw new IllegalArgumentException("Error while establishing connection " + e);
         }

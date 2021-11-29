@@ -31,7 +31,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -137,7 +136,7 @@ public class CustomSocketFactory extends SocketFactory {
             for (Certificate c : certificates) {
                 keyStore.setCertificateEntry("custom-cert-" + i++, c);
             }
-            log.debug(String.format("Added %s custom cert(s) to keystore", i));
+            log.debug("Added {} custom cert(s) to keystore", i);
         } catch (FileNotFoundException e) {
             throw new RuntimeException("Error setting up keystore. Cannot find certificate file.");
         } catch (Exception ex) {
@@ -169,14 +168,13 @@ public class CustomSocketFactory extends SocketFactory {
     }
 
     @Override
-    public Socket createSocket(String host, int port)
-            throws IOException, UnknownHostException {
+    public Socket createSocket(String host, int port) throws IOException {
         return sslSocketFactory.createSocket(host, port);
     }
 
     @Override
     public Socket createSocket(String host, int port, InetAddress localHost,
-                               int localPort) throws IOException, UnknownHostException {
+                               int localPort) throws IOException {
         return sslSocketFactory.createSocket(host, port, localHost, localPort);
     }
 
