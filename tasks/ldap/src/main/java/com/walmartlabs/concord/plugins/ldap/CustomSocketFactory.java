@@ -197,7 +197,7 @@ public class CustomSocketFactory extends SocketFactory {
 
         if (certText != null && certPath != null) {
             // too many cert sources!
-            throw new IllegalArgumentException("Custom certificate may only be give as 'text' or 'file' exclusively");
+            throw new IllegalArgumentException("Custom certificate may only be given exclusively as 'text' or 'file'");
         }
 
         return writeCertString(certText) || copyCertFile(certPath);
