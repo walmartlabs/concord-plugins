@@ -20,6 +20,8 @@ package com.walmartlabs.concord.plugins.ldap;
  * =====
  */
 
+import java.nio.file.Path;
+
 public interface LdapConnectionCfg {
 
     String ldapAdServer();
@@ -28,5 +30,7 @@ public interface LdapConnectionCfg {
 
     String bindPassword();
 
-    boolean certificate();
+    Path certificatePath();
+
+    String certificateText();
 }

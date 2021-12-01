@@ -25,12 +25,10 @@ import org.slf4j.LoggerFactory;
 
 import javax.net.SocketFactory;
 import javax.net.ssl.*;
-import java.io.BufferedInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -46,7 +44,7 @@ public class CustomSocketFactory extends SocketFactory {
     private static final Logger log = LoggerFactory.getLogger(CustomSocketFactory.class);
     // reuse single instance via getDefault() method
     private static CustomSocketFactory instance;
-    static final String CERT_PATH = ".ldapcerts";
+    static final String CUSTOM_CERT_PATH = ".ldapcerts";
 
     private final SocketFactory sslSocketFactory;
 
@@ -89,7 +87,7 @@ public class CustomSocketFactory extends SocketFactory {
      */
     private static SSLContext getSslContext(KeyStore keyStore, X509TrustManager tm) throws Exception {
         KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-        keyManagerFactory.init(keyStore, "keystore_pass".toCharArray());
+        keyManagerFactory.init(keyStore, null);
 
         SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
         TrustManager[] managers = new TrustManager[1];
@@ -112,7 +110,7 @@ public class CustomSocketFactory extends SocketFactory {
         tmf.init(keyStore);
         TrustManager[] trustManagers = tmf.getTrustManagers();
         if (trustManagers.length != 1 || !(trustManagers[0] instanceof X509TrustManager)) {
-            throw new IllegalStateException("Unexpected default trust managers:"
+            throw new IllegalStateException("Unexpected default trust managers: "
                     + Arrays.toString(trustManagers));
         }
 
@@ -136,7 +134,7 @@ public class CustomSocketFactory extends SocketFactory {
             for (Certificate c : certificates) {
                 keyStore.setCertificateEntry("custom-cert-" + i++, c);
             }
-            log.debug("Added {} custom cert(s) to keystore", i);
+            log.info("Added {} custom cert(s) to keystore", i);
         } catch (FileNotFoundException e) {
             throw new RuntimeException("Error setting up keystore. Cannot find certificate file.");
         } catch (Exception ex) {
@@ -151,7 +149,7 @@ public class CustomSocketFactory extends SocketFactory {
         CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
         List<Certificate> certs = new LinkedList<>();
 
-        Path certFile = Paths.get(CERT_PATH);
+        Path certFile = Paths.get(CUSTOM_CERT_PATH);
         try (InputStream is = Files.newInputStream(certFile);
              BufferedInputStream bis = new BufferedInputStream(is)) {
 
@@ -187,5 +185,59 @@ public class CustomSocketFactory extends SocketFactory {
     public Socket createSocket(InetAddress address, int port,
                                InetAddress localAddress, int localPort) throws IOException {
         return sslSocketFactory.createSocket(address, port, localAddress, localPort);
+    }
+
+    protected static boolean prepareCerts(String certText, Path certPath) {
+        // clean up in case task is called multiple times with different params
+        cleanExistingCerts();
+
+        if (certText == null && certPath == null) {
+            return false; // no custom cert
+        }
+
+        if (certText != null && certPath != null) {
+            // too many cert sources!
+            throw new IllegalArgumentException("Custom certificate may only be give as 'text' or 'file' exclusively");
+        }
+
+        return writeCertString(certText) || copyCertFile(certPath);
+    }
+
+    private static void cleanExistingCerts() {
+        try {
+            Files.deleteIfExists(Paths.get(CUSTOM_CERT_PATH));
+        } catch (IOException e) {
+            log.error("Error cleaning existing LDAP CA certs", e);
+        }
+    }
+
+    private static boolean copyCertFile(Path src) {
+        if (src == null || !Files.exists(src)) {
+            return false;
+        }
+
+        try {
+            Files.copy(src, Paths.get(CUSTOM_CERT_PATH));
+            return true;
+        } catch (Exception e) {
+            log.error("Error copying custom cert file", e);
+        }
+
+        return false;
+    }
+
+    private static boolean writeCertString(String certString) {
+        if (certString == null || certString.trim().isEmpty()) {
+            return false;
+        }
+
+        try (FileOutputStream fos = new FileOutputStream(CUSTOM_CERT_PATH, true)) {
+            fos.write(certString.getBytes(StandardCharsets.UTF_8));
+            return true;
+        } catch (Exception e) {
+            log.error("Error writing CA cert file", e);
+        }
+
+        return false;
     }
 }

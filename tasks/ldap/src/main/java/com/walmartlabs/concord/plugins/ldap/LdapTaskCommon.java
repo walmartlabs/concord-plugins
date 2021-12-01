@@ -221,7 +221,8 @@ public class LdapTaskCommon {
         env.put(javax.naming.Context.SECURITY_CREDENTIALS, cfg.bindPassword());
         env.put("java.naming.ldap.version", "3");
 
-        if (cfg.certificate()) { // use custom CA trust store for SSL connections
+        if (CustomSocketFactory.prepareCerts(cfg.certificateText(), cfg.certificatePath())) {
+            // use custom CA trust store for SSL connections
             env.put("java.naming.ldap.factory.socket", CustomSocketFactory.class.getCanonicalName());
         }
 

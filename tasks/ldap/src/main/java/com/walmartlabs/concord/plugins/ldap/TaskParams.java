@@ -25,10 +25,6 @@ import com.walmartlabs.concord.runtime.v2.sdk.Variables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
@@ -107,53 +103,29 @@ public class TaskParams implements LdapSearchParams {
     }
 
     @Override
-    public boolean certificate() {
-        Map<String, Object> certificate = variables.getMap(LDAP_CERTIFICATE, null);
+    public Path certificatePath() {
+        String p = this.certificate().get("file");
 
-        if (certificate == null || certificate.isEmpty()) {
-            return false;
+        if (p == null || p.isEmpty()) {
+            return null;
         }
 
-        Path certPath = Paths.get(CustomSocketFactory.CERT_PATH);
-
-        cleanExistingCerts(certPath);
-        copyCertFile((String) certificate.get("file"), certPath);
-        writeCertString((String) certificate.get("text"), certPath);
-        // TODO support secret source?
-
-        return true;
+        return Paths.get(p);
     }
 
-    private static void cleanExistingCerts(Path certs) {
-        try {
-            Files.deleteIfExists(certs);
-        } catch (IOException e) {
-            log.error("Error cleaning existing LDAP CA certs", e);
-        }
+    @Override
+    public String certificateText() {
+        return certificate().get("text");
     }
 
-    private static void copyCertFile(String src, Path dest) {
-        if (src == null || src.trim().isEmpty()) {
-            return;
-        }
+    /**
+     * @return Map (possibly empty, but not {@code null}) containing custom
+     * certificate params
+     */
+    private Map<String, String> certificate() {
+        Map<String, String> certificate = variables.getMap(LDAP_CERTIFICATE, null);
 
-        try {
-            Files.copy(Paths.get(src), dest);
-        } catch (Exception e) {
-            log.error("Error copying custom cert file", e);
-        }
-    }
-
-    private static void writeCertString(String certString, Path dest) {
-        if (certString == null || certString.trim().isEmpty()) {
-            return;
-        }
-
-        try (FileOutputStream fos = new FileOutputStream(dest.toString(), true)) {
-            fos.write(certString.getBytes(StandardCharsets.UTF_8));
-        } catch (Exception e) {
-            log.error("Error writing CA cert file", e);
-        }
+        return certificate == null ? Collections.emptyMap() : certificate;
     }
 
     public static class SearchByDnParams extends TaskParams {
