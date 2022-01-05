@@ -1,6 +1,6 @@
 configuration:
   dependencies:
-  - mvn://com.walmartlabs.concord.plugins:hashivault-task:1.33.1-SNAPSHOT
+  - mvn://com.walmartlabs.concord.plugins:hashivault-task:1.41.1-SNAPSHOT
   arguments:
     hashivaultParams:
       baseUrl: "${vaultBaseUrl}"

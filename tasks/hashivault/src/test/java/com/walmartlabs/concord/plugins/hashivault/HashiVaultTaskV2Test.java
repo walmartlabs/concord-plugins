@@ -37,8 +37,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class HashiVaultTaskV2Test extends AbstractVaultTest {
 
@@ -49,7 +48,7 @@ public class HashiVaultTaskV2Test extends AbstractVaultTest {
         secretInfo.put("org", "my-org");
         secretInfo.put("name", "my-secret");
         varMap.put("apiTokenSecret", secretInfo);
-        varMap.put("baseUrl", getBaseUrl());
+        varMap.put("baseUrl", getVaultBaseUrl());
         varMap.put("path", "cubbyhole/hello");
 
         Variables vars = new MapBackedVariables(varMap);
@@ -79,6 +78,34 @@ public class HashiVaultTaskV2Test extends AbstractVaultTest {
         varMap.put("path", "secret/testing");
 
         Variables vars = new MapBackedVariables(varMap);
+        SimpleResult result = getTask(true).execute(vars);
+
+        Assert.assertTrue(result.ok());
+        final Map<String, Object> data = MapUtils.assertMap(result.values(), "data");
+        assertEquals("password1", data.get("top_secret"));
+        assertEquals("dbpassword1", data.get("db_password"));
+    }
+
+    @Test
+    public void testIgnoreSslVerificationV2() throws Exception {
+        Map<String, Object> varMap = new HashMap<>();
+        varMap.put("baseUrl", getVaultHttpsBaseUrl());
+        varMap.put("path", "secret/testing");
+        Variables vars = new MapBackedVariables(varMap);
+
+        // -- expect ssl verification failure with self-signed certs
+
+        try {
+            getTask(true).execute(vars);
+            fail("HTTPS should fail with self-signed certs and verification enabled");
+        } catch (Exception e) {
+            // carry on
+        }
+
+        // -- should work with verification disabled
+
+        varMap.put("verifySsl", false);
+
         SimpleResult result = getTask(true).execute(vars);
 
         Assert.assertTrue(result.ok());
@@ -197,7 +224,7 @@ public class HashiVaultTaskV2Test extends AbstractVaultTest {
 
         if (setDefaults) {
             Map<String, Object> defaults = new HashMap<>();
-            defaults.put("baseUrl", getBaseUrl());
+            defaults.put("baseUrl", getVaultBaseUrl());
             defaults.put("apiToken", getApiToken());
 
             vars.put("hashivaultParams", defaults);

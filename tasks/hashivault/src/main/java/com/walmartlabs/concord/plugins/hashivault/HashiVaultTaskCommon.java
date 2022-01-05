@@ -41,11 +41,16 @@ public class HashiVaultTaskCommon {
     private static VaultConfig buildConfig(TaskParams params) {
         final String apiToken = params.apiToken();
         final String apiBaseUrl = params.baseUrl();
+        VaultConfig config;
 
-        final VaultConfig config = new VaultConfig()
-                .address(apiBaseUrl)
-                .token(apiToken)
-                .sslConfig(new SslConfig().verify(params.verifySsl()));
+        try {
+            config = new VaultConfig()
+                    .address(apiBaseUrl)
+                    .token(apiToken)
+                    .sslConfig(new SslConfig().verify(params.verifySsl()).build());
+        } catch (Exception e) {
+            throw new HashiVaultTaskException("Error building Vault configuration. " + e.getMessage());
+        }
 
         if (params.path().matches("^/?cubbyhole.*")) {
             config.engineVersion(1);

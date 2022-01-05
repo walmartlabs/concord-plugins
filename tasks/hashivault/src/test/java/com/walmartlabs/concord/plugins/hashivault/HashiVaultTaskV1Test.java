@@ -31,8 +31,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class HashiVaultTaskV1Test extends AbstractVaultTest {
 
@@ -53,7 +52,7 @@ public class HashiVaultTaskV1Test extends AbstractVaultTest {
         if (setDefaults) {
             Map<String, Object> defaults = new HashMap<>(2);
             defaults.put("apiToken", getApiToken());
-            defaults.put("baseUrl", getBaseUrl());
+            defaults.put("baseUrl", getVaultBaseUrl());
 
             ctx.setVariable("hashivaultParams", defaults);
             injectVariable(t, "hashivaultParams", defaults);
@@ -98,7 +97,7 @@ public class HashiVaultTaskV1Test extends AbstractVaultTest {
         secretInfo.put("org", "my-org");
         secretInfo.put("name", "my-secret");
         ctx.setVariable("apiTokenSecret", secretInfo);
-        ctx.setVariable("baseUrl", getBaseUrl());
+        ctx.setVariable("baseUrl", getVaultBaseUrl());
         ctx.setVariable("path", "cubbyhole/hello");
 
         // apiToken wasn't given directly, it should be read from SecretService
@@ -130,6 +129,35 @@ public class HashiVaultTaskV1Test extends AbstractVaultTest {
     public void testReadKvV1() throws Exception {
         Task task = getTask(true);
         ctx.setVariable("path", "secret/testing");
+
+        task.execute(ctx);
+        Map<String, Object> result = ContextUtils.assertMap(ctx, "result");
+
+        assertTrue(MapUtils.getBoolean(result,"ok", false));
+
+        Map<String, Object> data = MapUtils.getMap(result, "data", Collections.emptyMap());
+        assertEquals("password1", MapUtils.getString(data, "top_secret"));
+        assertEquals("dbpassword1", MapUtils.getString(data, "db_password"));
+    }
+
+    @Test
+    public void testIgnoreSslVerificationV1() throws Exception {
+        Task task = getTask(true);
+        ctx.setVariable("baseUrl", getVaultHttpsBaseUrl());
+        ctx.setVariable("path", "secret/testing");
+
+        // -- expect ssl verification failure with self-signed certs
+
+        try {
+            task.execute(ctx);
+            fail("HTTPS should fail with self-signed certs");
+        } catch (Exception e) {
+            // carry on
+        }
+
+        // -- should work with verification disabled
+
+        ctx.setVariable("verifySsl", false);
 
         task.execute(ctx);
         Map<String, Object> result = ContextUtils.assertMap(ctx, "result");

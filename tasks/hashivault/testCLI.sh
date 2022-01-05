@@ -69,7 +69,8 @@ if [ $doBuild ]; then
   # cd to parent and build for build
   pushd ../..
   # build the task
-  mvn -pl tasks/hashivault -DskipTests=true clean install
+  mvn -N -DskipTests=true clean install
+  mvn -pl tasks/hashivault -DskipTests=true install
   popd || exit
   # save md5 of src files to check next time
   find ./src -type f -exec md5sum {} + | md5sum | awk '{print $1}' > target/last_hash.md5
