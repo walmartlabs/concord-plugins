@@ -5,6 +5,7 @@
 
 if [ -f "${PARAM_FILE}" ]; then
     echo "Reading settings from ${PARAM_FILE}"
+    # shellcheck source=test.properties
     source "${PARAM_FILE}" # get required parameters from a file
 fi
 
@@ -32,21 +33,10 @@ if [ -z "${VAULT_PATH}" ]; then
   exit 1
 fi
 
-echo "Validating pom.xml and testCLI.yml versions match"
-
 # detect version from pom.xml
 pomVersion=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
 
-# detect version
-ymlVersion=$(grep -e "mvn://.*hashivault-task" testCLI.yml | cut -d':' -f 4 | cut -d'"' -f 1)
-
-if [ "${pomVersion:-missingpom}" != "${ymlVersion-missingyml}" ]
-then
-  echo "Looks like testCLI.yml plugin version doesn't match pom.xml version."
-  echo " pom.xml: ${pomVersion}"
-  echo "testCLI.yml: ${ymlVersion}"
-  exit 1
-fi
+cat testCLI.yml | sed "s/hashivault-task:LOCAL_VERSION/hashivault-task:${pomVersion}/" > ./target/testCLI.yml
 
 # see if task jar needs build/rebuild
 doBuild=1
@@ -82,4 +72,4 @@ concord run \
  -e vaultToken="${VAULT_TOKEN}" \
  -e vaultNs="${VAULT_NS}" \
  -e vaultPath="${VAULT_PATH}" \
- testCLI.yml
+ ./target/testCLI.yml
