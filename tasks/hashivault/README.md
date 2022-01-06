@@ -6,7 +6,8 @@
 
 The integration tests use Testcontainers'
 [Hashicorp Vault Module](https://www.testcontainers.org/modules/vault/) to test
-against a real Vault instance. Some settings may need to be
+against a real Vault instance and [Nignx Module](https://www.testcontainers.org/modules/nginx/)
+to validate TLS certificate handling. Some settings may need to be
 [customized](https://www.testcontainers.org/features/configuration/) depending
 on what system the tests are run. These settings can be provided via environment
 variables or `.testcontainers.properties` file in the user's home directory.
@@ -25,6 +26,34 @@ export VAULT_IMAGE_VERSION=my.proxy.repo.com/library/vault:1.1.3
 
 mvn clean test
 ```
+
+#### NGINX TLS Certificates
+
+The integration tests use self-signed certificates to validate functionality.
+They're included as resource files in the project. If, for some reason, they
+need to be replaced then here's how they were originally created.
+
+```shell
+# generate the private key to become a local CA
+$ openssl genrsa -des3 -out ca.key 2048
+
+# generate CA root cert
+$ openssl req -x509 -new -nodes -key ca.key -sha256 -days 99999 -out ca.pem
+
+# generate private key for server certificate
+$ openssl genrsa -out server.key 2048
+
+# create CSR
+$ openssl req -new -key server.key -out server.csr
+
+# generate server cert
+# cert.ext is also a resource in the project
+$ openssl x509 -req -in server.csr -CA ca.pem -CAkey ca.key \
+    -CAcreateserial -out server.crt -days 99999 -sha256 -extfile cert.ext
+```
+
+The above commands can be run in the `test/resources` directory or elsewhere
+and then just copy over the `ca.pem`, `server.crt`, and `server.key`.
 
 ## Test with Concord CLI
 
