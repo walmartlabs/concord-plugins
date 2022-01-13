@@ -44,22 +44,45 @@ public class XmlUtilsTaskV2 implements Task {
     /**
      * Evaluates the expression and returns a single {@link String} value.
      */
-    public String xpathString(@InjectVariable("workDir") String workDir, String file, String expression) throws Exception {
+    public String xpathString(String file, String expression) throws Exception {
         return delegate.xpathString(file, expression);
+    }
+
+    /**
+     * @deprecated Use {@link #xpathString(String, String)} instead
+     */
+    public String xpathString(String workDir, String file, String expression) throws Exception {
+        return xpathString(file, expression);
     }
 
     /**
      * Evaluates the expression and returns a list of {@link String} values.
      */
-    public List<String> xpathListOfStrings(@InjectVariable("workDir") String workDir, String file, String expression) throws Exception {
+    public List<String> xpathListOfStrings(String file, String expression) throws Exception {
         return delegate.xpathListOfStrings(file, expression);
+    }
+
+    /**
+     * @deprecated Use {@link #xpathListOfStrings(String, String)} instead
+     */
+    @Deprecated
+    public List<String> xpathListOfStrings(String workDir, String file, String expression) throws Exception {
+        return xpathListOfStrings(file, expression);
     }
 
     /**
      * Uses XPath to return {@code groupId + artifactId + version} attributes from a Maven pom.xml file.
      * Knows how to handle the {@code <parent>} tag, i.e. parent GAV values are merged with the pom's own GAV.
      */
-    public Map<String, String> mavenGav(@InjectVariable("workDir") String workDir, String file) throws Exception {
+    public Map<String, String> mavenGav(String file) throws Exception {
         return delegate.mavenGav(file);
+    }
+
+    /**
+     * @deprecated Use {@link #mavenGav(String)} instead
+     */
+    @Deprecated
+    public Map<String, String> mavenGav(String workDir, String file) throws Exception {
+        return mavenGav(file);
     }
 }
