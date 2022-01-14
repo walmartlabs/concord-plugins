@@ -23,7 +23,6 @@ package com.walmartlabs.concord.plugins.xmlutils.v2;
 import com.walmartlabs.concord.plugins.xmlutils.XmlUtilsTaskCommon;
 import com.walmartlabs.concord.runtime.v2.sdk.Context;
 import com.walmartlabs.concord.runtime.v2.sdk.Task;
-import com.walmartlabs.concord.sdk.InjectVariable;
 
 import javax.inject.Inject;
 import javax.inject.Named;
