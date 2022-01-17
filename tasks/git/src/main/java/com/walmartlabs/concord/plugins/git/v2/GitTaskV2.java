@@ -34,16 +34,18 @@ import java.util.Map;
 @Named("git")
 public class GitTaskV2 implements Task {
 
+    private final Context context;
     private final GitTask delegate;
 
     @Inject
-    public GitTaskV2(SecretService secretService, WorkingDirectory workDir) {
-        this.delegate = new GitTask(new SecretServiceV2(secretService), workDir.getValue());
+    public GitTaskV2(Context context) {
+        this.context = context;
+        this.delegate = new GitTask(new SecretServiceV2(context.secretService()), context.workingDirectory());
     }
 
     @Override
     public TaskResult.SimpleResult execute(Variables input) throws Exception {
-        Map<String, Object> result = delegate.execute(input.toMap());
+        Map<String, Object> result = delegate.execute(input.toMap(), context.defaultVariables().toMap());
 
         // we can't change the delegate's return type w/o breaking compatibility with Concord < 1.62.0
         // and we can't break that right now as we don't have a way to properly communicate this breakage

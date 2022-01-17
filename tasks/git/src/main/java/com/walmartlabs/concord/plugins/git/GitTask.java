@@ -96,7 +96,9 @@ public class GitTask {
         this.processWorkDir = processWorkDir;
     }
 
-    public Map<String, Object> execute(Map<String, Object> in) throws Exception {
+    public Map<String, Object> execute(Map<String, Object> in, Map<String, Object> defaults) throws Exception {
+        in = merge(in, defaults);
+
         Action action = getAction(in);
         log.info("Starting '{}' action...", action);
 
@@ -200,7 +202,7 @@ public class GitTask {
                     log.info("Fetch result: '{}'", fetchResult);
                 }
 
-                log.info("Merge result: '{}'", mergeResult.toString());
+                log.info("Merge result: '{}'", mergeResult);
                 log.info("Merge status: '{}'", mergeStatus.toString().toUpperCase());
 
                 switch (mergeStatus) {
@@ -226,7 +228,7 @@ public class GitTask {
                         if (!fetchResult.isEmpty()) {
                             log.error("Fetch result: '{}'", result.getFetchResult().getMessages());
                         }
-                        log.error("Merge result: '{}'", mergeResult.toString());
+                        log.error("Merge result: '{}'", mergeResult);
                         log.error("Merge status: '{}'", mergeStatus.toString().toUpperCase());
                         throw new IllegalArgumentException("Git pull action failed. Please fix the above errors before retrying...");
                     }
@@ -626,6 +628,12 @@ public class GitTask {
         } catch (Exception e) {
             throw new RefNotFoundException("Unexpected error locating HEAD SHA: " + e.getMessage());
         }
+    }
+
+    private static Map<String, Object> merge(Map<String, Object> in, Map<String, Object> defaults) {
+        Map<String, Object> result = new HashMap<>(defaults != null ? defaults : Collections.emptyMap());
+        result.putAll(in);
+        return result;
     }
 
     private static Action getAction(Map<String, Object> in) {

@@ -22,20 +22,19 @@ package com.walmartlabs.concord.plugins.git.v2;
 
 import com.walmartlabs.concord.common.IOUtils;
 import com.walmartlabs.concord.plugins.git.GitTask;
-import com.walmartlabs.concord.runtime.v2.sdk.MapBackedVariables;
-import com.walmartlabs.concord.runtime.v2.sdk.SecretService;
-import com.walmartlabs.concord.runtime.v2.sdk.TaskResult;
-import com.walmartlabs.concord.runtime.v2.sdk.WorkingDirectory;
+import com.walmartlabs.concord.runtime.v2.sdk.*;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class GitTaskV2Test {
 
@@ -58,7 +57,12 @@ public class GitTaskV2Test {
         input.put(GitTask.ACTION_KEY, GitTask.Action.CLONE.name());
         input.put(GitTask.GIT_URL, "https://github.com/walmartlabs/concord-plugins.git");
 
-        GitTaskV2 task = new GitTaskV2(mock(SecretService.class), new WorkingDirectory(workDir));
+        Context context = mock(Context.class);
+        when(context.secretService()).thenReturn(mock(SecretService.class));
+        when(context.workingDirectory()).thenReturn(workDir);
+        when(context.defaultVariables()).thenReturn(new MapBackedVariables(Collections.emptyMap()));
+
+        GitTaskV2 task = new GitTaskV2(context);
         TaskResult.SimpleResult result = task.execute(new MapBackedVariables(input));
         assertTrue(result.ok());
     }
