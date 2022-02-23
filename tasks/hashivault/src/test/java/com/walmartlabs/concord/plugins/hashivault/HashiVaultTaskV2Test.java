@@ -30,15 +30,15 @@ import com.walmartlabs.concord.runtime.v2.sdk.SecretService;
 import com.walmartlabs.concord.runtime.v2.sdk.TaskResult.SimpleResult;
 import com.walmartlabs.concord.runtime.v2.sdk.Variables;
 import com.walmartlabs.concord.sdk.MapUtils;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 
 public class HashiVaultTaskV2Test extends AbstractVaultTest {
 
@@ -55,7 +55,7 @@ public class HashiVaultTaskV2Test extends AbstractVaultTest {
         Variables vars = new MapBackedVariables(varMap);
         SimpleResult result = getTask(false).execute(vars);
 
-        Assert.assertTrue(result.ok());
+        assertTrue(result.ok());
         final Map<String, Object> data = MapUtils.assertMap(result.values(), "data");
         assertEquals("cubbyVal", data.get("cubbyKey"));
     }
@@ -68,7 +68,7 @@ public class HashiVaultTaskV2Test extends AbstractVaultTest {
         Variables vars = new MapBackedVariables(varMap);
         SimpleResult result = getTask(true).execute(vars);
 
-        Assert.assertTrue(result.ok());
+        assertTrue(result.ok());
         final Map<String, Object> data = MapUtils.assertMap(result.values(), "data");
         assertEquals("cubbyVal", data.get("cubbyKey"));
     }
@@ -81,7 +81,7 @@ public class HashiVaultTaskV2Test extends AbstractVaultTest {
         Variables vars = new MapBackedVariables(varMap);
         SimpleResult result = getTask(true).execute(vars);
 
-        Assert.assertTrue(result.ok());
+        assertTrue(result.ok());
         final Map<String, Object> data = MapUtils.assertMap(result.values(), "data");
         assertEquals("password1", data.get("top_secret"));
         assertEquals("dbpassword1", data.get("db_password"));
@@ -96,7 +96,7 @@ public class HashiVaultTaskV2Test extends AbstractVaultTest {
         Variables vars = new MapBackedVariables(varMap);
         SimpleResult result = getTask(true).execute(vars);
 
-        Assert.assertTrue(result.ok());
+        assertTrue(result.ok());
         final String data = MapUtils.getString(result.values(), "data");
         assertEquals("dbpassword1", data);
     }

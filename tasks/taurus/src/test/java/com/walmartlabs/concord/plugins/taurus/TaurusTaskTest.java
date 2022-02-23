@@ -21,8 +21,8 @@ package com.walmartlabs.concord.plugins.taurus;
  */
 
 import com.walmartlabs.concord.sdk.Context;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -37,7 +37,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@Ignore
+@Disabled
 public class TaurusTaskTest {
 
     @Test

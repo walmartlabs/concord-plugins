@@ -21,9 +21,9 @@ package com.walmartlabs.concord.plugins.xmlutils;
  */
 
 import com.walmartlabs.concord.plugins.xmlutils.v2.XmlUtilsTaskV2;
-import com.walmartlabs.concord.runtime.v2.sdk.*;
 import com.walmartlabs.concord.runtime.v2.sdk.Compiler;
-import org.junit.Test;
+import com.walmartlabs.concord.runtime.v2.sdk.*;
+import org.junit.jupiter.api.Test;
 
 import java.io.Serializable;
 import java.net.URL;
@@ -33,8 +33,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class XmlUtilsTaskV2Test {
 
