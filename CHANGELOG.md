@@ -3,7 +3,8 @@
 ## [Unreleased]
 
 ### Changed
-
+- github: new createIssue, getContent, getPrCommitList actions
+([#78](https://github.com/walmartlabs/concord-plugins/pull/78)).
 - xml: remove workdir param from runtime-v2 public methods
 ([#75](https://github.com/walmartlabs/concord-plugins/pull/75)).
 
