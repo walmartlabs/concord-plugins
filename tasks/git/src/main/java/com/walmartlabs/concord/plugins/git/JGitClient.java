@@ -87,7 +87,7 @@ public class JGitClient implements GitClient {
                 transport.setCredentialsProvider(
                         new UsernamePasswordCredentialsProvider(secret.getUsername(), secret.getPassword()));
             } else {
-                throw new IllegalArgumentException("Use HTTP(S) GIT URL ");
+                throw new IllegalArgumentException("Use HTTP(S) GIT URL");
             }
         };
     }
