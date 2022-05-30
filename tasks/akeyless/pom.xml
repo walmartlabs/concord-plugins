@@ -51,6 +51,10 @@
             <artifactId>slf4j-api</artifactId>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>org.immutables</groupId>
+            <artifactId>value</artifactId>
+        </dependency>
 
 
         <dependency>
@@ -140,6 +144,11 @@
             <artifactId>logback-classic</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <dependencyManagement>
@@ -181,7 +190,6 @@
                             <goal>generate</goal>
                         </goals>
                         <configuration>
-                            <verose>true</verose>
                             <inputSpec>
                                 ${project.basedir}/akeyless-open-api.yaml
                             </inputSpec>

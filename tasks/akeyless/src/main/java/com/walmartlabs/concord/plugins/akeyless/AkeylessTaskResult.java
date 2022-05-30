@@ -37,7 +37,6 @@ public class AkeylessTaskResult {
         return new AkeylessTaskResult(ok, data, error);
     }
 
-
     public Boolean getOk() {
         return ok;
     }

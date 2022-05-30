@@ -23,7 +23,8 @@ package com.walmartlabs.concord.plugins.akeyless.v2;
 import com.walmartlabs.concord.plugins.akeyless.AkeylessCommon;
 import com.walmartlabs.concord.plugins.akeyless.AkeylessTaskResult;
 import com.walmartlabs.concord.plugins.akeyless.SecretExporter;
-import com.walmartlabs.concord.plugins.akeyless.TaskParams;
+import com.walmartlabs.concord.plugins.akeyless.model.TaskParams;
+import com.walmartlabs.concord.plugins.akeyless.model.TaskParamsImpl;
 import com.walmartlabs.concord.runtime.v2.sdk.*;
 
 import javax.inject.Inject;
@@ -64,14 +65,14 @@ public class AkeylessTask implements Task {
      */
     public String getSecret(String path) {
         Map<String, Object> vars = new HashMap<>();
-        vars.put(TaskParams.ACTION_KEY, TaskParams.Action.GETSECRET.toString());
-        vars.put(TaskParams.SECRET_PATH_KEY, path);
+        vars.put("action", TaskParams.Action.GETSECRET.toString());
+        vars.put("secretPath", path);
         TaskParams params = createParams(new MapBackedVariables(vars));
 
         return delegate.execute(params).getData().get(path);
     }
 
     private TaskParams createParams(Variables input) {
-        return TaskParams.of(input.toMap(), defaults, policyDefaults, secretExporter);
+        return TaskParamsImpl.of(input.toMap(), defaults, policyDefaults, secretExporter);
     }
 }

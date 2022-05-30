@@ -26,53 +26,116 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 public class AkeylessCommon {
     private static final Logger log = LoggerFactory.getLogger(AkeylessCommon.class);
+    private TaskParams params;
 
     public AkeylessCommon() {
         // empty default constructor
     }
 
     public AkeylessTaskResult execute(TaskParams params) {
+        this.params = params;
+
+        log.info("Action: {}", params.action());
 
         switch (params.action()) {
             case GETSECRET: {
-                return getSecret(params);
+                return getSecret((TaskParams.GetSecretParams) params);
+            }
+            case GETSECRETS: {
+                return getSecrets((TaskParams.GetSecretsParams) params);
+            }
+            case UPDATESECRET: {
+                return updateSecretVal((TaskParams.UpdateSecretParams) params);
             }
             default:
                 throw new IllegalArgumentException("Invalid action: " + params.action());
         }
-
-
     }
 
-    public static AkeylessTaskResult getSecret(TaskParams params) {
-        ApiClient client = Configuration.getDefaultApiClient();
-        client.setBasePath(params.apiBasePath());
-        V2Api api = new V2Api(client);
+    private static V2Api getApi(TaskParams params) {
+        return new V2Api(Configuration.getDefaultApiClient()
+                .setBasePath(params.apiBasePath())
+                .setConnectTimeout(params.connectTimeout()));
+    }
 
-        Auth authBody = new Auth();
-        authBody.setAccessId(params.accessId());
-        authBody.setAccessKey(params.accessKey());
-
-        AkeylessTaskResult result;
+    private Map<String, String> getSecrets(TaskParams params, List<String> paths) {
+        V2Api api = getApi(params);
 
         try {
-            AuthOutput authResult = api.auth(authBody);
+            AuthOutput authResult = auth(api); // get auth token
 
-            GetSecretValue getBody = new GetSecretValue();
-            getBody.setToken(authResult.getToken());
-            getBody.addNamesItem(params.secretPath());
-            Map<String, String> secretData =  api.getSecretValue(getBody);
+            GetSecretValue body = new GetSecretValue()
+                    .token(authResult.getToken());
 
-            result = AkeylessTaskResult.of(true, secretData, null);
+            for (String path : paths) {
+                body.addNamesItem(path);
+            }
+            return api.getSecretValue(body);
+
         } catch (Exception e) {
-            log.error("Error executing api call", e);
-            result = AkeylessTaskResult.of(false, Collections.emptyMap(), e.getMessage());
+            log.error("Error fetching secret data", e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Gets data for a single secret
+     * @param params
+     * @return task result containing data for a single secret
+     */
+    private AkeylessTaskResult getSecret(TaskParams.GetSecretParams params) {
+        Map<String, String> secretData = getSecrets(params, Collections.singletonList(params.path()));
+
+        if (secretData.size() != 1) {
+            // very odd...we only asked for one secret
+            log.warn("Multiple ({}) secret data returned.", secretData.size());
         }
 
-        return result;
+        return new AkeylessTaskResult(true, secretData, null);
+    }
+
+    /**
+     * Gets data for one or more secret paths
+     * @param params
+     * @return task result containing a map of paths to secret data
+     */
+    private AkeylessTaskResult getSecrets(TaskParams.GetSecretsParams params) {
+        Map<String, String> secretData = getSecrets(params, params.paths());
+
+        return new AkeylessTaskResult(true, secretData, null);
+    }
+
+    private AkeylessTaskResult updateSecretVal(TaskParams.UpdateSecretParams params) {
+
+        try {
+            V2Api api = getApi(params);
+            AuthOutput auth = auth(api);
+
+            UpdateSecretVal body = new UpdateSecretVal()
+                    .token(auth.getToken())
+                    .value(params.value())
+                    .name(params.path())
+                    .multiline(params.multiline())
+                    .key(params.protectionKey()) // may be null
+                    .keepPrevVersion(Boolean.toString(params.keepPreviousVersion()));
+
+            UpdateSecretValOutput result = api.updateSecretVal(body);
+
+            log.info("result {}", result);
+
+            return AkeylessTaskResult.of(true, null, null);
+        } catch (Exception e) {
+            log.error("Error updating secret", e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    private AuthOutput auth(V2Api api) throws ApiException {
+        return api.auth(params.auth());
     }
 }
