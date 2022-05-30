@@ -51,6 +51,9 @@ public class TaskParamsImpl implements TaskParams {
             case GETSECRETS:
                 return new GetSecretsParamsImpl(vars, secretExporter);
 
+            case CREATESECRET:
+                return new CreateSecretParamsImpl(vars, secretExporter);
+
             case UPDATESECRET:
                 return new UpdateSecretParamsImpl(vars, secretExporter);
 
@@ -140,6 +143,49 @@ public class TaskParamsImpl implements TaskParams {
         }
     }
 
+    private static class CreateSecretParamsImpl extends TaskParamsImpl implements CreateSecretParams {
+        private static final String PATH_KEY = "secretPath";
+        private static final String VALUE_KEY = "value";
+        private static final String DESCRIPTION_KEY = "description";
+        public static final String MULTILINE_KEY = "multiline";
+        private static final String TAGS_KEY = "tags";
+        public static final String PROTECTION_KEY_KEY = "protectionKey";
+
+        CreateSecretParamsImpl(Variables input, SecretExporter secretExporter) {
+            super(input, secretExporter);
+        }
+
+        @Override
+        public String path() {
+            return input.assertString(PATH_KEY);
+        }
+
+        @Override
+        public String value() {
+            return input.assertString(VALUE_KEY);
+        }
+
+        @Override
+        public String description() {
+            return input.assertString(DESCRIPTION_KEY);
+        }
+
+        @Override
+        public boolean multiline() {
+            return input.assertBoolean(MULTILINE_KEY);
+        }
+
+        @Override
+        public List<String> tags() {
+            return input.getList(TAGS_KEY, CreateSecretParams.super.tags());
+        }
+
+        @Override
+        public String protectionKey() {
+            return input.getString(PROTECTION_KEY_KEY);
+        }
+    }
+
     private static class UpdateSecretParamsImpl extends TaskParamsImpl implements UpdateSecretParams {
         private static final String PATH_KEY = "secretPath";
         private static final String VALUE_KEY = "value";
@@ -167,8 +213,8 @@ public class TaskParamsImpl implements TaskParams {
         }
 
         @Override
-        public boolean multiline() {
-            return input.getBoolean(MULTILINE_KEY, UpdateSecretParams.super.multiline());
+        public Boolean multiline() {
+            return input.get(MULTILINE_KEY, null, Boolean.class);
         }
 
         @Override

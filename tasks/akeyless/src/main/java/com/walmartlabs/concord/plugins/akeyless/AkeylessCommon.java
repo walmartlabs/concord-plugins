@@ -49,6 +49,9 @@ public class AkeylessCommon {
             case GETSECRETS: {
                 return getSecrets((TaskParams.GetSecretsParams) params);
             }
+            case CREATESECRET: {
+                return createSecret((TaskParams.CreateSecretParams) params);
+            }
             case UPDATESECRET: {
                 return updateSecretVal((TaskParams.UpdateSecretParams) params);
             }
@@ -108,6 +111,32 @@ public class AkeylessCommon {
         Map<String, String> secretData = getSecrets(params, params.paths());
 
         return new AkeylessTaskResult(true, secretData, null);
+    }
+
+    private AkeylessTaskResult createSecret(TaskParams.CreateSecretParams params) {
+
+        try {
+            V2Api api = getApi(params);
+            AuthOutput auth = auth(api);
+
+            CreateSecret body = new CreateSecret()
+                    .token(auth.getToken())
+                    .name(params.path())
+                    .value(params.value())
+                    .metadata(params.description())
+                    .multilineValue(params.multiline())
+                    .protectionKey(params.protectionKey())
+                    .tags(params.tags());
+
+            CreateSecretOutput result = api.createSecret(body);
+
+            log.info("create result: {}", result);
+
+            return AkeylessTaskResult.of(true, null, null);
+        } catch (Exception e) {
+            log.error("Error creating secret", e);
+            throw new RuntimeException(e);
+        }
     }
 
     private AkeylessTaskResult updateSecretVal(TaskParams.UpdateSecretParams params) {

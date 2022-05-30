@@ -22,6 +22,7 @@ package com.walmartlabs.concord.plugins.akeyless.model;
 
 import org.immutables.value.Value;
 
+import java.util.Collections;
 import java.util.List;
 
 public interface TaskParams {
@@ -74,15 +75,25 @@ public interface TaskParams {
         List<String> paths();
     }
 
+    interface CreateSecretParams extends TaskParams {
+        String path();
+        String value();
+        String description();
+        boolean multiline();
+        String protectionKey();
+
+        @Value.Default
+        default List<String> tags() {
+            return Collections.emptyList();
+        }
+    }
+
     interface UpdateSecretParams extends TaskParams {
         String path();
         String value();
         String protectionKey();
 
-        @Value.Default
-        default boolean multiline() {
-            return false;
-        }
+        Boolean multiline();
 
         @Value.Default
         default boolean keepPreviousVersion() {
@@ -93,6 +104,7 @@ public interface TaskParams {
     enum Action {
         GETSECRET,
         GETSECRETS,
+        CREATESECRET,
         UPDATESECRET
     }
 

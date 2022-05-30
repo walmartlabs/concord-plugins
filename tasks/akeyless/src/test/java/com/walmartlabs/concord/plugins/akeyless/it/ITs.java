@@ -35,6 +35,7 @@ import java.io.FileInputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.SecureRandom;
 import java.util.*;
 
 import static org.junit.Assert.*;
@@ -44,13 +45,88 @@ public class ITs {
 
     private Map<String, Object> itsProps;
 
+    private static final String testPath = "/concord_its";
+
     @Before
     public void setup() throws Exception {
         itsProps = loadITProps();
     }
 
     @Test
-    public void testGetSecrets() {
+    public void testCreateUpdateGet() {
+        final String path1 = String.join("/", testPath, randomString(6));
+        final String value1 = randomString(10);
+        final String path2 = String.join("/", testPath, randomString(6));
+        final String value2 = randomString(10);
+
+        createSecret(path1, value1);
+        createSecret(path2, value2);
+
+        getSecret(path1, value1);
+
+        getSecrets(path1, value1, path2, value2);
+
+        updateSecret(path1, value1 + "_new");
+        getSecret(path1, value1 + "_new");
+
+    }
+
+
+    private String randomString(int len) {
+        int lower = 97; // 'a'
+        int upper = 122; // 'z'
+
+        return new SecureRandom().ints(lower, upper + 1)
+                .limit(len)
+                .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+                .toString();
+    }
+
+    private Map<String, Object> createAuth() {
+        Map<String, Object> apiKey = new HashMap<>();
+        apiKey.put("accessId", getITsProp("accessId"));
+        apiKey.put("accessKey", getITsProp("accessKey"));
+
+        return Collections.singletonMap("apiKey", apiKey);
+    }
+
+    private void createSecret(String path, String value) {
+        Map<String, Object> cfg = new HashMap<>();
+
+        cfg.put("apiBasePath", getITsProp("apiBasePath"));
+        cfg.put("auth", createAuth());
+        cfg.put("action", "createSecret");
+        cfg.put("secretPath", path);
+        cfg.put("description", "Description for " + path);
+        cfg.put("value", value);
+        cfg.put("multiline", false);
+
+        TaskParams params = TaskParamsImpl.of(cfg, Collections.emptyMap(), Collections.emptyMap(), null);
+        AkeylessTaskResult result = new AkeylessCommon().execute(params);
+
+        assertTrue(result.getOk());
+        Map<String, String> data = result.getData();
+    }
+
+    public void updateSecret(String path, String value) {
+        Map<String, Object> cfg = new HashMap<>();
+
+        cfg.put("apiBasePath", getITsProp("apiBasePath"));
+        cfg.put("auth", createAuth());
+        cfg.put("action", "updateSecret");
+        cfg.put("secretPath", path);
+        cfg.put("value", value);
+        cfg.put("multiline", false);
+        cfg.put("keepPreviousVersion", false);
+
+        TaskParams params = TaskParamsImpl.of(cfg, Collections.emptyMap(), Collections.emptyMap(), null);
+        AkeylessTaskResult result = new AkeylessCommon().execute(params);
+
+        assertTrue(result.getOk());
+        Map<String, String> data = result.getData();
+    }
+
+    public void getSecrets(String path1, String expected1, String path2, String expected2) {
         Map<String, Object> cfg = new HashMap<>();
 
         cfg.put("apiBasePath", getITsProp("apiBasePath"));
@@ -63,22 +139,20 @@ public class ITs {
 
         cfg.put("auth", auth);
         cfg.put("action", "getSecrets");
-        String rawPaths = getITsProp("secretPaths");
-        List<String> paths = Arrays.asList(rawPaths.split(","));
-        cfg.put("secretPaths", paths);
+        cfg.put("secretPaths", Arrays.asList(path1, path2));
 
         TaskParams params = TaskParamsImpl.of(cfg, Collections.emptyMap(), Collections.emptyMap(), null);
         AkeylessTaskResult result = new AkeylessCommon().execute(params);
 
         assertTrue(result.getOk());
         Map<String, String> data = result.getData();
-        assertEquals(paths.size(), data.size());
+        assertEquals(2, data.size());
 
-        paths.forEach(p -> assertTrue(data.containsKey(p)));
+        assertEquals(expected1, data.get(path1));
+        assertEquals(expected2, data.get(path2));
     }
 
-    @Test
-    public void testUpdateSecret() {
+    public void getSecret(String path, String expectedValue) {
         Map<String, Object> cfg = new HashMap<>();
 
         cfg.put("apiBasePath", getITsProp("apiBasePath"));
@@ -90,9 +164,8 @@ public class ITs {
         Map<String, Object> auth = Collections.singletonMap("apiKey", apiKey);
 
         cfg.put("auth", auth);
-        cfg.put("action", "updateSecret");
-        cfg.put("secretPath", getITsProp("secretPath"));
-        cfg.put("value", "goodbyeWorld");
+        cfg.put("action", "getSecret");
+        cfg.put("secretPath", path);
 
         TaskParams params = TaskParamsImpl.of(cfg, Collections.emptyMap(), Collections.emptyMap(), null);
         AkeylessTaskResult result = new AkeylessCommon().execute(params);
@@ -100,9 +173,9 @@ public class ITs {
         assertTrue(result.getOk());
         Map<String, String> data = result.getData();
 
+        assertEquals(expectedValue, data.get(path));
     }
 
-    @Test
     public void testGetSecretPublic() {
         Map<String, Object> cfg = new HashMap<>();
 
