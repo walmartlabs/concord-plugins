@@ -110,10 +110,17 @@ public class TaskParamsImpl implements TaskParams {
 
     @Override
     public String sessionId() {
-        /* Session should always exist in "real" processes since it's required
+        /* Session token should always exist in "real" processes since it's required
            to use the Secret API amongst other calls. The fallback here using
            process ID is to support Concord CLI which doesn't have API info. */
-        return Util.hash(input.getString(SESSION_TOKEN_KEY, this.txId()));
+        String id = input.getString(SESSION_TOKEN_KEY);
+
+        if (id == null) {
+            log.warn("No session token found. Falling back to instance ID");
+            id = this.txId();
+        }
+
+        return Util.hash(id);
     }
 
     @Override

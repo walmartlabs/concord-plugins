@@ -40,8 +40,7 @@ import java.util.*;
 
 import static org.junit.Assert.*;
 
-@Ignore("Requires auth info")
-public class ITs {
+public class CommonIT {
 
     private Map<String, Object> itsProps;
 
@@ -85,15 +84,15 @@ public class ITs {
     }
 
     private Map<String, Object> createAuth() {
-        Map<String, Object> apiKey = new HashMap<>();
-        apiKey.put("accessId", getITsProp("accessId"));
-        apiKey.put("accessKey", getITsProp("accessKey"));
+        Map<String, Object> cfg = baseConfig();
+        cfg.put("accessId", getITsProp("accessId"));
+        cfg.put("accessKey", getITsProp("accessKey"));
 
-        return Collections.singletonMap("apiKey", apiKey);
+        return Collections.singletonMap("apiKey", cfg);
     }
 
     private void createSecret(String path, String value) {
-        Map<String, Object> cfg = new HashMap<>();
+        Map<String, Object> cfg = baseConfig();
 
         cfg.put("apiBasePath", getITsProp("apiBasePath"));
         cfg.put("auth", createAuth());
@@ -111,7 +110,7 @@ public class ITs {
     }
 
     public void updateSecret(String path, String value) {
-        Map<String, Object> cfg = new HashMap<>();
+        Map<String, Object> cfg = baseConfig();
 
         cfg.put("apiBasePath", getITsProp("apiBasePath"));
         cfg.put("auth", createAuth());
@@ -129,7 +128,7 @@ public class ITs {
     }
 
     public void deleteItem(String path) {
-        Map<String, Object> cfg = new HashMap<>();
+        Map<String, Object> cfg = baseConfig();
 
         cfg.put("apiBasePath", getITsProp("apiBasePath"));
         cfg.put("auth", createAuth());
@@ -145,7 +144,7 @@ public class ITs {
     }
 
     public void getSecrets(String path1, String expected1, String path2, String expected2) {
-        Map<String, Object> cfg = new HashMap<>();
+        Map<String, Object> cfg = baseConfig();
 
         cfg.put("apiBasePath", getITsProp("apiBasePath"));
 
@@ -171,7 +170,7 @@ public class ITs {
     }
 
     public void getSecret(String path, String expectedValue) {
-        Map<String, Object> cfg = new HashMap<>();
+        Map<String, Object> cfg = baseConfig();
 
         cfg.put("apiBasePath", getITsProp("apiBasePath"));
 
@@ -192,6 +191,13 @@ public class ITs {
         Map<String, String> data = result.getData();
 
         assertEquals(expectedValue, data.get(path));
+    }
+
+    private static Map<String, Object> baseConfig() {
+        Map<String, Object> cfg = new HashMap<>();
+        cfg.put("txId", UUID.randomUUID().toString());
+
+        return cfg;
     }
 
     public void testGetSecretPublic() {

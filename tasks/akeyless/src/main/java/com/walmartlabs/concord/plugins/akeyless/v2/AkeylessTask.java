@@ -26,8 +26,6 @@ import com.walmartlabs.concord.plugins.akeyless.SecretExporter;
 import com.walmartlabs.concord.plugins.akeyless.model.TaskParams;
 import com.walmartlabs.concord.plugins.akeyless.model.TaskParamsImpl;
 import com.walmartlabs.concord.runtime.v2.sdk.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -37,7 +35,6 @@ import java.util.Map;
 
 @Named("akeyless")
 public class AkeylessTask implements Task {
-    private static final Logger log = LoggerFactory.getLogger(AkeylessTask.class);
 
     private final Map<String, Object> defaults;
     private final Map<String, Object> policyDefaults;

@@ -33,6 +33,7 @@ public class TaskParamsImplTest {
     @Test
     public void testGetSecretsParams() {
         Map<String, Object> cfg = new HashMap<>();
+        cfg.put("txId", UUID.randomUUID().toString());
         cfg.put("action", "getSecrets");
         List<String> paths = new ArrayList<>(2);
         paths.add("/firstPath");

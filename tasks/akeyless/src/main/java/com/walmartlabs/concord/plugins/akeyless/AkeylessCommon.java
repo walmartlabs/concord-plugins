@@ -32,6 +32,7 @@ import java.util.Map;
 public class AkeylessCommon {
     private static final Logger log = LoggerFactory.getLogger(AkeylessCommon.class);
     private TaskParams params;
+    private ApiClient apiClient;
 
     public AkeylessCommon() {
         // empty default constructor
@@ -63,10 +64,14 @@ public class AkeylessCommon {
         }
     }
 
-    private static V2Api getApi(TaskParams params) {
-        return new V2Api(Configuration.getDefaultApiClient()
-                .setBasePath(params.apiBasePath())
-                .setConnectTimeout(params.connectTimeout()));
+    private V2Api getApi(TaskParams params) {
+        if (apiClient == null) {
+            apiClient = new ApiClient()
+                    .setBasePath(params.apiBasePath())
+                    .setConnectTimeout(params.connectTimeout());
+        }
+
+        return new V2Api(apiClient);
     }
 
     private Map<String, String> getSecrets(TaskParams params, List<String> paths) {
@@ -83,7 +88,7 @@ public class AkeylessCommon {
             return api.getSecretValue(body);
 
         } catch (Exception e) {
-            log.error("Error fetching secret data", e);
+            log.error("Error fetching akeyless secret data", e);
             throw new RuntimeException(e);
         }
     }
@@ -112,7 +117,7 @@ public class AkeylessCommon {
      * @return task result containing a map of paths to secret data
      */
     private AkeylessTaskResult getSecrets(TaskParams.GetSecretsParams params) {
-        Util.debug(params.debug(), log, "getting secret data for: " + params.paths());
+        Util.debug(params.debug(), log, "getting akeyless secret data for: " + params.paths());
 
         Map<String, String> secretData = getSecrets(params, params.paths());
 
@@ -136,7 +141,7 @@ public class AkeylessCommon {
 
             return AkeylessTaskResult.of(true, null, null);
         } catch (Exception e) {
-            log.error("Error creating secret", e);
+            log.error("Error creating akeyless secret", e);
             throw new RuntimeException(e);
         }
     }
@@ -157,7 +162,7 @@ public class AkeylessCommon {
 
             return AkeylessTaskResult.of(true, null, null);
         } catch (Exception e) {
-            log.error("Error updating secret", e);
+            log.error("Error updating akeyless secret", e);
             throw new RuntimeException(e);
         }
     }
@@ -178,7 +183,7 @@ public class AkeylessCommon {
 
             return AkeylessTaskResult.of(true, null, null);
         } catch (Exception e) {
-            log.error("Error deleting item", e);
+            log.error("Error deleting akeyless item", e);
             throw new RuntimeException(e);
         }
     }

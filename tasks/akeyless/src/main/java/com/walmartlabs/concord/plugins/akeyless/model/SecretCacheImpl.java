@@ -24,8 +24,8 @@ import com.walmartlabs.concord.plugins.akeyless.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 public class SecretCacheImpl implements SecretCache {
@@ -36,7 +36,7 @@ public class SecretCacheImpl implements SecretCache {
     private final Map<String, String> data;
     private final boolean debug;
 
-    public static SecretCache getInstance(String salt, boolean debug) {
+    public static synchronized SecretCache getInstance(String salt, boolean debug) {
         if (instance == null) {
             instance = new SecretCacheImpl(salt, debug);
         }
@@ -51,7 +51,7 @@ public class SecretCacheImpl implements SecretCache {
 
     private SecretCacheImpl(String s, boolean debug) {
         this.salt = s;
-        this.data = new HashMap<>();
+        this.data = new ConcurrentHashMap<>();
         this.debug = debug;
     }
 

@@ -3,10 +3,10 @@
 # Run the task locally with the Concord CLI.
 # NOTE: this only supports runtime-v2 workflows
 
-if [ -f "${PARAM_FILE}" ]; then
-    echo "Reading settings from ${PARAM_FILE}"
-    source "${PARAM_FILE}" # get required parameters from a file
-fi
+#if [ -f "${PARAM_FILE}" ]; then
+#    echo "Reading settings from ${PARAM_FILE}"
+#    source "${PARAM_FILE}" # get required parameters from a file
+#fi
 
 
 echo "Validating pom.xml and test.yml versions match"
@@ -78,6 +78,7 @@ HTTP_CODE=$(curl -sn \
   -o target/test/out.json \
   -w '%{http_code}' \
   ${PROXY:+ -x "${PROXY}"} \
+  ${ENTRY_POINT:+ -F "entryPoint=${ENTRY_POINT}"} \
   ${ORG:+ -F "org=${ORG}"} \
   ${PROJECT:+ -F "project=${PROJECT}"} \
   -F archive=@target/test/payload.zip \
