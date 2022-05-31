@@ -26,6 +26,8 @@ import com.walmartlabs.concord.plugins.akeyless.SecretExporter;
 import com.walmartlabs.concord.plugins.akeyless.model.TaskParams;
 import com.walmartlabs.concord.plugins.akeyless.model.TaskParamsImpl;
 import com.walmartlabs.concord.runtime.v2.sdk.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -35,6 +37,7 @@ import java.util.Map;
 
 @Named("akeyless")
 public class AkeylessTask implements Task {
+    private static final Logger log = LoggerFactory.getLogger(AkeylessTask.class);
 
     private final Map<String, Object> defaults;
     private final Map<String, Object> policyDefaults;
@@ -45,6 +48,8 @@ public class AkeylessTask implements Task {
     public AkeylessTask(Context ctx, SecretService secretService) {
         this.secretExporter = secretService::exportAsString;
         this.defaults = ctx.variables().getMap(TaskParams.DEFAULT_PARAMS_KEY, Collections.emptyMap());
+        this.defaults.put("sessionToken", ctx.processConfiguration().processInfo().sessionToken());
+        this.defaults.put("txId", ctx.processInstanceId().toString());
         this.policyDefaults = ctx.defaultVariables().toMap();
         this.delegate = new AkeylessCommon();
     }
@@ -66,7 +71,7 @@ public class AkeylessTask implements Task {
     public String getSecret(String path) {
         Map<String, Object> vars = new HashMap<>();
         vars.put("action", TaskParams.Action.GETSECRET.toString());
-        vars.put("secretPath", path);
+        vars.put("path", path);
         TaskParams params = createParams(new MapBackedVariables(vars));
 
         return delegate.execute(params).getData().get(path);

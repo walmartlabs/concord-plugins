@@ -40,7 +40,7 @@ public class AkeylessCommon {
     public AkeylessTaskResult execute(TaskParams params) {
         this.params = params;
 
-        log.info("Action: {}", params.action());
+        Util.debug(params.debug(), log, String.format("Action: %s", params.action()));
 
         switch (params.action()) {
             case GETSECRET: {
@@ -54,6 +54,9 @@ public class AkeylessCommon {
             }
             case UPDATESECRET: {
                 return updateSecretVal((TaskParams.UpdateSecretParams) params);
+            }
+            case DELETEITEM: {
+                return deleteItem((TaskParams.DeleteItemParams) params);
             }
             default:
                 throw new IllegalArgumentException("Invalid action: " + params.action());
@@ -70,8 +73,7 @@ public class AkeylessCommon {
         V2Api api = getApi(params);
 
         try {
-            AuthOutput authResult = auth(api); // get auth token
-
+            AuthOutput authResult = authenticate(api);
             GetSecretValue body = new GetSecretValue()
                     .token(authResult.getToken());
 
@@ -92,6 +94,8 @@ public class AkeylessCommon {
      * @return task result containing data for a single secret
      */
     private AkeylessTaskResult getSecret(TaskParams.GetSecretParams params) {
+        Util.debug(params.debug(), log, "getting secret data for: " + params.path());
+
         Map<String, String> secretData = getSecrets(params, Collections.singletonList(params.path()));
 
         if (secretData.size() != 1) {
@@ -108,6 +112,8 @@ public class AkeylessCommon {
      * @return task result containing a map of paths to secret data
      */
     private AkeylessTaskResult getSecrets(TaskParams.GetSecretsParams params) {
+        Util.debug(params.debug(), log, "getting secret data for: " + params.paths());
+
         Map<String, String> secretData = getSecrets(params, params.paths());
 
         return new AkeylessTaskResult(true, secretData, null);
@@ -117,20 +123,16 @@ public class AkeylessCommon {
 
         try {
             V2Api api = getApi(params);
-            AuthOutput auth = auth(api);
+            AuthOutput auth = authenticate(api);
 
-            CreateSecret body = new CreateSecret()
+            api.createSecret(new CreateSecret()
                     .token(auth.getToken())
                     .name(params.path())
                     .value(params.value())
                     .metadata(params.description())
                     .multilineValue(params.multiline())
                     .protectionKey(params.protectionKey())
-                    .tags(params.tags());
-
-            CreateSecretOutput result = api.createSecret(body);
-
-            log.info("create result: {}", result);
+                    .tags(params.tags()));
 
             return AkeylessTaskResult.of(true, null, null);
         } catch (Exception e) {
@@ -143,19 +145,15 @@ public class AkeylessCommon {
 
         try {
             V2Api api = getApi(params);
-            AuthOutput auth = auth(api);
+            AuthOutput auth = authenticate(api);
 
-            UpdateSecretVal body = new UpdateSecretVal()
+            api.updateSecretVal(new UpdateSecretVal()
                     .token(auth.getToken())
                     .value(params.value())
                     .name(params.path())
                     .multiline(params.multiline())
-                    .key(params.protectionKey()) // may be null
-                    .keepPrevVersion(Boolean.toString(params.keepPreviousVersion()));
-
-            UpdateSecretValOutput result = api.updateSecretVal(body);
-
-            log.info("result {}", result);
+                    .key(params.protectionKey())
+                    .keepPrevVersion(Boolean.toString(params.keepPreviousVersion())));
 
             return AkeylessTaskResult.of(true, null, null);
         } catch (Exception e) {
@@ -164,7 +162,28 @@ public class AkeylessCommon {
         }
     }
 
-    private AuthOutput auth(V2Api api) throws ApiException {
+    private AkeylessTaskResult deleteItem(TaskParams.DeleteItemParams params) {
+        Util.debug(params.debug(), log, "deleting item: " + params.path());
+
+        try {
+            V2Api api = getApi(params);
+            AuthOutput auth = authenticate(api);
+
+            api.deleteItem(new DeleteItem()
+                    .token(auth.getToken())
+                    .name(params.path())
+                    .version(params.version())
+                    .deleteImmediately(params.deleteImmediately())
+                    .deleteInDays(params.deleteInDays()));
+
+            return AkeylessTaskResult.of(true, null, null);
+        } catch (Exception e) {
+            log.error("Error deleting item", e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    private AuthOutput authenticate(V2Api api) throws ApiException {
         return api.auth(params.auth());
     }
 }

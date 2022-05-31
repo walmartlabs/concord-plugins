@@ -22,13 +22,9 @@ package com.walmartlabs.concord.plugins.akeyless.v1;
 
 import com.walmartlabs.concord.plugins.akeyless.AkeylessCommon;
 import com.walmartlabs.concord.plugins.akeyless.AkeylessTaskResult;
-import com.walmartlabs.concord.plugins.akeyless.SecretExporter;
 import com.walmartlabs.concord.plugins.akeyless.model.TaskParams;
 import com.walmartlabs.concord.plugins.akeyless.model.TaskParamsImpl;
-import com.walmartlabs.concord.sdk.Context;
-import com.walmartlabs.concord.sdk.InjectVariable;
-import com.walmartlabs.concord.sdk.SecretService;
-import com.walmartlabs.concord.sdk.Task;
+import com.walmartlabs.concord.sdk.*;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -40,20 +36,19 @@ public class AkeylessTask implements Task {
 
     @InjectVariable(TaskParams.DEFAULT_PARAMS_KEY)
     private Map<String, Object> defaults;
-    private final SecretExporter secretExporter;
+    private final SecretService secretService;
     private final AkeylessCommon delegate;
 
     @Inject
-    public AkeylessTask(Context ctx, SecretService secretService) {
-        this.secretExporter = (o, n, p) -> secretService.exportAsString(ctx, o, n, p);
+    public AkeylessTask(SecretService secretService) {
+        this.secretService = secretService;
         this.delegate = new AkeylessCommon();
     }
 
     @Override
     public void execute(Context ctx) {
-        final TaskParams params = createParams(ctx.toMap());
-
-        AkeylessTaskResult result = delegate.execute(params);
+        final TaskParams params = createParams(ctx, ctx.toMap());
+        final AkeylessTaskResult result = delegate.execute(params);
 
         ctx.setVariable("result", result.getData());
     }
@@ -62,17 +57,20 @@ public class AkeylessTask implements Task {
      * @param path Secret path to read
      * @return only the secret value
      */
-    public String getSecret(String path) {
+    public String getSecret(@InjectVariable("context") Context ctx, String path) {
         Map<String, Object> vars = new HashMap<>();
         vars.put("action", TaskParams.Action.GETSECRET.toString());
-        vars.put("secretPath", path);
-        TaskParams params = createParams(vars);
+        vars.put("path", path);
+        TaskParams params = createParams(ctx, vars);
 
         return delegate.execute(params).getData().get(path);
     }
 
-    private TaskParams createParams(Map<String, Object> input) {
+    private TaskParams createParams(Context ctx, Map<String, Object> input) {
+        input.put("txId", ContextUtils.getTxId(ctx).toString());
+        input.put("sessionToken", ContextUtils.getSessionToken(ctx));
 
-        return TaskParamsImpl.of(input, defaults, null, secretExporter);
+        return TaskParamsImpl.of(input, defaults, null,
+                (o, n, p) -> secretService.exportAsString(ctx, o, n, p));
     }
 }

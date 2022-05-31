@@ -46,6 +46,11 @@ public interface TaskParams {
     }
 
     @Value.Default
+    default boolean enableConcordSecretCache() {
+        return true;
+    }
+
+    @Value.Default
     default int connectTimeout() {
         return DEFAULT_CONNECT_TIMEOUT;
     }
@@ -65,6 +70,13 @@ public interface TaskParams {
         return DEFAULT_BASE_API;
     }
 
+    /**
+     * @return unique identifier for the current session. Must change each time
+     * a process runs. For example, the value must change between execution before
+     * and after suspending for a form.
+     */
+    String sessionId();
+    String txId();
     Auth auth();
 
     interface GetSecretParams extends TaskParams {
@@ -101,10 +113,19 @@ public interface TaskParams {
         }
     }
 
+    interface DeleteItemParams extends TaskParams {
+
+        String path();
+        Integer version();
+        boolean deleteImmediately();
+        Long deleteInDays();
+    }
+
     enum Action {
+        CREATESECRET,
+        DELETEITEM,
         GETSECRET,
         GETSECRETS,
-        CREATESECRET,
         UPDATESECRET
     }
 

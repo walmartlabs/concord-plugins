@@ -69,6 +69,8 @@ public class ITs {
         updateSecret(path1, value1 + "_new");
         getSecret(path1, value1 + "_new");
 
+        deleteItem(path1);
+        deleteItem(path2);
     }
 
 
@@ -96,7 +98,7 @@ public class ITs {
         cfg.put("apiBasePath", getITsProp("apiBasePath"));
         cfg.put("auth", createAuth());
         cfg.put("action", "createSecret");
-        cfg.put("secretPath", path);
+        cfg.put("path", path);
         cfg.put("description", "Description for " + path);
         cfg.put("value", value);
         cfg.put("multiline", false);
@@ -114,10 +116,26 @@ public class ITs {
         cfg.put("apiBasePath", getITsProp("apiBasePath"));
         cfg.put("auth", createAuth());
         cfg.put("action", "updateSecret");
-        cfg.put("secretPath", path);
+        cfg.put("path", path);
         cfg.put("value", value);
         cfg.put("multiline", false);
         cfg.put("keepPreviousVersion", false);
+
+        TaskParams params = TaskParamsImpl.of(cfg, Collections.emptyMap(), Collections.emptyMap(), null);
+        AkeylessTaskResult result = new AkeylessCommon().execute(params);
+
+        assertTrue(result.getOk());
+        Map<String, String> data = result.getData();
+    }
+
+    public void deleteItem(String path) {
+        Map<String, Object> cfg = new HashMap<>();
+
+        cfg.put("apiBasePath", getITsProp("apiBasePath"));
+        cfg.put("auth", createAuth());
+        cfg.put("action", "deleteItem");
+        cfg.put("path", path);
+        cfg.put("deleteImmediately", true);
 
         TaskParams params = TaskParamsImpl.of(cfg, Collections.emptyMap(), Collections.emptyMap(), null);
         AkeylessTaskResult result = new AkeylessCommon().execute(params);
@@ -139,7 +157,7 @@ public class ITs {
 
         cfg.put("auth", auth);
         cfg.put("action", "getSecrets");
-        cfg.put("secretPaths", Arrays.asList(path1, path2));
+        cfg.put("paths", Arrays.asList(path1, path2));
 
         TaskParams params = TaskParamsImpl.of(cfg, Collections.emptyMap(), Collections.emptyMap(), null);
         AkeylessTaskResult result = new AkeylessCommon().execute(params);
@@ -165,7 +183,7 @@ public class ITs {
 
         cfg.put("auth", auth);
         cfg.put("action", "getSecret");
-        cfg.put("secretPath", path);
+        cfg.put("path", path);
 
         TaskParams params = TaskParamsImpl.of(cfg, Collections.emptyMap(), Collections.emptyMap(), null);
         AkeylessTaskResult result = new AkeylessCommon().execute(params);
@@ -195,7 +213,7 @@ public class ITs {
 
         AkeylessTask task = new AkeylessTask(new MockContext(Collections.emptyMap(), arguments), secretService);
 
-        String data = task.getSecret(getITsProp("secretPath"));
+        String data = task.getSecret(getITsProp("path"));
 
         assertNotNull(data);
     }

@@ -37,7 +37,7 @@ public class TaskParamsImplTest {
         List<String> paths = new ArrayList<>(2);
         paths.add("/firstPath");
         paths.add("/second/path");
-        cfg.put("secretPaths", paths);
+        cfg.put("paths", paths);
 
 
         TaskParams params = TaskParamsImpl.of(cfg, Collections.emptyMap(), Collections.emptyMap(), null);

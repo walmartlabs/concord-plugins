@@ -21,59 +21,109 @@ package com.walmartlabs.concord.plugins.akeyless.model;
  */
 
 import com.walmartlabs.concord.plugins.akeyless.SecretExporter;
+import com.walmartlabs.concord.plugins.akeyless.Util;
 import com.walmartlabs.concord.runtime.v2.sdk.MapBackedVariables;
 import com.walmartlabs.concord.runtime.v2.sdk.Variables;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 public class TaskParamsImpl implements TaskParams {
+    private static final Logger log = LoggerFactory.getLogger(TaskParamsImpl.class);
 
     public static final String ACTION_KEY = "action";
+    public static final String DEBUG_KEY = "debug";
+    private static final String ENABLE_CONCORD_SECRETS_CACHE_KEY = "enableConcordSecretCache";
+    private static final String SESSION_TOKEN_KEY = "sessionToken";
+    private static final String TX_ID_KEY = "txId";
     private static final String AUTH_KEY = "auth";
 
-    private static final Map<String, Function<Variables, Auth>> authBuilders = createAuthBuilders();
+    private static final Map<String, BiFunction<Variables, SecretExporter, Auth>> authBuilders = createAuthBuilders();
+    private static SecretCache secretCache;
     private final SecretExporter secretExporter;
 
     public static TaskParams of(Map<String, Object> input,
                                 Map<String, Object> defaults,
                                 Map<String, Object> policyDefaults,
                                 SecretExporter secretExporter) {
+
         Map<String, Object> mergedVars = new HashMap<>(policyDefaults != null ? policyDefaults : Collections.emptyMap());
         mergedVars.putAll(defaults);
         mergedVars.putAll(input);
         MapBackedVariables vars = new MapBackedVariables(mergedVars);
 
+        TaskParams params;
+
         switch (TaskParamsImpl.action(vars)) {
-            case GETSECRET:
-                return new GetSecretParamsImpl(vars, secretExporter);
-
-            case GETSECRETS:
-                return new GetSecretsParamsImpl(vars, secretExporter);
-
-            case CREATESECRET:
-                return new CreateSecretParamsImpl(vars, secretExporter);
-
-            case UPDATESECRET:
-                return new UpdateSecretParamsImpl(vars, secretExporter);
-
+            case GETSECRET: {
+                params = new GetSecretParamsImpl(vars, secretExporter);
+                break;
+            }
+            case GETSECRETS: {
+                params = new GetSecretsParamsImpl(vars, secretExporter);
+                break;
+            }
+            case CREATESECRET: {
+                params = new CreateSecretParamsImpl(vars, secretExporter);
+                break;
+            }
+            case UPDATESECRET: {
+                params = new UpdateSecretParamsImpl(vars, secretExporter);
+                break;
+            }
+            case DELETEITEM: {
+                params = new DeleteItemParamsImpl(vars, secretExporter);
+                break;
+            }
             default:
                 throw new IllegalArgumentException("Unsupported action type: " + action(vars));
         }
+
+        if (params.enableConcordSecretCache()) {
+            secretCache = SecretCacheImpl.getInstance(params.sessionId(), params.debug());
+        } else {
+            secretCache = SecretCacheNoop.getInstance();
+        }
+
+        return params;
     }
 
-    private static Map<String, Function<Variables, Auth>> createAuthBuilders() {
-        Map<String, Function<Variables, Auth>> result = new HashMap<>();
+    private static Map<String, BiFunction<Variables, SecretExporter, Auth>> createAuthBuilders() {
+        Map<String, BiFunction<Variables, SecretExporter, Auth>> result = new HashMap<>();
         result.put("apiKey", ApiKeyAuthImpl::of);
         return result;
     }
-
 
     final Variables input;
 
     protected TaskParamsImpl(Variables input, SecretExporter secretExporter) {
         this.input = input;
         this.secretExporter = secretExporter;
+    }
+
+    @Override
+    public boolean enableConcordSecretCache() {
+        return input.getBoolean(ENABLE_CONCORD_SECRETS_CACHE_KEY, TaskParams.super.enableConcordSecretCache());
+    }
+
+    @Override
+    public String sessionId() {
+        /* Session should always exist in "real" processes since it's required
+           to use the Secret API amongst other calls. The fallback here using
+           process ID is to support Concord CLI which doesn't have API info. */
+        return Util.hash(input.getString(SESSION_TOKEN_KEY, this.txId()));
+    }
+
+    @Override
+    public String txId() {
+        return input.assertString(TX_ID_KEY);
+    }
+
+    @Override
+    public boolean debug() {
+        return input.getBoolean(DEBUG_KEY, TaskParams.super.debug());
     }
 
     @Override
@@ -94,31 +144,71 @@ public class TaskParamsImpl implements TaskParams {
 
         String authType = auth.keySet().iterator().next();
 
-        Function<Variables, Auth> builder = authBuilders.get(authType);
+        BiFunction<Variables, SecretExporter, Auth> builder = authBuilders.get(authType);
         if (builder == null) {
             throw new IllegalArgumentException("Unknown auth type '" + authType + "'. Available: " + authBuilders.keySet());
         }
 
         Map<String, Object> authTypeParams = new MapBackedVariables(auth).assertMap(authType);
-        return builder.apply(new MapBackedVariables(authTypeParams));
+        return builder.apply(new MapBackedVariables(authTypeParams), secretExporter);
     }
 
     private static class ApiKeyAuthImpl extends Auth {
         private static final String ACCESS_ID_KEY = "accessId";
         private static final String ACCESS_KEY_KEY = "accessKey";
 
+        private static Auth of(Variables vars, SecretExporter secretExporter) {
+            return new Auth()
+                    .accessId(stringOrSecret(vars.get(ACCESS_ID_KEY), secretExporter))
+                    .accessKey(stringOrSecret(vars.get(ACCESS_KEY_KEY), secretExporter));
+        }
 
-        private static Auth of(Variables vars) {
-            Auth auth = new Auth();
-            auth.setAccessId(vars.assertString(ACCESS_ID_KEY));
-            auth.setAccessKey(vars.assertString(ACCESS_KEY_KEY));
-            return auth;
+        /**
+         * @param o Input value with may be a String or Map of Concord secret
+         *          info (org, name, password)
+         * @param secretExporter for access Concord's Secrets API
+         * @return String value from direct input or exported Secret value
+         */
+        @SuppressWarnings("unchecked")
+        private static String stringOrSecret(Object o, SecretExporter secretExporter) {
+            if (o instanceof String) {
+                return (String) o;
+            }
+            
+            if (! (o instanceof Map)) {
+                throw new IllegalArgumentException("Invalid data type given for sensitive argument. Must be string or map.");
+            }
 
+            ((Map<?, ?>) o).forEach((key, value) -> {
+                if (!(key instanceof String)) {
+                    throw new IllegalArgumentException("Non-string key used for secret definition");
+                }
+
+                if (!(value instanceof String)) {
+                    throw new IllegalArgumentException("Non-string value used for secret definition");
+                }
+            });
+
+            return exportSecret((Map<String, String>) o, secretExporter);
+        }
+
+        private static String exportSecret(Map<String, String> secretInfo, SecretExporter secretExporter) {
+            final String o = secretInfo.get("org");
+            final String n = secretInfo.get("name");
+            final String p = secretInfo.getOrDefault("password", null);
+
+            return secretCache.get(o + n, () -> {
+                try {
+                    return secretExporter.exportAsString(o, n, p);
+                } catch (Exception e) {
+                    throw new RuntimeException(String.format("Error exporting secret '%s/%s': %s", o, n, e.getMessage()), e);
+                }
+            });
         }
     }
 
     private static class GetSecretParamsImpl extends TaskParamsImpl implements GetSecretParams {
-        private static final String PATH_KEY = "secretPath";
+        private static final String PATH_KEY = "path";
 
         GetSecretParamsImpl(Variables input, SecretExporter secretExporter) {
             super(input, secretExporter);
@@ -131,7 +221,7 @@ public class TaskParamsImpl implements TaskParams {
     }
 
     private static class GetSecretsParamsImpl extends TaskParamsImpl implements GetSecretsParams {
-        private static final String PATHS_KEY = "secretPaths";
+        private static final String PATHS_KEY = "paths";
 
         GetSecretsParamsImpl(Variables input, SecretExporter secretExporter) {
             super(input, secretExporter);
@@ -144,12 +234,12 @@ public class TaskParamsImpl implements TaskParams {
     }
 
     private static class CreateSecretParamsImpl extends TaskParamsImpl implements CreateSecretParams {
-        private static final String PATH_KEY = "secretPath";
+        private static final String PATH_KEY = "path";
         private static final String VALUE_KEY = "value";
         private static final String DESCRIPTION_KEY = "description";
-        public static final String MULTILINE_KEY = "multiline";
+        private static final String MULTILINE_KEY = "multiline";
         private static final String TAGS_KEY = "tags";
-        public static final String PROTECTION_KEY_KEY = "protectionKey";
+        private static final String PROTECTION_KEY_KEY = "protectionKey";
 
         CreateSecretParamsImpl(Variables input, SecretExporter secretExporter) {
             super(input, secretExporter);
@@ -187,10 +277,10 @@ public class TaskParamsImpl implements TaskParams {
     }
 
     private static class UpdateSecretParamsImpl extends TaskParamsImpl implements UpdateSecretParams {
-        private static final String PATH_KEY = "secretPath";
+        private static final String PATH_KEY = "path";
         private static final String VALUE_KEY = "value";
-        public static final String PROTECTION_KEY_KEY = "protectionKey";
-        public static final String MULTILINE_KEY = "multiline";
+        private static final String PROTECTION_KEY_KEY = "protectionKey";
+        private static final String MULTILINE_KEY = "multiline";
         private static final String KEEP_PREVIOUS_VERSION_KEY = "keepPreviousVersion";
 
         UpdateSecretParamsImpl(Variables input, SecretExporter secretExporter) {
@@ -220,6 +310,41 @@ public class TaskParamsImpl implements TaskParams {
         @Override
         public boolean keepPreviousVersion() {
             return input.getBoolean(KEEP_PREVIOUS_VERSION_KEY, UpdateSecretParams.super.keepPreviousVersion());
+        }
+    }
+
+    private static class DeleteItemParamsImpl extends TaskParamsImpl implements DeleteItemParams {
+        private static final String PATH_KEY = "path";
+        private static final String VERSION_KEY = "version";
+        private static final String DELETE_IMMEDIATELY_KEY = "deleteImmediately";
+        private static final String DELETE_IN_DAYS_KEY = "deleteInDays";
+
+        DeleteItemParamsImpl(Variables input, SecretExporter secretExporter) {
+            super(input, secretExporter);
+        }
+
+        @Override
+        public String path() {
+            return input.assertString(PATH_KEY);
+        }
+
+        @Override
+        public Integer version() {
+            return input.get(VERSION_KEY, null, Integer.class);
+        }
+
+        @Override
+        public boolean deleteImmediately() {
+            return input.getBoolean(DELETE_IMMEDIATELY_KEY, true);
+        }
+
+        @Override
+        public Long deleteInDays() {
+            if (deleteImmediately()) {
+                return 0L;
+            }
+
+            return input.assertLong(DELETE_IN_DAYS_KEY);
         }
     }
 
