@@ -1,15 +1,5 @@
 #!/usr/bin/env bash
 
-# Run the task locally with the Concord CLI.
-# NOTE: this only supports runtime-v2 workflows
-
-#if [ -f "${PARAM_FILE}" ]; then
-#    echo "Reading settings from ${PARAM_FILE}"
-#    source "${PARAM_FILE}" # get required parameters from a file
-#fi
-
-
-echo "Validating pom.xml and test.yml versions match"
 
 # see if task jar needs build/rebuild
 doBuild=1

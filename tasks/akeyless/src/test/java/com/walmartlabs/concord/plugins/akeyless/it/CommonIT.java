@@ -84,7 +84,7 @@ public class CommonIT {
     }
 
     private Map<String, Object> createAuth() {
-        Map<String, Object> cfg = baseConfig();
+        Map<String, Object> cfg = new HashMap<>();
         cfg.put("accessId", getITsProp("accessId"));
         cfg.put("accessKey", getITsProp("accessKey"));
 
