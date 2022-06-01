@@ -43,9 +43,14 @@ fi
 mkdir -p target/test/lib/
 cp target/akeyless-task-*SNAPSHOT.jar target/test/lib/
 
-# ...and dependencies
-mvn dependency:copy-dependencies -DoutputDirectory="${PWD}/target/lib_tmp/" -Dmdep.useSubDirectoryPerScope > /dev/null
-cp target/lib_tmp/compile/*.jar target/test/lib/
+mkdir -p target/test/concord
+echo "configuration:" > target/test/concord/dependencies.concord.yml
+echo "  dependencies:" >> target/test/concord/dependencies.concord.yml
+mvn dependency:tree | grep ':compile' | sed -e 's/^.* [+\\]\- /    - mvn:\/\//' -e 's/:compile$//' >> target/test/concord/dependencies.concord.yml
+
+## ...and dependencies
+#mvn dependency:copy-dependencies -DoutputDirectory="${PWD}/target/lib_tmp/" -Dmdep.useSubDirectoryPerScope > /dev/null
+#cp target/lib_tmp/compile/*.jar target/test/lib/
 
 # enable JVM debugging if parameter given and target server is localhost
 if [ "${DEBUG:-}" == "true" ]; then
