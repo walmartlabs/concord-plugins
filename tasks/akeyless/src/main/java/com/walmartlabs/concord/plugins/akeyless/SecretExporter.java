@@ -21,5 +21,5 @@ package com.walmartlabs.concord.plugins.akeyless;
  */
 
 public interface SecretExporter {
-    String exportAsString(String o, String n, String p) throws Exception;
+    String exportAsString(String orgName, String secretName, String password) throws Exception;
 }

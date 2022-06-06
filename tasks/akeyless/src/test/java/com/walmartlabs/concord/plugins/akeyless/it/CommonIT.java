@@ -27,7 +27,6 @@ import com.walmartlabs.concord.plugins.akeyless.model.TaskParamsImpl;
 import com.walmartlabs.concord.plugins.akeyless.v2.AkeylessTask;
 import com.walmartlabs.concord.runtime.v2.sdk.SecretService;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
