@@ -47,6 +47,7 @@ import java.nio.file.Path;
 import java.util.*;
 
 import static com.walmartlabs.concord.plugins.git.Utils.getBoolean;
+import static com.walmartlabs.concord.plugins.git.Utils.hideSensitiveData;
 import static com.walmartlabs.concord.sdk.MapUtils.assertString;
 import static com.walmartlabs.concord.sdk.MapUtils.getString;
 import static org.eclipse.jgit.lib.Constants.R_HEADS;
@@ -571,22 +572,6 @@ public class GitTask {
         StringWriter w = new StringWriter();
         t.printStackTrace(new PrintWriter(w));
         return w.toString();
-    }
-
-    private static String hideSensitiveData(String s, Secret secret) {
-        if (s == null) {
-            return null;
-        }
-        if (secret instanceof UsernamePassword) {
-            char[] password = ((UsernamePassword) secret).getPassword();
-            if (password != null) {
-                s = s.replaceAll(new String(password), "***");
-            }
-        } else if (secret instanceof TokenSecret) {
-            String token = ((TokenSecret) secret).getToken();
-            s = s.replaceAll(token, "***");
-        }
-        return s;
     }
 
     private static Map<String, Object> toResult(boolean ok, ResultStatus resultStatus, String error, Set<String> changeList, String headSHA) {

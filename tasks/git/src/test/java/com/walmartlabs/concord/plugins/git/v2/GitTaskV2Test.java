@@ -21,7 +21,10 @@ package com.walmartlabs.concord.plugins.git.v2;
  */
 
 import com.walmartlabs.concord.common.IOUtils;
+import com.walmartlabs.concord.common.secret.UsernamePassword;
 import com.walmartlabs.concord.plugins.git.GitTask;
+import com.walmartlabs.concord.plugins.git.TokenSecret;
+import com.walmartlabs.concord.plugins.git.Utils;
 import com.walmartlabs.concord.runtime.v2.sdk.MapBackedVariables;
 import com.walmartlabs.concord.runtime.v2.sdk.SecretService;
 import com.walmartlabs.concord.runtime.v2.sdk.TaskResult;
@@ -31,9 +34,12 @@ import org.junit.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -61,5 +67,25 @@ public class GitTaskV2Test {
         GitTaskV2 task = new GitTaskV2(mock(SecretService.class), new WorkingDirectory(workDir));
         TaskResult.SimpleResult result = task.execute(new MapBackedVariables(input));
         assertTrue(result.ok());
+    }
+
+    @Test
+    public void testHideSensitiveData() {
+        // some strings which could be a password containing unintentional, invalid regex patterns
+        List<String> inputs  = Arrays.asList("simple123", "[_}34@%$");
+
+        for (String input : inputs) {
+            UsernamePassword testUP = new UsernamePassword("user", input.toCharArray());
+            String result = Utils.hideSensitiveData("beforeText " + input + " afterText", testUP);
+
+            assertEquals("beforeText *** afterText", result);
+        }
+
+        for (String input : inputs) {
+            TokenSecret testToken = new TokenSecret(input);
+            String result = Utils.hideSensitiveData("beforeText " + input + " afterText", testToken);
+
+            assertEquals("beforeText *** afterText", result);
+        }
     }
 }
