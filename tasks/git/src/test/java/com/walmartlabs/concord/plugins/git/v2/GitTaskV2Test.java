@@ -74,18 +74,20 @@ public class GitTaskV2Test {
         // some strings which could be a password containing unintentional, invalid regex patterns
         List<String> inputs  = Arrays.asList("simple123", "[_}34@%$");
 
+        final String expected = "beforeText *** middleText *** afterText";
+
         for (String input : inputs) {
             UsernamePassword testUP = new UsernamePassword("user", input.toCharArray());
-            String result = Utils.hideSensitiveData("beforeText " + input + " afterText", testUP);
+            String result = Utils.hideSensitiveData("beforeText " + input + " middleText " + input + " afterText", testUP);
 
-            assertEquals("beforeText *** afterText", result);
+            assertEquals(expected, result);
         }
 
         for (String input : inputs) {
             TokenSecret testToken = new TokenSecret(input);
-            String result = Utils.hideSensitiveData("beforeText " + input + " afterText", testToken);
+            String result = Utils.hideSensitiveData("beforeText " + input + " middleText " + input + " afterText", testToken);
 
-            assertEquals("beforeText *** afterText", result);
+            assertEquals(expected, result);
         }
     }
 }

@@ -24,7 +24,6 @@ import com.walmartlabs.concord.common.secret.UsernamePassword;
 import com.walmartlabs.concord.sdk.Secret;
 
 import java.util.Map;
-import java.util.regex.Pattern;
 
 import static com.walmartlabs.concord.sdk.MapUtils.getString;
 
@@ -64,11 +63,11 @@ public final class Utils {
         if (secret instanceof UsernamePassword) {
             char[] password = ((UsernamePassword) secret).getPassword();
             if (password != null) {
-                s = s.replaceAll(Pattern.quote(new String(password)), "***");
+                s = s.replace(new String(password), "***");
             }
         } else if (secret instanceof TokenSecret) {
             String token = ((TokenSecret) secret).getToken();
-            s = s.replaceAll(Pattern.quote(token), "***");
+            s = s.replace(token, "***");
         }
         return s;
     }
