@@ -39,8 +39,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 
 public class GitTaskV2Test {
@@ -75,18 +74,23 @@ public class GitTaskV2Test {
         List<String> inputs  = Arrays.asList("simple123", "[_}34@%$");
 
         final String expected = "beforeText *** middleText *** afterText";
+        final String sensitiveFmt = "beforeText %s middleText %s afterText";
 
         for (String input : inputs) {
             UsernamePassword testUP = new UsernamePassword("user", input.toCharArray());
-            String result = Utils.hideSensitiveData("beforeText " + input + " middleText " + input + " afterText", testUP);
+            String strWithSensitiveData = String.format(sensitiveFmt, input, input);
+            String result = Utils.hideSensitiveData(strWithSensitiveData, testUP);
 
+            assertNotEquals(expected, strWithSensitiveData); // ensure no cheating
             assertEquals(expected, result);
         }
 
         for (String input : inputs) {
             TokenSecret testToken = new TokenSecret(input);
-            String result = Utils.hideSensitiveData("beforeText " + input + " middleText " + input + " afterText", testToken);
+            String strWithSensitiveData = String.format(sensitiveFmt, input, input);
+            String result = Utils.hideSensitiveData(strWithSensitiveData, testToken);
 
+            assertNotEquals(expected, strWithSensitiveData); // ensure no cheating
             assertEquals(expected, result);
         }
     }
