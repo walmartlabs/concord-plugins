@@ -13,7 +13,7 @@
     <packaging>takari-jar</packaging>
 
     <properties>
-        <awssdk.version>1.11.641</awssdk.version>
+        <awssdk.version>1.12.261</awssdk.version>
     </properties>
 
     <dependencies>
