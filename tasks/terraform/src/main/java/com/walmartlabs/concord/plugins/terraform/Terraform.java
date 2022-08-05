@@ -229,15 +229,6 @@ public class Terraform {
     private Version getBinaryVersion() throws Exception {
         TerraformArgs args = buildArgs(CLI_ACTION.VERSION).add("-json");
 
-//        // execute in container once to make sure image is already pulled
-//        if (dockerImage != null) {
-//            Result prepare = exec(binary.getParent().toAbsolutePath(), "version",
-//                    true, Collections.emptyMap(), args);
-//            if (prepare.getCode() != 0) {
-//                throw new RuntimeException("Failed to pull docker image for subsequent calls. Exit code " + prepare.getCode() + ": " + prepare.getStdout() + prepare.getStderr());
-//            }
-//        }
-
         Result result = exec(binary.getParent().toAbsolutePath(), "version",
                 !debug, Collections.emptyMap(), args);
         if (result.getCode() != 0) {
