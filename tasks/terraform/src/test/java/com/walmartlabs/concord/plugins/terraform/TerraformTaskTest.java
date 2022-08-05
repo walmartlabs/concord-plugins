@@ -20,44 +20,34 @@ package com.walmartlabs.concord.plugins.terraform;
  * =====
  */
 
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
-import com.walmartlabs.concord.common.IOUtils;
 import com.walmartlabs.concord.plugins.terraform.backend.BackendFactoryV1;
 import com.walmartlabs.concord.sdk.*;
-import okhttp3.Call;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
 import org.junit.Before;
 import org.junit.Ignore;
-import org.junit.Rule;
 import org.junit.Test;
 
-import java.io.*;
-import java.lang.reflect.Field;
-import java.net.URI;
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.*;
+import java.util.Collections;
+import java.util.Map;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.verify;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 //
 // To run this test you need to set the following envars set:
 //
-// CONCORD_TMP_DIR	= /tmp/concord
-// AWS_ACCESS_KEY	= <your_aws_access_key>
-// AWS_SECRET_KEY	= <your_aws_secret_key>
-// TF_TEST_FILE	    = <path_to>/concord-plugins/tasks/terraform/src/test/terraform/main.tf or another file you want to test
-// PRIVATE_KEY_PATH = <your_aws_pem_file>
+// CONCORD_TMP_DIR      = /tmp/concord
+// AWS_ACCESS_KEY       = <your_aws_access_key>
+// AWS_SECRET_KEY       = <your_aws_secret_key>
+// TF_TEST_FILE	        = <path_to>/concord-plugins/tasks/terraform/src/test/terraform/main.tf or another file you want to test
+// TF_TEST_DOCKER_IMAGE = docker image in which to execute terraform
+// PRIVATE_KEY_PATH     = <your_aws_pem_file>
 //
 // Alternatively you can use the following:
 //
@@ -73,56 +63,16 @@ import static org.mockito.Mockito.*;
 //
 
 @Ignore
-public class TerraformTaskTest {
+public class TerraformTaskTest extends AbstractTerraformTest {
 
-    private final static String CONCORD_TMP_DIR_KEY = "CONCORD_TMP_DIR";
-    private final static String CONCORD_TMP_DIR_VALUE = "/tmp/concord";
-    private final static String CONCORD_AWS_CREDENTIALS_KEY = "concord-integration-tests";
-
-    private String basedir;
-
-    private AWSCredentials awsCredentials;
-    private Path workDir;
-    private Path dstDir;
-    private Path testFile;
-    private Path downloadManagerCacheDir;
-    private LockService lockService;
-    private ObjectStorage objectStorage;
     private SecretService secretService;
-    private BackendFactoryV1 backendManager;
-    private DependencyManager dependencyManager;
 
     @Before
     public void setup() throws Exception {
-        basedir = new File("").getAbsolutePath();
-
-        awsCredentials = awsCredentials();
-        workDir = workDir();
-        testFile = terraformTestFile();
-        downloadManagerCacheDir = Paths.get("/tmp/downloadManager/cache");
-        Files.createDirectories(downloadManagerCacheDir);
-
-        System.out.println("Using the following:");
-        System.out.println();
-        System.out.println("AWS Access Key ID: " + awsCredentials.accessKey);
-        System.out.println("   AWS Secret Key: " + awsCredentials.secretKey);
-        System.out.println("   Terraform file: " + testFile);
-        System.out.println("          workDir: " + workDir);
-        System.out.println();
-
-        Files.createDirectories(workDir);
-        dstDir = workDir;
-        Files.copy(testFile, dstDir.resolve(testFile.getFileName()));
-
-        lockService = mock(LockService.class);
+        abstractSetup();
         objectStorage = createObjectStorage(wireMockRule);
         secretService = createSecretService(workDir);
-        dependencyManager = new OKHttpDownloadManager("terraform");
     }
-
-    @Rule
-    public WireMockRule wireMockRule = new WireMockRule(WireMockConfiguration.wireMockConfig()
-            .port(12345));
 
     @Test
     @SuppressWarnings("unchecked")
@@ -135,8 +85,8 @@ public class TerraformTaskTest {
         Context ctx = new MockContext(args);
         backendManager = new BackendFactoryV1(ctx, lockService, objectStorage);
 
-        TerraformTask t = new TerraformTask(secretService, lockService, objectStorage, dependencyManager);
-
+        TerraformTask t = new TerraformTask(secretService, lockService,
+                objectStorage, dependencyManager, dockerService);
 
         t.execute(ctx);
 
@@ -161,7 +111,7 @@ public class TerraformTaskTest {
 
         ctx = new MockContext(args);
         t.execute(ctx);
-        result = (Map<String, Object>) ctx.getVariable(TaskConstants.RESULT_KEY);
+        result = ContextUtils.getMap(ctx, "result");
         System.out.println(result);
 
         //
@@ -169,12 +119,12 @@ public class TerraformTaskTest {
         //
         // Outputs:
         //
-        // message = hello!
-        // name_from_varfile0 = bob
-        // time_from_varfile1 = now
+        // message = "hello!"
+        // name_from_varfile0 = "bob"
+        // time_from_varfile1 = "now"
         //
-        assertTrue(((String) result.get("output")).contains("name_from_varfile0 = bob"));
-        assertTrue(((String) result.get("output")).contains("time_from_varfile1 = now"));
+        assertOutput(".*name_from_varfile0 = \"?bob\"?.*", ((String) result.get("output")));
+        assertOutput(".*time_from_varfile1 = \"?now\"?.*", ((String) result.get("output")));
 
         // ---
 
@@ -190,48 +140,28 @@ public class TerraformTaskTest {
         args = baseArguments(workDir, dstDir, Action.OUTPUT.name());
         ctx = new MockContext(args);
         t.execute(ctx);
-    }
 
-    private Map<String, Object> extraVars() throws Exception {
-        Map<String, Object> extraVars = new HashMap<>();
-        extraVars.put("aws_access_key", awsCredentials.accessKey);
-        extraVars.put("aws_secret_key", awsCredentials.secretKey);
-        return extraVars;
-    }
+        // Validate expected output values were returned in 'data' attribute/key of 'result' variable
+        result = ContextUtils.getMap(ctx, "result");
+        String nameResult = findInMap(result, "data.name_from_varfile0.value");
+        String timeResult = findInMap(result, "data.time_from_varfile1.value");
 
-    private List<String> varFiles() throws Exception {
+        assertEquals("bob", nameResult);
+        assertEquals("now", timeResult);
+
+
         //
-        // We place our user supplied var files in the workspace and they are declared as being relative
-        // to the Concord workspace. So we copy them into the workspace at the root so we just refer to
-        // them as "varfile0.tfvars" and varfile1.tfvars.
-        //
-        Path varfile0 = varFile("varfile0.tfvars");
-        Files.copy(varfile0, dstDir.resolve(varfile0.getFileName()));
-        Path varfile1 = varFile("varfile1.tfvars");
-        Files.copy(varfile1, dstDir.resolve(varfile1.getFileName()));
+        // Cleanup time. State should be saved by our custom wiremock transformer.
+        // Without the state, terraform won't actually delete the resource(s)
+        args = baseArguments(workDir, dstDir, Action.DESTROY.name());
+        args.put(TaskConstants.VARS_FILES, varFiles());
+        args.put(TaskConstants.EXTRA_VARS_KEY, extraVars());
+        ctx = new MockContext(args);
+        t.execute(ctx);
 
-        return new ArrayList<>(Arrays.asList("varfile0.tfvars", "varfile1.tfvars"));
-    }
-
-    private Map<String, Object> gitSsh() throws Exception {
-        Map<String, Object> gitSsh = new HashMap<>();
-        gitSsh.put(GitSshWrapper.PRIVATE_KEYS_KEY, Collections.singletonList(Files.createTempFile("test", ".key").toAbsolutePath().toString()));
-        gitSsh.put(GitSshWrapper.SECRETS_KEY, Collections.singletonList(Collections.singletonMap("secretName", "test")));
-        return gitSsh;
-    }
-
-    // TODO: move to shared helper class
-    public static ObjectStorage createObjectStorage(WireMockRule wireMockRule) throws Exception {
-        String osAddress = "http://localhost:" + wireMockRule.port() + "/test";
-        wireMockRule.stubFor(get("/test").willReturn(aResponse().withStatus(404)));
-        wireMockRule.stubFor(post("/test").willReturn(aResponse().withStatus(200)));
-
-        ObjectStorage os = mock(ObjectStorage.class);
-        when(os.createBucket(any(), anyString())).thenReturn(ImmutableBucketInfo.builder()
-                .address(osAddress)
-                .build());
-
-        return os;
+        // Validate result
+        result = ContextUtils.getMap(ctx, "result");
+        assertTrue(MapUtils.getBoolean(result, "ok", false));
     }
 
     private static SecretService createSecretService(Path workDir) throws Exception {
@@ -255,191 +185,21 @@ public class TerraformTaskTest {
         return ss;
     }
 
-    private Map<String, Object> baseArguments(Path workDir, Path dstDir, String actionKey) {
-        Map<String, Object> args = new HashMap<>();
-        args.put(com.walmartlabs.concord.sdk.Constants.Request.PROCESS_INFO_KEY, Collections.singletonMap("sessionKey", "xyz"));
-        args.put(com.walmartlabs.concord.sdk.Constants.Context.WORK_DIR_KEY, workDir.toAbsolutePath().toString());
-        args.put(TaskConstants.ACTION_KEY, actionKey);
-        args.put(TaskConstants.DEBUG_KEY, true);
-        args.put(TaskConstants.STATE_ID_KEY, "testState");
-        args.put(TaskConstants.DIR_KEY, dstDir.toAbsolutePath().toString());
-        return args;
-    }
+    public static ObjectStorage createObjectStorage(WireMockRule wireMockRule) throws Exception {
+        String osAddress = String.format("http://%s:%s/test", apiHostName(), wireMockRule.port());
 
-    private Path varFile(String name) {
-        return new File(basedir, "src/test/terraform/" + name).toPath();
-    }
+        wireMockRule.stubFor(get("/test").willReturn(aResponse()
+                .withHeader("keep_payload", Boolean.FALSE.toString())
+                .withStatus(404)));
+        wireMockRule.stubFor(post("/test").willReturn(aResponse()
+                .withHeader("keep_payload", Boolean.TRUE.toString())
+                .withStatus(200)));
 
-    private String responseTemplate(String name) throws IOException {
-        return new String(Files.readAllBytes(new File(basedir, "src/test/terraform/" + name).toPath()));
-    }
+        ObjectStorage os = mock(ObjectStorage.class);
+        when(os.createBucket(any(), anyString())).thenReturn(ImmutableBucketInfo.builder()
+                .address(osAddress)
+                .build());
 
-    //
-    // Helpers for using AWS credentials in ~/.aws/credentials
-    //
-
-    private AWSCredentials awsCredentials() {
-        AWSCredentials awsCredentials = new AWSCredentials();
-        File awsCredentialsFile = new File(System.getProperty("user.home"), ".aws/credentials");
-        if (awsCredentialsFile.exists()) {
-            Map<String, Properties> awsCredentialsIni = parseIni(awsCredentialsFile);
-            if (awsCredentialsIni != null) {
-                Properties concordAwsCredentials = awsCredentialsIni.get(CONCORD_AWS_CREDENTIALS_KEY);
-                awsCredentials.accessKey = concordAwsCredentials.getProperty("aws_access_key_id");
-                awsCredentials.secretKey = concordAwsCredentials.getProperty("aws_secret_access_key");
-            }
-        }
-
-        if (awsCredentials.accessKey.isEmpty() && awsCredentials.secretKey.isEmpty()) {
-            awsCredentials.accessKey = System.getenv("AWS_ACCESS_KEY");
-            if (awsCredentials.accessKey == null) {
-                awsCredentials.accessKey = System.getenv("AWS_ACCESS_KEY_ID");
-            }
-            awsCredentials.secretKey = System.getenv("AWS_SECRET_KEY");
-            if (awsCredentials.secretKey == null) {
-                awsCredentials.secretKey = System.getenv("AWS_SECRET_ACCESS_KEY");
-            }
-        }
-
-        if (awsCredentials.accessKey.isEmpty() && awsCredentials.secretKey.isEmpty()) {
-            throw new RuntimeException(String.format("An AWS access key id and secret key must be set using envars or the ~/.aws/credentials file with the %s profile.", CONCORD_AWS_CREDENTIALS_KEY));
-        }
-
-        return awsCredentials;
-    }
-
-    private static class AWSCredentials {
-        String accessKey;
-        String secretKey;
-
-        @Override
-        public String toString() {
-            return "AWSCredentials{" +
-                    "accessKey='" + accessKey + '\'' +
-                    ", secretKey='" + secretKey + '\'' +
-                    '}';
-        }
-    }
-
-    private static Map<String, Properties> parseIni(File file) {
-        try (Reader reader = new FileReader(file)) {
-            Map<String, Properties> result = new HashMap();
-            new Properties() {
-
-                private Properties section;
-
-                @Override
-                public Object put(Object key, Object value) {
-                    String header = (key + " " + value).trim();
-                    if (header.startsWith("[") && header.endsWith("]")) {
-                        return result.put(header.substring(1, header.length() - 1), section = new Properties());
-                    } else {
-                        return section.put(key, value);
-                    }
-                }
-
-            }.load(reader);
-            return result;
-        } catch (IOException e) {
-            return null;
-        }
-    }
-
-    //
-    // Helpers for setting envars and setting CONCORD_TMP_DIR envar
-    //
-
-    private Path workDir() throws Exception {
-        String concordTmpDir = System.getenv(CONCORD_TMP_DIR_KEY);
-        if (concordTmpDir == null) {
-            // Grab the old environment and add the CONCORD_TMP_DIR value to it and reset it
-            Map<String, String> newEnvironment = new HashMap();
-            newEnvironment.putAll(System.getenv());
-            newEnvironment.put(CONCORD_TMP_DIR_KEY, CONCORD_TMP_DIR_VALUE);
-            setNewEnvironment(newEnvironment);
-        }
-        return IOUtils.createTempDir("test");
-    }
-
-    private Path terraformTestFile() {
-        String terraformTestFileEnvar = System.getenv("TF_TEST_FILE");
-        if (terraformTestFileEnvar != null) {
-            return Paths.get(System.getenv("TF_TEST_FILE"));
-        }
-        // Use the test terraform file we have in the repository
-        return new File(basedir, "src/test/terraform/main.tf").toPath();
-    }
-
-    private static void setNewEnvironment(Map<String, String> newEnvironment) throws Exception {
-        try {
-            Class<?> processEnvironmentClass = Class.forName("java.lang.ProcessEnvironment");
-            Field theEnvironmentField = processEnvironmentClass.getDeclaredField("theEnvironment");
-            theEnvironmentField.setAccessible(true);
-            Map<String, String> env = (Map<String, String>) theEnvironmentField.get(null);
-            env.putAll(newEnvironment);
-            Field theCaseInsensitiveEnvironmentField = processEnvironmentClass.getDeclaredField("theCaseInsensitiveEnvironment");
-            theCaseInsensitiveEnvironmentField.setAccessible(true);
-            Map<String, String> cienv = (Map<String, String>) theCaseInsensitiveEnvironmentField.get(null);
-            cienv.putAll(newEnvironment);
-        } catch (NoSuchFieldException e) {
-            Class[] classes = Collections.class.getDeclaredClasses();
-            Map<String, String> env = System.getenv();
-            for (Class cl : classes) {
-                if ("java.util.Collections$UnmodifiableMap".equals(cl.getName())) {
-                    Field field = cl.getDeclaredField("m");
-                    field.setAccessible(true);
-                    Object obj = field.get(env);
-                    Map<String, String> map = (Map<String, String>) obj;
-                    map.clear();
-                    map.putAll(newEnvironment);
-                }
-            }
-        }
-    }
-
-    static class OKHttpDownloadManager implements DependencyManager {
-
-        private final File toolDir;
-
-        public OKHttpDownloadManager(String tool) {
-            this.toolDir = new File(System.getProperty("user.home"), ".m2/tools/" + tool);
-            try {
-                if (!this.toolDir.mkdirs()) {
-                    throw new Exception();
-                }
-            } catch (Exception e) {
-                throw new RuntimeException("Unable to create cache directory for terraform executable.");
-            }
-        }
-
-        @Override
-        public Path resolve(URI uri) throws IOException {
-            String urlString = uri.toString();
-            String fileName = urlString.substring(urlString.lastIndexOf('/') + 1);
-            File target = new File(toolDir, fileName);
-            if (!target.exists()) {
-                OkHttpClient client = new OkHttpClient();
-                Request request = new Request.Builder().url(urlString).build();
-                Call call = client.newCall(request);
-                Response response = call.execute();
-                download(response.body().byteStream(), target);
-            }
-            return target.toPath();
-        }
-
-        //
-        // https://stackoverflow.com/questions/309424/how-do-i-read-convert-an-inputstream-into-a-string-in-java
-        //
-        // surprised this is the fastest way to convert an inputstream to a string
-        //
-        private void download(InputStream stream, File target) throws IOException {
-            byte[] buffer = new byte[1024];
-            int length;
-            try (OutputStream result = new FileOutputStream(target)) {
-                while ((length = stream.read(buffer)) != -1) {
-                    result.write(buffer, 0, length);
-                }
-            }
-        }
+        return os;
     }
 }

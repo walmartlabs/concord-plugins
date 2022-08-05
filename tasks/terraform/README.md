@@ -20,17 +20,25 @@ Run
 
 ### TerraformTaskTest
 
-In order to run `TerraformTaskTest` that works against AWS you need to set up
+In order to run `TerraformTaskTestV1` that works against AWS you need to set up
 the following envars, so the test can pick up the right resources to execute
 correctly:
 
 ```
 CONCORD_TMP_DIR         = /tmp/concord
-AWS_ACCESS_KEY_ID	    = [your_aws_access_key]
-AWS_SECRET_ACCESS_KEY	= [your_aws_secret_key]
-TF_TEST_FILE	        = /path/to/your/main.tf
+AWS_ACCESS_KEY_ID       = [your_aws_access_key]
+AWS_SECRET_ACCESS_KEY   = [your_aws_secret_key]
+TF_TEST_FILE            = /path/to/your/main.tf
 PRIVATE_KEY_PATH        = /path/to/your/<aws_pem_file>
+TF_TEST_DOCKER_IMAGE    = dockerImage/withDeps:latest
+TF_TEST_HOSTNAME        = my-laptop.local 
 ```
+
+__NOTE: Runtime-v2 test(s) make API call to the state backend both inside the
+docker container and outside. `localhost` doesn't work for that on Docker for Mac
+so it's best to provide a specific hostname. Just the hostname may work, but it may
+require a search domain (e.g. `myhost.local`) depending on your network setup (corp
+vpn, home router settings)__
 
 Alternatively, you can set up the following:
 

@@ -20,14 +20,11 @@ package com.walmartlabs.concord.plugins.terraform.commands;
  * =====
  */
 
-import com.fasterxml.jackson.core.Version;
 import com.walmartlabs.concord.plugins.terraform.Terraform;
 import com.walmartlabs.concord.plugins.terraform.Terraform.Result;
-import com.walmartlabs.concord.plugins.terraform.VersionUtils;
+import com.walmartlabs.concord.plugins.terraform.TerraformArgs;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 public class InitCommand {
@@ -53,15 +50,12 @@ public class InitCommand {
     }
 
     public Result exec(Terraform terraform) throws Exception {
-        List<String> args = new ArrayList<>();
-        boolean hasChdir = VersionUtils.ge(terraform, 0, 14, 0);
-        if (hasChdir) {
-            args.add("-chdir=" + dir.toString());
-        }
-        args.add("init");
-        args.add("-input=false");
-        if (!hasChdir) {
-            args.add(dir.toString());
+        TerraformArgs args = terraform.buildArgs(Terraform.CLI_ACTION.INIT, dir);
+
+        args.add("-input", "false");
+
+        if (!args.hasChdir()) {
+            args.add(dir);
         }
 
         return terraform.exec(pwd, "\u001b[36minit\u001b[0m", silent, env, args);

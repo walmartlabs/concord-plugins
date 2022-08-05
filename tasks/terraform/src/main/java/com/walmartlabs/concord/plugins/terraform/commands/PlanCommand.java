@@ -22,12 +22,11 @@ package com.walmartlabs.concord.plugins.terraform.commands;
 
 import com.walmartlabs.concord.plugins.terraform.Terraform;
 import com.walmartlabs.concord.plugins.terraform.Terraform.Result;
-import com.walmartlabs.concord.plugins.terraform.VersionUtils;
+import com.walmartlabs.concord.plugins.terraform.TerraformArgs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -65,31 +64,26 @@ public class PlanCommand {
     }
 
     public Result exec(Terraform terraform) throws Exception {
-        List<String> args = new ArrayList<>();
-        boolean hasChdir = VersionUtils.ge(terraform, 0, 14, 0);
-        if (hasChdir) {
-            args.add("-chdir=" + dirOrPlan.toString());
-        }
+        TerraformArgs args = terraform.buildArgs(Terraform.CLI_ACTION.PLAN, dirOrPlan);
 
-        args.add("plan");
-        args.add("-input=false");
+        args.add("-input", "false");
         args.add("-detailed-exitcode");
 
         if (destroy) {
             args.add("-destroy");
         }
 
-        userSuppliedVarFiles.forEach(f -> args.add("-var-file=" + f.toAbsolutePath().toString()));
+        userSuppliedVarFiles.forEach(f -> args.add("-var-file", f));
 
         if (outFile != null) {
             if (debug) {
                 log.info("exec -> using out file: {}", outFile);
             }
-            args.add("-out=" + outFile.toAbsolutePath().toString());
+            args.add("-out", outFile);
         }
 
-        if (!hasChdir) {
-            args.add(dirOrPlan.toString());
+        if (!args.hasChdir()) {
+            args.add(dirOrPlan);
         }
 
         return terraform.exec(pwd, "\u001b[32mplan\u001b[0m", false, env, args);

@@ -46,14 +46,16 @@ public class TerraformTaskV2 implements Task {
     private final SecretService secretService;
     private final LockService lockService;
     private final DependencyManager dependencyManager;
+    private final DockerService dockerService;
 
     @Inject
-    public TerraformTaskV2(Context ctx, ApiClient apiClient, SecretService secretService, LockService lockService, DependencyManager dependencyManager) {
+    public TerraformTaskV2(Context ctx, ApiClient apiClient, SecretService secretService, LockService lockService, DependencyManager dependencyManager, DockerService dockerService) {
         this.ctx = ctx;
         this.apiClient = apiClient;
         this.secretService = secretService;
         this.lockService = lockService;
         this.dependencyManager = dependencyManager;
+        this.dockerService = dockerService;
     }
 
     @Override
@@ -79,9 +81,27 @@ public class TerraformTaskV2 implements Task {
         TerraformBinaryResolver binaryResolver = new TerraformBinaryResolver(cfg, workDir, debug,
                 url -> dependencyManager.resolve(URI.create(url)));
 
-        Terraform terraform = new Terraform(binaryResolver, debug, baseEnv);
+        String dockerImage = MapUtils.getString(cfg, TaskConstants.DOCKER_IMAGE_KEY, null);
+
+        Terraform terraform = new Terraform(workDir, binaryResolver, debug, baseEnv, dockerImage,
+                (spec, logOut, logErr) -> dockerService.start(DockerContainerSpec.builder()
+                                .image(spec.image())
+                                .args(spec.args())
+                                .debug(spec.debug())
+                                .forcePull(spec.forcePull())
+                                .env(spec.env())
+                                .workdir(spec.pwd().toString())
+                                .redirectErrorStream(false)
+                                .options(DockerContainerSpec.Options.builder()
+                                        .hosts(spec.extraDockerHosts())
+                                        .build())
+                                .pullRetryCount(spec.pullRetryCount())
+                                .pullRetryInterval(spec.pullRetryInterval())
+                                .build(),
+                        logOut::onLog,
+                        logErr::onLog));
         if (debug) {
-            terraform.exec(workDir, "version", "version");
+            terraform.exec(workDir, "version", terraform.buildArgs(Terraform.CLI_ACTION.VERSION));
         }
 
         try {

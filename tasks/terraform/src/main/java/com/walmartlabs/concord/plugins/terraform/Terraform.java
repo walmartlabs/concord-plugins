@@ -30,7 +30,9 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -42,19 +44,39 @@ public class Terraform {
     private static final Logger log = LoggerFactory.getLogger(Terraform.class);
 
     private final boolean debug;
+    private final Path processWorkDir;
     private final Path binary;
     private final Map<String, String> baseEnv;
     private final ExecutorService executor;
     private final Version version;
+    private final String dockerImage;
+    private final TerraformDockerService dockerService;
+
+    public enum CLI_ACTION {
+        APPLY,
+        DESTROY,
+        INIT,
+        OUTPUT,
+        PLAN,
+        VERSION
+    }
 
     /**
      * @param debug   enable/disable additional debug output
      */
-    public Terraform(TerraformBinaryResolver binaryResolver, boolean debug, Map<String, String> baseEnv) throws Exception {
+    public Terraform(Path processWorkDir,
+                     TerraformBinaryResolver binaryResolver,
+                     boolean debug,
+                     Map<String, String> baseEnv,
+                     String dockerImage,
+                     TerraformDockerService dockerService) throws Exception {
         this.debug = debug;
+        this.processWorkDir = processWorkDir;
         this.baseEnv = baseEnv;
         this.binary = binaryResolver.resolve();
         this.executor = Executors.newCachedThreadPool();
+        this.dockerImage = dockerImage;
+        this.dockerService = dockerService;
         this.version = getBinaryVersion();
     }
 
@@ -62,14 +84,22 @@ public class Terraform {
         return version;
     }
 
-    public Result exec(Path pwd, String logPrefix, String... args) throws Exception {
-        return exec(pwd, logPrefix, false, Collections.emptyMap(), Arrays.asList(args));
+    public Result exec(Path pwd, String logPrefix, TerraformArgs args) throws Exception {
+        return exec(pwd, logPrefix, false, Collections.emptyMap(), args);
     }
 
-    public Result exec(Path pwd, String logPrefix, boolean silent, Map<String, String> env, List<String> args) throws Exception {
+    public Result exec(Path pwd, String logPrefix, boolean silent, Map<String, String> env, TerraformArgs args) throws Exception {
+        if (dockerImage == null) {
+            return execLocal(pwd, logPrefix, silent, env, args);
+        }
+
+        return execDocker(pwd, logPrefix, silent, env, args);
+    }
+
+    public Result execLocal(Path pwd, String logPrefix, boolean silent, Map<String, String> env, TerraformArgs args) throws Exception {
         List<String> cmd = new ArrayList<>();
         cmd.add(binary.toAbsolutePath().toString());
-        cmd.addAll(args);
+        cmd.addAll(args.get());
 
         if (debug) {
             log.info("exec -> {} in {}", String.join(" ", cmd), pwd);
@@ -96,25 +126,137 @@ public class Terraform {
         return new Result(code, stdout.get(), stderr.get());
     }
 
-    private Version getBinaryVersion() throws Exception {
-        Result result = exec(binary.getParent().toAbsolutePath(), "version", !debug, Collections.emptyMap(), Arrays.asList("version", "-json"));
-        if (result.getCode() != 0) {
-            throw new RuntimeException("Can't get terraform version. Process finished with code " + result.getCode() + ": " + result.getStderr());
+    public Result execDocker(Path pwd, String logPrefix, boolean silent, Map<String, String> env, TerraformArgs args) throws Exception {
+        Path containerBinary = toContainerPath(binary.toAbsolutePath());
+        Path containerPwd = toContainerPath(pwd);
+
+        List<String> cmd = new ArrayList<>();
+        cmd.add(containerBinary.toString());
+        cmd.addAll(args.get());
+
+        if (debug) {
+            log.info("exec -> {} in {}", String.join(" ", cmd), containerPwd);
         }
 
-        String version;
+        Map<String, String> combinedEnv = new HashMap<>(baseEnv);
+        combinedEnv.putAll(env);
+        // default plugin cache in /tmp may not be writable. Keep it in the process' workDir
+        if (null == combinedEnv.putIfAbsent("TF_PLUGIN_CACHE_DIR", "/workspace/.terraform/plugin-cache")) {
+            Files.createDirectories(processWorkDir.resolve(".terraform/plugin-cache"));
+        }
+
+        if (debug) {
+            log.info("exec -> using env: {}", combinedEnv);
+        }
+
+        TerraformDockerService.DockerContainerSpec spec = new TerraformDockerService.DockerContainerSpec()
+                .image(dockerImage)
+                .args(cmd)
+                .debug(debug)
+                .pwd(containerPwd)
+                .forcePull(false) // TODO add a param to enable? if yes, then be careful to only force pull once
+                .env(combinedEnv)
+                .pullRetryCount(3)
+                .pullRetryInterval(10);
+        DockerLogCallback outLog = new DockerLogCallback(logPrefix, silent);
+        DockerLogCallback errLog = new DockerLogCallback(logPrefix, silent);
+
+        int code = dockerService.start(spec, outLog, errLog);
+
+        return new Result(code, outLog.fullLog(), errLog.fullLog());
+    }
+
+    public TerraformArgs buildArgs(CLI_ACTION action) {
+        return new TerraformArgsImpl(action, null);
+    }
+
+    public TerraformArgs buildArgs(CLI_ACTION action, Path targetDir) {
+        return new TerraformArgsImpl(action, targetDir);
+    }
+
+    private class TerraformArgsImpl implements TerraformArgs {
+        private final List<String> args;
+        private final boolean hasChdir;
+
+        public TerraformArgsImpl(CLI_ACTION action, Path targetDir) {
+            this.args = new LinkedList<>();
+
+            hasChdir = targetDir != null && VersionUtils.ge(Terraform.this, 0, 14, 0);
+            if (hasChdir) {
+                args.add(String.format("%s=%s", "-chdir", (dockerImage == null)
+                        ? targetDir.toAbsolutePath().toString()
+                        : toContainerPath(targetDir.toAbsolutePath()).toString()));
+            }
+
+            args.add(action.toString().toLowerCase());
+        }
+
+        public boolean hasChdir() {
+            return hasChdir;
+        }
+
+        public TerraformArgs add(String opt) {
+            args.add(opt);
+            return this;
+        }
+
+        public TerraformArgs add(String opt, String value) {
+            args.add(String.format("%s=%s", opt, value));
+            return this;
+        }
+
+        public TerraformArgs add(Path path) {
+            add((dockerImage == null) ? path.toAbsolutePath().toString() :
+                    toContainerPath(path.toAbsolutePath()).toString());
+            return this;
+        }
+
+        public TerraformArgs add(String opt, Path path) {
+            return add(opt, (dockerImage == null)
+                    ? path.toAbsolutePath().toString()
+                    : toContainerPath(path.toAbsolutePath()).toString());
+        }
+
+        public List<String> get() {
+            return args;
+        }
+    }
+
+    public Path toContainerPath(Path p) {
+        return Paths.get("/workspace").resolve(processWorkDir.relativize(p));
+    }
+
+    private Version getBinaryVersion() throws Exception {
+        TerraformArgs args = buildArgs(CLI_ACTION.VERSION).add("-json");
+
+//        // execute in container once to make sure image is already pulled
+//        if (dockerImage != null) {
+//            Result prepare = exec(binary.getParent().toAbsolutePath(), "version",
+//                    true, Collections.emptyMap(), args);
+//            if (prepare.getCode() != 0) {
+//                throw new RuntimeException("Failed to pull docker image for subsequent calls. Exit code " + prepare.getCode() + ": " + prepare.getStdout() + prepare.getStderr());
+//            }
+//        }
+
+        Result result = exec(binary.getParent().toAbsolutePath(), "version",
+                !debug, Collections.emptyMap(), args);
+        if (result.getCode() != 0) {
+            throw new RuntimeException("Can't get terraform version. Process finished with code " + result.getCode() + ": " + result.getStdout() + result.getStderr());
+        }
+
+        String rawVersion;
         if (result.stdout.startsWith("{")) {
-            version = getVersionFromJson(result.stdout);
+            rawVersion = getVersionFromJson(result.stdout);
         } else {
-            version = getVersionFromString(result.stdout);
+            rawVersion = getVersionFromString(result.stdout);
         }
 
         if (!debug) {
-            log.info("Using terraform version '" + version + "'");
+            log.info("Using terraform version '{}'", rawVersion);
         }
-        Version parsedVersion = VersionUtil.parseVersion(version, null, null);
+        Version parsedVersion = VersionUtil.parseVersion(rawVersion, null, null);
         if (parsedVersion == Version.unknownVersion()) {
-            throw new RuntimeException("Can't parse version: '" + version + "'");
+            throw new RuntimeException("Can't parse version: '" + rawVersion + "'");
         }
         return parsedVersion;
     }
@@ -134,7 +276,7 @@ public class Terraform {
         while (i < stdout.length() && !Character.isDigit(stdout.charAt(i))) {
             i++;
         }
-        return stdout.substring(i);
+        return stdout.substring(i).trim();
     }
 
     private static void log(String prefix, String s) {
@@ -147,7 +289,32 @@ public class Terraform {
         return s.replaceAll("\u001B\\[[;\\d]*m", "");
     }
 
-    private static class StreamReader implements Callable<String> {
+    static class DockerLogCallback {
+        final StringBuilder sb;
+        final String logPrefix;
+        final boolean silent;
+
+        DockerLogCallback(String logPrefix, boolean silent) {
+            this.logPrefix = logPrefix;
+            this.silent = silent;
+            sb = new StringBuilder();
+        }
+
+        public void onLog(String line) {
+            if (!silent) {
+                log(logPrefix, line);
+            }
+
+            sb.append(removeAnsiColors(line))
+                    .append(System.lineSeparator());
+        }
+
+        public String fullLog() {
+            return sb.toString();
+        }
+    }
+
+    static class StreamReader implements Callable<String> {
 
         private final String logPrefix;
         private final boolean silent;

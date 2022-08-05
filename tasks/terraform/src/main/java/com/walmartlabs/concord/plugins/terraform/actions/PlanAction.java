@@ -68,7 +68,7 @@ public class PlanAction extends Action {
             Path outFile = null;
             String outFileStr = null;
             if (backend.supportsOutFiles()) {
-                outFile = getOutFile(getPwd());
+                outFile = getOutFile(getWorkDir());
                 outFileStr = getPwd().relativize(outFile).toString();
             }
 

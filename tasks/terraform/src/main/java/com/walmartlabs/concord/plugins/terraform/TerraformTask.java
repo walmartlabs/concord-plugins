@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.walmartlabs.concord.plugins.terraform.Terraform.CLI_ACTION.VERSION;
 import static com.walmartlabs.concord.plugins.terraform.TerraformTaskCommon.*;
 
 @Named("terraform")
@@ -41,6 +42,7 @@ public class TerraformTask implements Task {
 
     private final SecretService secretService;
     private final LockService lockService;
+    private final DockerService dockerService;
     private final ObjectStorage objectStorage;
     private final ObjectMapper objectMapper;
     private final DependencyManager dependencyManager;
@@ -49,9 +51,10 @@ public class TerraformTask implements Task {
     private Map<String, Object> defaults;
 
     @Inject
-    public TerraformTask(SecretService secretService, LockService lockService, ObjectStorage objectStorage, DependencyManager dependencyManager) {
+    public TerraformTask(SecretService secretService, LockService lockService, ObjectStorage objectStorage, DependencyManager dependencyManager, DockerService dockerService) {
         this.secretService = secretService;
         this.lockService = lockService;
+        this.dockerService = dockerService;
         this.objectStorage = objectStorage;
         this.dependencyManager = dependencyManager;
         this.objectMapper = new ObjectMapper();
@@ -83,9 +86,28 @@ public class TerraformTask implements Task {
         TerraformBinaryResolver binaryResolver = new TerraformBinaryResolver(cfg, workDir, debug,
                 url -> dependencyManager.resolve(URI.create(url)));
 
-        Terraform terraform = new Terraform(binaryResolver, debug, baseEnv);
+        String dockerImage = MapUtils.getString(cfg, TaskConstants.DOCKER_IMAGE_KEY, null);
+
+        Terraform terraform = new Terraform(workDir, binaryResolver, debug, baseEnv, dockerImage,
+                (spec, logOut, logErr) -> dockerService.start(ctx, DockerContainerSpec.builder()
+                                .image(spec.image())
+                                .args(spec.args())
+                                .debug(spec.debug())
+                                .forcePull(spec.forcePull())
+                                .env(spec.env())
+                                .workdir(spec.pwd().toString())
+                                .redirectErrorStream(false)
+                                .options(DockerContainerSpec.Options.builder()
+                                        .hosts(spec.extraDockerHosts())
+                                        .build())
+                                .pullRetryCount(spec.pullRetryCount())
+                                .pullRetryInterval(spec.pullRetryInterval())
+                                .build(),
+                        logOut::onLog,
+                        logErr::onLog));
+
         if (debug) {
-            terraform.exec(workDir, "version", "version");
+            terraform.exec(workDir, "version", terraform.buildArgs(VERSION));
         }
 
         try {
