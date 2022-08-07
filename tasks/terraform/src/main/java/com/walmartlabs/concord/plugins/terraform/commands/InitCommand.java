@@ -50,7 +50,7 @@ public class InitCommand {
     }
 
     public Result exec(Terraform terraform) throws Exception {
-        TerraformArgs args = terraform.buildArgs(Terraform.CLI_ACTION.INIT, dir);
+        TerraformArgs args = terraform.buildArgs(Terraform.CliAction.INIT, dir);
 
         args.add("-input", "false");
 

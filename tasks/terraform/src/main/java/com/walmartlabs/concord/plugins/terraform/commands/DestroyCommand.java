@@ -53,7 +53,7 @@ public class DestroyCommand {
     }
 
     public Result exec(Terraform terraform) throws Exception {
-        TerraformArgs args = terraform.buildArgs(Terraform.CLI_ACTION.DESTROY, dir);
+        TerraformArgs args = terraform.buildArgs(Terraform.CliAction.DESTROY, dir);
 
         args.add("-input", "false");
         args.add("-auto-approve");

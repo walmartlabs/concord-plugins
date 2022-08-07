@@ -52,7 +52,7 @@ public class Terraform {
     private final String dockerImage;
     private final TerraformDockerService dockerService;
 
-    public enum CLI_ACTION {
+    public enum CliAction {
         APPLY,
         DESTROY,
         INIT,
@@ -170,11 +170,11 @@ public class Terraform {
         return new Result(code, outLog.fullLog(), errLog.fullLog());
     }
 
-    public TerraformArgs buildArgs(CLI_ACTION action) {
+    public TerraformArgs buildArgs(CliAction action) {
         return new TerraformArgsImpl(action, null);
     }
 
-    public TerraformArgs buildArgs(CLI_ACTION action, Path targetDir) {
+    public TerraformArgs buildArgs(CliAction action, Path targetDir) {
         return new TerraformArgsImpl(action, targetDir);
     }
 
@@ -182,7 +182,7 @@ public class Terraform {
         private final List<String> args;
         private final boolean hasChdir;
 
-        public TerraformArgsImpl(CLI_ACTION action, Path targetDir) {
+        public TerraformArgsImpl(CliAction action, Path targetDir) {
             this.args = new LinkedList<>();
 
             hasChdir = targetDir != null && VersionUtils.ge(Terraform.this, 0, 14, 0);
@@ -231,7 +231,7 @@ public class Terraform {
     }
 
     private Version getBinaryVersion() throws Exception {
-        TerraformArgs args = buildArgs(CLI_ACTION.VERSION).add("-json");
+        TerraformArgs args = buildArgs(CliAction.VERSION).add("-json");
 
         Result result = exec(binary.getParent().toAbsolutePath(), "version",
                 !debug, Collections.emptyMap(), args);

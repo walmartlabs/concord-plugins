@@ -51,7 +51,7 @@ public class OutputCommand {
     }
 
     public Result exec(Terraform terraform) throws Exception {
-        TerraformArgs args = terraform.buildArgs(Terraform.CLI_ACTION.OUTPUT);
+        TerraformArgs args = terraform.buildArgs(Terraform.CliAction.OUTPUT);
 
         args.add("-json");
 

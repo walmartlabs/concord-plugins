@@ -52,7 +52,7 @@ public class ApplyCommand {
     }
 
     public Result exec(Terraform terraform) throws Exception {
-        TerraformArgs args = terraform.buildArgs(Terraform.CLI_ACTION.APPLY,
+        TerraformArgs args = terraform.buildArgs(Terraform.CliAction.APPLY,
                 (Files.isDirectory(dirOrPlan)) ? dirOrPlan : null);
 
         args.add("-input", "false");

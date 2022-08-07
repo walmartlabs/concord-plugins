@@ -34,7 +34,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.walmartlabs.concord.plugins.terraform.Terraform.CLI_ACTION.VERSION;
+import static com.walmartlabs.concord.plugins.terraform.Terraform.CliAction.VERSION;
 import static com.walmartlabs.concord.plugins.terraform.TerraformTaskCommon.*;
 
 @Named("terraform")

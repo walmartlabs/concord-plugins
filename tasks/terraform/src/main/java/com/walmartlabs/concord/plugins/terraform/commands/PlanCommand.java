@@ -64,7 +64,7 @@ public class PlanCommand {
     }
 
     public Result exec(Terraform terraform) throws Exception {
-        TerraformArgs args = terraform.buildArgs(Terraform.CLI_ACTION.PLAN, dirOrPlan);
+        TerraformArgs args = terraform.buildArgs(Terraform.CliAction.PLAN, dirOrPlan);
 
         args.add("-input", "false");
         args.add("-detailed-exitcode");

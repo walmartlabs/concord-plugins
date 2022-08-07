@@ -101,7 +101,7 @@ public class TerraformTaskV2 implements Task {
                         logOut::onLog,
                         logErr::onLog));
         if (debug) {
-            terraform.exec(workDir, "version", terraform.buildArgs(Terraform.CLI_ACTION.VERSION));
+            terraform.exec(workDir, "version", terraform.buildArgs(Terraform.CliAction.VERSION));
         }
 
         try {
