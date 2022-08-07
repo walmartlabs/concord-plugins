@@ -13,6 +13,8 @@
 ([#78](https://github.com/walmartlabs/concord-plugins/pull/78));
 - xml: remove workdir param from runtime-v2 public methods
 ([#75](https://github.com/walmartlabs/concord-plugins/pull/75));
+- git: Fix accidental regex matching in hideSensitiveData
+([#84](https://github.com/walmartlabs/concord-plugins/pull/84));
 - taurus: update jmeter version to 5.5
 ([#85](https://github.com/walmartlabs/concord-plugins/pull/85)).
 
