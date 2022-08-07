@@ -53,6 +53,12 @@ flows:
         extraVars:
           name: bob
 
+    # make sure things still work after a suspend (e.g. form)
+    - task: sleep
+      in:
+        suspend: true
+        duration: 5 #seconds
+
     - task: terraform
       in:
         dockerImage: "${tf_docker_image}"

@@ -55,6 +55,12 @@ flows:
           name: bob
       out: result
 
+    # make sure things still work after a suspend (e.g. form)
+    - task: sleep
+      in:
+        suspend: true
+        duration: 1 #seconds
+
     - name: "terraform: apply"
       task: terraform
       in:
