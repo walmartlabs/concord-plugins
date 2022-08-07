@@ -35,6 +35,7 @@
     </developers>
 
     <modules>
+        <module>tasks/akeyless</module>
         <module>tasks/confluence</module>
         <module>tasks/git</module>
         <module>tasks/gremlin</module>
