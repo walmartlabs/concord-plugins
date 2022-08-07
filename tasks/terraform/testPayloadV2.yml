@@ -1,0 +1,106 @@
+configuration:
+  runtime: "concord-v2"
+  arguments:
+    tf_docker_image: "${null}"
+
+flows:
+  default:
+    # regular run
+    - name: "terraform plan: regular run"
+      task: terraform
+      in:
+        dockerImage: "${tf_docker_image}"
+        debug: true
+        action: plan
+
+    - name: "terraform plan: custom pwd"
+      task: terraform
+      in:
+        dockerImage: "${tf_docker_image}"
+        action: plan
+        pwd: mydir
+
+    - name: "terraform plan: custom pwd + dir"
+      task: terraform
+      in:
+        dockerImage: "${tf_docker_image}"
+        action: plan
+        pwd: mydir
+        dir: nested
+
+
+  fullTestCustomConfig:
+    - set:
+        tfVersion: "${hasVariable('tf_version') ? tf_version : '1.2.6'}"
+        tfCfg:
+          env: terraform-task-payload-test
+          debug: true
+          toolUrl: "https://releases.hashicorp.com/terraform/${tfVersion}/terraform_${tfVersion}_linux_amd64.zip"
+          varFiles: "${hasVariable('tf_extra_vars_file') ? [ tf_extra_vars_file ] : [ ]}"
+
+    - name: "terraform: plan"
+      task: terraform
+      in:
+        dockerImage: "${tf_docker_image}"
+        action: plan
+        debug: "${tfCfg.debug}"
+        pwd: mydir
+        backend: concord
+        toolUrl: "${tfCfg.toolUrl}"
+        stateId: "${tfCfg.env}-tf-state"
+        varFiles: "${tfCfg.varFiles}"
+        extraEnv:
+          TF_VAR_time: now
+        extraVars:
+          name: bob
+      out: result
+
+    - name: "terraform: apply"
+      task: terraform
+      in:
+        dockerImage: "${tf_docker_image}"
+        action: apply
+        debug: "${tfCfg.debug}"
+        pwd: mydir
+        plan: "${result.planPath}"
+        backend: concord
+        toolUrl: "${tfCfg.toolUrl}"
+        stateId: "${tfCfg.env}-tf-state"
+      out: result
+
+    - name: "terraform output"
+      task: terraform
+      in:
+        dockerImage: "${tf_docker_image}"
+        action: output
+        debug: "${tfCfg.debug}"
+        pwd: mydir
+        backend: concord
+        toolUrl: "${tfCfg.toolUrl}"
+        stateId: "${tfCfg.env}-tf-state"
+        varFiles: "${tfCfg.varFiles}"
+        extraEnv:
+          TF_VAR_time: now
+        extraVars:
+          name: bob
+      out: result
+
+    - name: "output data"
+      log: ${resource.prettyPrintJson(result.data)}
+
+    - name: "terraform: destroy"
+      task: terraform
+      in:
+        dockerImage: "${tf_docker_image}"
+        action: destroy
+        debug: "${tfCfg.debug}"
+        pwd: mydir
+        backend: concord
+        toolUrl: "${tfCfg.toolUrl}"
+        stateId: "${tfCfg.env}-tf-state"
+        varFiles: "${tfCfg.varFiles}"
+        extraEnv:
+          TF_VAR_time: now
+        extraVars:
+          name: bob
+      out: result

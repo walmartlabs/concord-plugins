@@ -1,7 +1,26 @@
 package com.walmartlabs.concord.plugins.terraform.docker;
 
+/*-
+ * *****
+ * Concord
+ * -----
+ * Copyright (C) 2017 - 2022 Walmart Inc., Concord Authors
+ * -----
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * =====
+ */
+
 import com.walmartlabs.concord.runtime.v2.sdk.DockerContainerSpec;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
@@ -18,62 +37,50 @@ public class DockerContainerSpecV1Compat implements DockerContainerSpec {
         return specV1.image();
     }
 
-    @Nullable
     public String name() {
         return specV1.name();
     }
 
-    @Nullable
     public String user() {
         return specV1.user();
     }
 
-    @Nullable
     public String workdir() {
         return specV1.workdir();
     }
 
-    @Nullable
     public String entryPoint() {
         return specV1.entryPoint();
     }
 
-    @Nullable
     public String cpu() {
         return specV1.cpu();
     }
 
-    @Nullable
     public String memory() {
         return specV1.memory();
     }
 
-    @Nullable
     public String stdOutFilePath() {
         return specV1.stdOutFilePath();
     }
 
-    @Nullable
     public List<String> args() {
         return specV1.args();
     }
 
-    @Nullable
     public Map<String, String> env() {
         return specV1.env();
     }
 
-    @Nullable
     public String envFile() {
         return specV1.envFile();
     }
 
-    @Nullable
     public Map<String, String> labels() {
         return specV1.labels();
     }
 
-    @Nullable
     @Override
     public Options options() {
 

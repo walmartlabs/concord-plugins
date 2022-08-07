@@ -1,5 +1,25 @@
 package com.walmartlabs.concord.plugins.terraform;
 
+/*-
+ * *****
+ * Concord
+ * -----
+ * Copyright (C) 2017 - 2022 Walmart Inc., Concord Authors
+ * -----
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * =====
+ */
+
 import com.github.tomakehurst.wiremock.common.FileSource;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.extension.Parameters;
@@ -15,7 +35,6 @@ import com.walmartlabs.concord.common.IOUtils;
 import com.walmartlabs.concord.plugins.terraform.backend.BackendFactoryV1;
 import com.walmartlabs.concord.plugins.terraform.docker.DockerService;
 import com.walmartlabs.concord.sdk.*;
-import org.intellij.lang.annotations.Language;
 import org.junit.Rule;
 
 import java.io.*;
@@ -394,10 +413,10 @@ public abstract class AbstractTerraformTest {
         }
     }
 
-    public static void assertOutput(@Language("RegExp") String pattern, String input) {
-        String msg = "Expected: " + pattern + "\n"
+    public static void assertOutput(String regexPattern, String input) {
+        String msg = "Expected: " + regexPattern + "\n"
                 + "Got: " + input;
-        assertEquals(msg, 1, grep(pattern, input).size());
+        assertEquals(msg, 1, grep(regexPattern, input).size());
     }
 
     public static List<String> grep(String pattern, String input) {

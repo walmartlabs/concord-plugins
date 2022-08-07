@@ -15,7 +15,7 @@
 
     <properties>
         <skipTests>true</skipTests>
-        <testcontainers.concord.version>0.0.30</testcontainers.concord.version>
+        <testcontainers.concord.version>0.0.40</testcontainers.concord.version>
     </properties>
 
     <dependencies>

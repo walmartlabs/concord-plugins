@@ -78,6 +78,10 @@ public class Terraform {
         this.dockerImage = dockerImage;
         this.dockerService = dockerService;
         this.version = getBinaryVersion();
+
+        if (dockerImage != null) {
+            log.info("Executing terraform commands in container using image: {}", dockerImage);
+        }
     }
 
     public Version version() {
@@ -135,7 +139,7 @@ public class Terraform {
         cmd.addAll(args.get());
 
         if (debug) {
-            log.info("exec -> {} in {}", String.join(" ", cmd), containerPwd);
+            log.info("exec -> {} in {}{}", String.join(" ", cmd), dockerImage, pwd);
         }
 
         Map<String, String> combinedEnv = new HashMap<>(baseEnv);

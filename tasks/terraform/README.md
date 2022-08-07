@@ -67,3 +67,45 @@ doesn't exist.
 The Terraform file used for the test will default
 the `src/test/terraform/main.tf` and the value for the `CONCORD_TMP_DIR`
 envar will be set for you if it is not present.
+
+### Payload Test
+
+Use [`testPayload.sh`](testPayload.sh) to test the task against a "real" Concord
+instance. It's still best for this to run locally in
+[Docker containers](https://concord.walmart.com/docs/getting-started/install/docker.html).
+
+This is, currently, the only way to test the `dockerImage` option.
+
+`testPayload.sh` can be configured with a number of environment variables.
+
+```shell
+SERVER_URL=http://localhost:8001 \
+  ORG=Default \
+  PROJECT=terraform-test \
+  TF_DOCKER_IMAGE=zenika/terraform-aws-cli:latest \
+  RUNTIME=v2 \
+  TF_VERSION=1.2.6 \
+  TF_FILE=./src/test/terraform/minimal_aws/main.tf \
+  ENTRY_POINT=fullTestCustomConfig \
+  EXTA_VARS_FILE=~/.aws/credentials.tfvars \
+  ./testPayload.sh
+```
+
+Optionally, the variables can be stored in a properties file. This makes usage
+a bit cleaner by storing the less-often changed variables out of sight.
+
+Examples properties file `~/.aws/.dev.aws.props`
+```properties
+SERVER_URL=http://localhost:8001
+ORG=Default
+PROJECT=terraform-test
+TF_DOCKER_IMAGE=hub.docker.prod.walmart.com/zenika/terraform-aws-cli:latest
+TF_FILE=./src/test/terraform/minimal_aws/main.tf
+EXTA_VARS_FILE=~/.aws/credentials.tfvars
+```
+
+Set a `PARAM_FILE` env var to let th script know where to load them from.
+
+```shell
+$ PARAM_FILE=.dev.aws.props ENTRY_POINT=fullTestCustomConfig RUNTIME=v1 ./testPayload.sh
+```
