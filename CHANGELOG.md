@@ -5,23 +5,23 @@
 ### Added
 
 - akeyless: akeyless-task: new plugin for Akeyless API
-([#83](https://github.com/walmartlabs/concord-plugins/pull/83))
+([#83](https://github.com/walmartlabs/concord-plugins/pull/83)).
 
 ### Changed
 
 - github: new createIssue, getContent, getPrCommitList actions
-([#78](https://github.com/walmartlabs/concord-plugins/pull/78)).
+([#78](https://github.com/walmartlabs/concord-plugins/pull/78));
 - xml: remove workdir param from runtime-v2 public methods
-([#75](https://github.com/walmartlabs/concord-plugins/pull/75)).
+([#75](https://github.com/walmartlabs/concord-plugins/pull/75));
 - taurus: update jmeter version to 5.5
-([#85](https://github.com/walmartlabs/concord-plugins/pull/85))
+([#85](https://github.com/walmartlabs/concord-plugins/pull/85)).
 
 ## [1.41.0] - 2021-11-29
 
 ### Changed
 
 - github: allows to specify mergeMethod for mergePR action 
-([#72](https://github.com/walmartlabs/concord-plugins/pull/72)).
+([#72](https://github.com/walmartlabs/concord-plugins/pull/72));
 - terraform: convert `extraEnv` values to string. Fixes
 ClassCastException when `extraEnv` contains non-string values
 ([#68](https://github.com/walmartlabs/concord-plugins/pull/68));
