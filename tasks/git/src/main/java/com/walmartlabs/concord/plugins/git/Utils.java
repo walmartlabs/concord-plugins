@@ -20,6 +20,9 @@ package com.walmartlabs.concord.plugins.git;
  * =====
  */
 
+import com.walmartlabs.concord.common.secret.UsernamePassword;
+import com.walmartlabs.concord.sdk.Secret;
+
 import java.util.Map;
 
 import static com.walmartlabs.concord.sdk.MapUtils.getString;
@@ -50,6 +53,23 @@ public final class Utils {
             throw new IllegalArgumentException("Mandatory parameter '" + k + "' is required");
         }
         return v;
+    }
+
+    public static String hideSensitiveData(String s, Secret secret) {
+        if (s == null) {
+            return null;
+        }
+
+        if (secret instanceof UsernamePassword) {
+            char[] password = ((UsernamePassword) secret).getPassword();
+            if (password != null) {
+                s = s.replace(new String(password), "***");
+            }
+        } else if (secret instanceof TokenSecret) {
+            String token = ((TokenSecret) secret).getToken();
+            s = s.replace(token, "***");
+        }
+        return s;
     }
 
     private Utils() {
