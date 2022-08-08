@@ -20,14 +20,17 @@ package com.walmartlabs.concord.plugins.hashivault;
  * =====
  */
 
-import org.junit.ClassRule;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.vault.VaultContainer;
 
+@Testcontainers
 public abstract class AbstractVaultTest {
+
     private static final String TEST_VAULT_TOKEN = "my-test-token";
 
-    @ClassRule
+    @Container
     public final static VaultContainer<?> vaultContainer =
             new VaultContainer<>(DockerImageName
                     // set env var to point to specific image/custom repo

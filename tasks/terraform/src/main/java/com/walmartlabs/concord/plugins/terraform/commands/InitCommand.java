@@ -20,7 +20,6 @@ package com.walmartlabs.concord.plugins.terraform.commands;
  * =====
  */
 
-import com.fasterxml.jackson.core.Version;
 import com.walmartlabs.concord.plugins.terraform.Terraform;
 import com.walmartlabs.concord.plugins.terraform.Terraform.Result;
 import com.walmartlabs.concord.plugins.terraform.VersionUtils;

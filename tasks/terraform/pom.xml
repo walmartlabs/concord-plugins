@@ -15,7 +15,7 @@
 
     <properties>
         <skipTests>true</skipTests>
-        <testcontainers.concord.version>0.0.30</testcontainers.concord.version>
+        <testcontainers.concord.version>0.0.40</testcontainers.concord.version>
     </properties>
 
     <dependencies>
@@ -75,8 +75,8 @@
         </dependency>
 
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -91,7 +91,7 @@
         </dependency>
         <dependency>
             <groupId>com.github.tomakehurst</groupId>
-            <artifactId>wiremock</artifactId>
+            <artifactId>wiremock-jre8</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -107,7 +107,7 @@
         </dependency>
         <dependency>
             <groupId>ca.ibodrov.concord</groupId>
-            <artifactId>testcontainers-concord-junit4</artifactId>
+            <artifactId>testcontainers-concord-junit5</artifactId>
             <version>${testcontainers.concord.version}</version>
             <scope>test</scope>
         </dependency>

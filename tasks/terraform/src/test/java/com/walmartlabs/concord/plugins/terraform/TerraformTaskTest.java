@@ -20,8 +20,7 @@ package com.walmartlabs.concord.plugins.terraform;
  * =====
  */
 
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.walmartlabs.concord.common.IOUtils;
 import com.walmartlabs.concord.plugins.terraform.backend.BackendFactoryV1;
 import com.walmartlabs.concord.sdk.*;
@@ -29,10 +28,10 @@ import okhttp3.Call;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import java.io.*;
 import java.lang.reflect.Field;
@@ -44,8 +43,9 @@ import java.nio.file.StandardCopyOption;
 import java.util.*;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.*;
@@ -72,7 +72,7 @@ import static org.mockito.Mockito.*;
 // TODO: split test apart to prepare for testing OCI/GCP
 //
 
-@Ignore
+@Disabled
 public class TerraformTaskTest {
 
     private final static String CONCORD_TMP_DIR_KEY = "CONCORD_TMP_DIR";
@@ -92,7 +92,7 @@ public class TerraformTaskTest {
     private BackendFactoryV1 backendManager;
     private DependencyManager dependencyManager;
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         basedir = new File("").getAbsolutePath();
 
@@ -120,9 +120,11 @@ public class TerraformTaskTest {
         dependencyManager = new OKHttpDownloadManager("terraform");
     }
 
-    @Rule
-    public WireMockRule wireMockRule = new WireMockRule(WireMockConfiguration.wireMockConfig()
-            .port(12345));
+    @RegisterExtension
+    static WireMockExtension wireMockRule = WireMockExtension.newInstance()
+            .options(wireMockConfig()
+                    .port(12345))
+            .build();
 
     @Test
     @SuppressWarnings("unchecked")
@@ -221,8 +223,8 @@ public class TerraformTaskTest {
     }
 
     // TODO: move to shared helper class
-    public static ObjectStorage createObjectStorage(WireMockRule wireMockRule) throws Exception {
-        String osAddress = "http://localhost:" + wireMockRule.port() + "/test";
+    public static ObjectStorage createObjectStorage(WireMockExtension wireMockRule) throws Exception {
+        String osAddress = "http://localhost:" + wireMockRule.getPort() + "/test";
         wireMockRule.stubFor(get("/test").willReturn(aResponse().withStatus(404)));
         wireMockRule.stubFor(post("/test").willReturn(aResponse().withStatus(200)));
 
