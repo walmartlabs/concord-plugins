@@ -7,15 +7,18 @@ variable "time" {}
 
 terraform {
   required_providers {
-    azurerm = "=2.20.0"
+    azurerm = {
+      source = "hashicorp/azurerm"
+      version = "3.17.0"
+    }
   }
 }
 
 provider "azurerm" {
-  client_id = "${var.client_id}"
-  client_secret = "${var.client_secret}"
-  subscription_id = "${var.subscription_id}"
-  tenant_id = "${var.tenant_id}"
+  client_id       = var.client_id
+  client_secret   = var.client_secret
+  subscription_id = var.subscription_id
+  tenant_id       = var.tenant_id
 
   features {}
 }
@@ -32,9 +35,9 @@ resource "azurerm_resource_group" "mygroup" {
 
 output "resource_group_info" {
   value = {
-    name = azurerm_resource_group.mygroup.name,
-    id = azurerm_resource_group.mygroup.id,
-    location = azurerm_resource_group.mygroup.location
+    name      = azurerm_resource_group.mygroup.name,
+    id        = azurerm_resource_group.mygroup.id,
+    location  = azurerm_resource_group.mygroup.location
   }
 }
 
