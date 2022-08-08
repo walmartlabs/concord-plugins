@@ -20,7 +20,10 @@ package com.walmartlabs.concord.plugins.gremlin;
  * =====
  */
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 import static com.walmartlabs.concord.plugins.gremlin.TaskParams.*;
 

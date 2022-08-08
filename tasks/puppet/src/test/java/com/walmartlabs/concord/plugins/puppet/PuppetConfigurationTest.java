@@ -20,25 +20,25 @@ package com.walmartlabs.concord.plugins.puppet;
  * =====
  */
 
+import com.walmartlabs.concord.plugins.puppet.model.cfg.RbacCfg;
 import com.walmartlabs.concord.plugins.puppet.model.exception.InvalidValueException;
 import com.walmartlabs.concord.plugins.puppet.model.exception.MissingParameterException;
-import com.walmartlabs.concord.plugins.puppet.model.cfg.RbacCfg;
 import com.walmartlabs.concord.sdk.MockContext;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class PuppetConfigurationTest {
 
     MockContext ctx;
 
-    @Before
-    public void setup() throws Exception {
+    @BeforeEach
+    public void setup() {
         ctx = new MockContext(buildCfg());
     }
 

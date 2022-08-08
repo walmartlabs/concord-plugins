@@ -21,12 +21,11 @@ package com.walmartlabs.concord.plugins.terraform;
  */
 
 import com.github.tomakehurst.wiremock.common.FileSource;
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.extension.Parameters;
 import com.github.tomakehurst.wiremock.extension.ResponseTransformer;
 import com.github.tomakehurst.wiremock.http.HttpHeader;
 import com.github.tomakehurst.wiremock.http.RequestMethod;
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.squareup.okhttp.Call;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
@@ -35,7 +34,7 @@ import com.walmartlabs.concord.common.IOUtils;
 import com.walmartlabs.concord.plugins.terraform.backend.BackendFactoryV1;
 import com.walmartlabs.concord.plugins.terraform.docker.DockerService;
 import com.walmartlabs.concord.sdk.*;
-import org.junit.Rule;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import java.io.*;
 import java.lang.reflect.Field;
@@ -48,8 +47,9 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.*;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 
 public abstract class AbstractTerraformTest {
@@ -70,11 +70,13 @@ public abstract class AbstractTerraformTest {
     protected OKHttpDownloadManager dependencyManager;
     protected DockerService dockerService;
 
-    @Rule
-    public WireMockRule wireMockRule = new WireMockRule(WireMockConfiguration.wireMockConfig()
-            .extensions(new StateBackendTransformer())
-            .bindAddress("0.0.0.0")
-            .port(12345));
+    @RegisterExtension
+    protected static WireMockExtension wireMockRule = WireMockExtension.newInstance()
+            .options(wireMockConfig()
+                .extensions(new StateBackendTransformer())
+                .bindAddress("0.0.0.0")
+                .port(12345))
+            .build();
 
     public void abstractSetup() throws Exception {
         basedir = new File("").getAbsolutePath();
@@ -421,7 +423,7 @@ public abstract class AbstractTerraformTest {
     public static void assertOutput(String regexPattern, String input) {
         String msg = "Expected: " + regexPattern + "\n"
                 + "Got: " + input;
-        assertEquals(msg, 1, grep(regexPattern, input).size());
+        assertEquals(1, grep(regexPattern, input).size(), msg);
     }
 
     public static List<String> grep(String pattern, String input) {

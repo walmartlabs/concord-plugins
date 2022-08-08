@@ -21,11 +21,11 @@ package com.walmartlabs.concord.plugins.puppet;
  */
 
 import com.walmartlabs.concord.sdk.InjectVariable;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class UtilsTest {
 
@@ -33,7 +33,6 @@ public class UtilsTest {
     public void normalizeUrlTest() {
         String normalizedUrl = "https://my-api.com";
         String normalizedUrlWithPort = "https://my-api.com:8080";
-
 
         assertEquals(normalizedUrl, Utils.normalizeUrl("https://my-api.com/"));
         assertEquals(normalizedUrlWithPort, Utils.normalizeUrl("https://my-api.com:8080/"));

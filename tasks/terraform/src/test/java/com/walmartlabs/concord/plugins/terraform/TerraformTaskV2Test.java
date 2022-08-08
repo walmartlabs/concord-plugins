@@ -26,9 +26,9 @@ import com.walmartlabs.concord.client.ApiClientConfiguration;
 import com.walmartlabs.concord.client.ApiClientFactory;
 import com.walmartlabs.concord.client.ConcordApiClient;
 import com.walmartlabs.concord.runtime.v2.sdk.*;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.File;
@@ -40,7 +40,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.*;
@@ -69,13 +69,13 @@ import static org.mockito.Mockito.*;
 // TODO: need to test destroy, computes are left in AWS
 // TODO: split test apart to prepare for testing OCI/GCP
 //
-@Ignore
-public class TerraformTaskTestV2 extends AbstractTerraformTest {
+@Disabled
+public class TerraformTaskV2Test extends AbstractTerraformTest {
     private ApiClient apiClient;
     private SecretService secretService;
     private final LockService lockService = mock(LockService.class);
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         abstractSetup();
         secretService = createSecretService(workDir);
@@ -102,7 +102,7 @@ public class TerraformTaskTestV2 extends AbstractTerraformTest {
         args.put(TaskConstants.GIT_SSH_KEY, gitSsh());
 
         String hostname = apiHostName();
-        String apiBaseUrl = String.format("http://%s:%s", hostname, wireMockRule.port());
+        String apiBaseUrl = String.format("http://%s:%s", hostname, wireMockRule.getPort());
 
         apiClient = getApiClientFactory().create(ApiClientConfiguration.builder()
                 .baseUrl(apiBaseUrl)

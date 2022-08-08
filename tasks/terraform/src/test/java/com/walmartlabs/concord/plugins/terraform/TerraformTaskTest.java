@@ -20,12 +20,12 @@ package com.walmartlabs.concord.plugins.terraform;
  * =====
  */
 
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.walmartlabs.concord.plugins.terraform.backend.BackendFactoryV1;
 import com.walmartlabs.concord.sdk.*;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -36,7 +36,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.*;
@@ -66,12 +66,12 @@ import static org.mockito.Mockito.*;
 // TODO: split test apart to prepare for testing OCI/GCP
 //
 
-@Ignore
+@Disabled
 public class TerraformTaskTest extends AbstractTerraformTest {
 
     private SecretService secretService;
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         abstractSetup();
         objectStorage = createObjectStorage(wireMockRule);
@@ -189,8 +189,8 @@ public class TerraformTaskTest extends AbstractTerraformTest {
         return ss;
     }
 
-    public static ObjectStorage createObjectStorage(WireMockRule wireMockRule) throws Exception {
-        String osAddress = String.format("http://%s:%s/test", apiHostName(), wireMockRule.port());
+    public static ObjectStorage createObjectStorage(WireMockExtension wireMockRule) throws Exception {
+        String osAddress = String.format("http://%s:%s/test", apiHostName(), wireMockRule.getPort());
 
         wireMockRule.stubFor(get("/test").willReturn(aResponse()
                 .withHeader("keep_payload", Boolean.FALSE.toString())

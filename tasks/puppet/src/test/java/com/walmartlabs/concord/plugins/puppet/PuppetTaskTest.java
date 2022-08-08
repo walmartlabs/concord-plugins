@@ -30,8 +30,8 @@ import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import javax.net.ssl.*;
@@ -41,16 +41,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 
 public class PuppetTaskTest extends AbstractApiTest {
 
     private PuppetTask task;
 
-    private SecretService secretService = Mockito.mock(SecretService.class);
+    private final SecretService secretService = Mockito.mock(SecretService.class);
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         stubForDbQuery();
         stubForTokenCreate();
