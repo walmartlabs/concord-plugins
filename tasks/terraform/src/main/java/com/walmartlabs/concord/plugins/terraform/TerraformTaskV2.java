@@ -46,7 +46,7 @@ public class TerraformTaskV2 implements Task {
     private final SecretService secretService;
     private final LockService lockService;
     private final DependencyManager dependencyManager;
-    private final DockerService dockerService;
+    private final TerraformDockerService dockerService;
 
     @Inject
     public TerraformTaskV2(Context ctx, ApiClient apiClient, SecretService secretService, LockService lockService, DependencyManager dependencyManager, DockerService dockerService) {
@@ -55,7 +55,22 @@ public class TerraformTaskV2 implements Task {
         this.secretService = secretService;
         this.lockService = lockService;
         this.dependencyManager = dependencyManager;
-        this.dockerService = dockerService;
+        this.dockerService = (spec, logOut, logErr) -> dockerService.start(DockerContainerSpec.builder()
+                        .image(spec.image())
+                        .args(spec.args())
+                        .debug(spec.debug())
+                        .forcePull(spec.forcePull())
+                        .env(spec.env())
+                        .workdir(spec.pwd().toString())
+                        .redirectErrorStream(false)
+                        .options(DockerContainerSpec.Options.builder()
+                                .hosts(spec.extraDockerHosts())
+                                .build())
+                        .pullRetryCount(spec.pullRetryCount())
+                        .pullRetryInterval(spec.pullRetryInterval())
+                        .build(),
+                logOut::onLog,
+                logErr::onLog);
     }
 
     @Override
@@ -64,6 +79,7 @@ public class TerraformTaskV2 implements Task {
         Map<String, Object> cfg = createCfg(workDir, input, ctx.defaultVariables());
         boolean debug = MapUtils.get(cfg, TaskConstants.DEBUG_KEY, false, Boolean.class);
         Action action = getAction(cfg);
+        String dockerImage = MapUtils.getString(cfg, TaskConstants.DOCKER_IMAGE_KEY, null);
 
         // configure the state backend and populate the environment with necessary parameters
         Backend backend = new BackendFactoryV2(ctx, apiClient, lockService).getBackend(cfg);
@@ -79,27 +95,9 @@ public class TerraformTaskV2 implements Task {
 
         // configure the Terraform's binary
         TerraformBinaryResolver binaryResolver = new TerraformBinaryResolver(cfg, workDir, debug,
-                url -> dependencyManager.resolve(URI.create(url)));
+                url -> dependencyManager.resolve(URI.create(url)), dockerService);
 
-        String dockerImage = MapUtils.getString(cfg, TaskConstants.DOCKER_IMAGE_KEY, null);
-
-        Terraform terraform = new Terraform(workDir, binaryResolver, debug, baseEnv, dockerImage,
-                (spec, logOut, logErr) -> dockerService.start(DockerContainerSpec.builder()
-                                .image(spec.image())
-                                .args(spec.args())
-                                .debug(spec.debug())
-                                .forcePull(spec.forcePull())
-                                .env(spec.env())
-                                .workdir(spec.pwd().toString())
-                                .redirectErrorStream(false)
-                                .options(DockerContainerSpec.Options.builder()
-                                        .hosts(spec.extraDockerHosts())
-                                        .build())
-                                .pullRetryCount(spec.pullRetryCount())
-                                .pullRetryInterval(spec.pullRetryInterval())
-                                .build(),
-                        logOut::onLog,
-                        logErr::onLog));
+        Terraform terraform = new Terraform(workDir, binaryResolver, debug, baseEnv, dockerImage, dockerService);
         if (debug) {
             terraform.exec(workDir, "version", terraform.buildArgs(Terraform.CliAction.VERSION));
         }

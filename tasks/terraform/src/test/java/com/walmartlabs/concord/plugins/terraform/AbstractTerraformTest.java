@@ -88,7 +88,7 @@ public abstract class AbstractTerraformTest {
         System.out.println("Using the following:");
         System.out.println();
         System.out.println("AWS Access Key ID: " + awsCredentials.accessKey);
-        System.out.println("   AWS Secret Key: " + awsCredentials.secretKey);
+        System.out.println("   AWS Secret Key: " + awsCredentials.secretKey.substring(0, 3) + "****");
         System.out.println("   Terraform file: " + testFile);
         System.out.println("          workDir: " + workDir);
         System.out.println();
@@ -149,12 +149,8 @@ public abstract class AbstractTerraformTest {
      * @return API host name (no port, not a URL) on usage of docker container (or not)
      */
     protected static String apiHostName() {
-        String fromEnv = System.getenv("TF_TEST_HOSTNAME");
-        if (fromEnv != null) {
-            return fromEnv;
-        }
-
-        return dockerImage().isPresent() ?  "host.docker.internal" : "localhost";
+        return envToOptional("TF_TEST_HOSTNAME")
+                .orElseGet(() -> dockerImage().isPresent() ?  "host.docker.internal" : "localhost");
     }
 
     public static class StateBackendTransformer extends ResponseTransformer {
@@ -205,7 +201,8 @@ public abstract class AbstractTerraformTest {
         args.put(TaskConstants.DEBUG_KEY, true);
         args.put(TaskConstants.STATE_ID_KEY, "testState");
         args.put(TaskConstants.DIR_KEY, dstDir.toAbsolutePath().toString());
-        dockerImage().ifPresent(image -> args.put("dockerImage", image));
+        dockerImage().ifPresent(image -> args.put(TaskConstants.DOCKER_IMAGE_KEY, image));
+        toolUrl().ifPresent(toolUrl -> args.put(TaskConstants.TOOL_URL_KEY, toolUrl));
         return args;
     }
 
@@ -271,7 +268,7 @@ public abstract class AbstractTerraformTest {
 
     private static Map<String, Properties> parseIni(File file) {
         try (Reader reader = new FileReader(file)) {
-            Map<String, Properties> result = new HashMap();
+            Map<String, Properties> result = new HashMap<>();
             new Properties() {
 
                 private Properties section;
@@ -301,8 +298,7 @@ public abstract class AbstractTerraformTest {
         String concordTmpDir = System.getenv(CONCORD_TMP_DIR_KEY);
         if (concordTmpDir == null) {
             // Grab the old environment and add the CONCORD_TMP_DIR value to it and reset it
-            Map<String, String> newEnvironment = new HashMap();
-            newEnvironment.putAll(System.getenv());
+            Map<String, String> newEnvironment = new HashMap<>(System.getenv());
             newEnvironment.put(CONCORD_TMP_DIR_KEY, CONCORD_TMP_DIR_VALUE);
             setNewEnvironment(newEnvironment);
         }
@@ -319,9 +315,18 @@ public abstract class AbstractTerraformTest {
     }
 
     protected static Optional<String> dockerImage() {
-        String dockerImageEnvVar = System.getenv("TF_TEST_DOCKER_IMAGE");
-        if (dockerImageEnvVar != null && !dockerImageEnvVar.isEmpty()) {
-            return Optional.of(dockerImageEnvVar);
+        return envToOptional("TF_TEST_DOCKER_IMAGE");
+    }
+
+    protected static Optional<String> toolUrl() {
+        return envToOptional("TF_TOOL_URL");
+    }
+
+    private static Optional<String> envToOptional(String varName) {
+        String envVal = System.getenv(varName);
+
+        if (envVal != null && !envVal.isEmpty()) {
+            return Optional.of(envVal);
         }
 
         return Optional.empty();
@@ -339,9 +344,9 @@ public abstract class AbstractTerraformTest {
             Map<String, String> cienv = (Map<String, String>) theCaseInsensitiveEnvironmentField.get(null);
             cienv.putAll(newEnvironment);
         } catch (NoSuchFieldException e) {
-            Class[] classes = Collections.class.getDeclaredClasses();
+            Class<?>[] classes = Collections.class.getDeclaredClasses();
             Map<String, String> env = System.getenv();
-            for (Class cl : classes) {
+            for (Class<?> cl : classes) {
                 if ("java.util.Collections$UnmodifiableMap".equals(cl.getName())) {
                     Field field = cl.getDeclaredField("m");
                     field.setAccessible(true);
@@ -405,7 +410,7 @@ public abstract class AbstractTerraformTest {
         private void download(InputStream stream, File target) throws IOException {
             byte[] buffer = new byte[1024];
             int length;
-            try (OutputStream result = new FileOutputStream(target)) {
+            try (OutputStream result = Files.newOutputStream(target.toPath())) {
                 while ((length = stream.read(buffer)) != -1) {
                     result.write(buffer, 0, length);
                 }
@@ -430,5 +435,4 @@ public abstract class AbstractTerraformTest {
 
         return result;
     }
-
 }

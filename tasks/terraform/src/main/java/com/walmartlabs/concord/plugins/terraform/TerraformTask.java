@@ -70,6 +70,9 @@ public class TerraformTask implements Task {
         boolean debug = MapUtils.get(cfg, TaskConstants.DEBUG_KEY, false, Boolean.class);
         Action action = getAction(cfg);
 
+        String dockerImage = MapUtils.getString(cfg, TaskConstants.DOCKER_IMAGE_KEY, null);
+        TerraformDockerService tfDockerService = createTerraformDockerService(dockerService, ctx);
+
         // configure the state backend and populate the environment with necessary parameters
         Backend backend = new BackendFactoryV1(ctx, lockService, objectStorage).getBackend(cfg);
         Map<String, String> env = getEnv(cfg, backend);
@@ -84,27 +87,9 @@ public class TerraformTask implements Task {
 
         // configure the Terraform's binary
         TerraformBinaryResolver binaryResolver = new TerraformBinaryResolver(cfg, workDir, debug,
-                url -> dependencyManager.resolve(URI.create(url)));
+                url -> dependencyManager.resolve(URI.create(url)), tfDockerService);
 
-        String dockerImage = MapUtils.getString(cfg, TaskConstants.DOCKER_IMAGE_KEY, null);
-
-        Terraform terraform = new Terraform(workDir, binaryResolver, debug, baseEnv, dockerImage,
-                (spec, logOut, logErr) -> dockerService.start(ctx, DockerContainerSpec.builder()
-                                .image(spec.image())
-                                .args(spec.args())
-                                .debug(spec.debug())
-                                .forcePull(spec.forcePull())
-                                .env(spec.env())
-                                .workdir(spec.pwd().toString())
-                                .redirectErrorStream(false)
-                                .options(DockerContainerSpec.Options.builder()
-                                        .hosts(spec.extraDockerHosts())
-                                        .build())
-                                .pullRetryCount(spec.pullRetryCount())
-                                .pullRetryInterval(spec.pullRetryInterval())
-                                .build(),
-                        logOut::onLog,
-                        logErr::onLog));
+        Terraform terraform = new Terraform(workDir, binaryResolver, debug, baseEnv, dockerImage, tfDockerService);
 
         if (debug) {
             terraform.exec(workDir, "version", terraform.buildArgs(VERSION));
@@ -116,6 +101,25 @@ public class TerraformTask implements Task {
         } finally {
             gitSshWrapper.cleanup();
         }
+    }
+
+    private static TerraformDockerService createTerraformDockerService(DockerService dockerService, Context ctx) {
+        return (spec, logOut, logErr) -> dockerService.start(ctx, DockerContainerSpec.builder()
+                        .image(spec.image())
+                        .args(spec.args())
+                        .debug(spec.debug())
+                        .forcePull(spec.forcePull())
+                        .env(spec.env())
+                        .workdir(spec.pwd().toString())
+                        .redirectErrorStream(false)
+                        .options(DockerContainerSpec.Options.builder()
+                                .hosts(spec.extraDockerHosts())
+                                .build())
+                        .pullRetryCount(spec.pullRetryCount())
+                        .pullRetryInterval(spec.pullRetryInterval())
+                        .build(),
+                logOut::onLog,
+                logErr::onLog);
     }
 
     private Map<String, Object> createCfg(Context ctx) {

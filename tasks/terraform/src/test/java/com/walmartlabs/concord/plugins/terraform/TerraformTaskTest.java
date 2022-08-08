@@ -42,14 +42,16 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.*;
 
 //
-// To run this test you need to set the following envars set:
+// To run this test you need to set the following env vars set:
 //
 // CONCORD_TMP_DIR      = /tmp/concord
 // AWS_ACCESS_KEY       = <your_aws_access_key>
 // AWS_SECRET_KEY       = <your_aws_secret_key>
+// PRIVATE_KEY_PATH     = <your_aws_pem_file>
 // TF_TEST_FILE	        = <path_to>/concord-plugins/tasks/terraform/src/test/terraform/main.tf or another file you want to test
 // TF_TEST_DOCKER_IMAGE = docker image in which to execute terraform
-// PRIVATE_KEY_PATH     = <your_aws_pem_file>
+// TF_TEST_HOSTNAME     = local hostname that's compatible both inside and outside a docker container
+// TF_TOOL_URL          = optional, terraform binary zip URL
 //
 // Alternatively you can use the following:
 //

@@ -23,6 +23,13 @@ package com.walmartlabs.concord.plugins.terraform;
 import java.nio.file.Path;
 import java.util.List;
 
+/**
+ * Class for generating a collection of Terraform CLI arguments. Most can be
+ * added with the {@link #add(String)} and {@link #add(String, String)} methods.
+ * Arguments which contain a file path should be added with the {@link #add(Path)}
+ * or {@link #add(String, Path)} so the path can be relativized depending on
+ * where the <code>terraform</code> command is executed (e.g. local vs container)
+ */
 public interface TerraformArgs {
     /** @return true if terraform version support -chdir option */
     boolean hasChdir();
@@ -50,5 +57,10 @@ public interface TerraformArgs {
      * @param path Absolute path within process' working directory
      */
     TerraformArgs add(String opt, Path path);
+
+    /**
+     * @return Full list of <code>terraform</code> arguments in the order they
+     * were added.
+     */
     List<String> get();
 }

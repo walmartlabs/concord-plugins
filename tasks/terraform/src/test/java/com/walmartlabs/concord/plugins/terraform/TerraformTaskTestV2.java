@@ -46,7 +46,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.*;
 
 //
-// To run this test you need to set the following envars set:
+// To run this test you need to set the following env vars set:
 //
 // CONCORD_TMP_DIR      = /tmp/concord
 // AWS_ACCESS_KEY       = <your_aws_access_key>
@@ -55,6 +55,7 @@ import static org.mockito.Mockito.*;
 // TF_TEST_FILE	        = <path_to>/concord-plugins/tasks/terraform/src/test/terraform/main.tf or another file you want to test
 // TF_TEST_DOCKER_IMAGE = docker image in which to execute terraform
 // TF_TEST_HOSTNAME     = local hostname that's compatible both inside and outside a docker container
+// TF_TOOL_URL          = optional, terraform binary zip URL
 //
 // Alternatively you can use the following:
 //
@@ -94,15 +95,12 @@ public class TerraformTaskTestV2 extends AbstractTerraformTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void test() throws Exception {
         Map<String, Object> args = baseArguments(workDir, dstDir, Action.PLAN.name());
         args.put(TaskConstants.VARS_FILES, varFiles());
         args.put(TaskConstants.EXTRA_VARS_KEY, extraVars());
         args.put(TaskConstants.GIT_SSH_KEY, gitSsh());
 
-
-//        String hostname = "m-c02x7b64jg5j.local";
         String hostname = apiHostName();
         String apiBaseUrl = String.format("http://%s:%s", hostname, wireMockRule.port());
 

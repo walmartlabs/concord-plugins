@@ -45,7 +45,7 @@ public class Terraform {
 
     private final boolean debug;
     private final Path processWorkDir;
-    private final Path binary;
+    private final TerraformExecutable binary;
     private final Map<String, String> baseEnv;
     private final ExecutorService executor;
     private final Version version;
@@ -102,7 +102,7 @@ public class Terraform {
 
     public Result execLocal(Path pwd, String logPrefix, boolean silent, Map<String, String> env, TerraformArgs args) throws Exception {
         List<String> cmd = new ArrayList<>();
-        cmd.add(binary.toAbsolutePath().toString());
+        cmd.add(binary.getExecutablePath().toAbsolutePath().toString());
         cmd.addAll(args.get());
 
         if (debug) {
@@ -131,7 +131,9 @@ public class Terraform {
     }
 
     public Result execDocker(Path pwd, String logPrefix, boolean silent, Map<String, String> env, TerraformArgs args) throws Exception {
-        Path containerBinary = toContainerPath(binary.toAbsolutePath());
+        Path containerBinary = binary.isSourceInContainer()
+                ? binary.getExecutablePath()
+                : toContainerPath(binary.getExecutablePath().toAbsolutePath());
         Path containerPwd = toContainerPath(pwd);
 
         List<String> cmd = new ArrayList<>();
@@ -233,8 +235,7 @@ public class Terraform {
     private Version getBinaryVersion() throws Exception {
         TerraformArgs args = buildArgs(CliAction.VERSION).add("-json");
 
-        Result result = exec(binary.getParent().toAbsolutePath(), "version",
-                !debug, Collections.emptyMap(), args);
+        Result result = exec(Paths.get("/"), "version", !debug, Collections.emptyMap(), args);
         if (result.getCode() != 0) {
             throw new RuntimeException("Can't get terraform version. Process finished with code " + result.getCode() + ": " + result.getStdout() + result.getStderr());
         }

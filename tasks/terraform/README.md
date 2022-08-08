@@ -28,10 +28,11 @@ correctly:
 CONCORD_TMP_DIR         = /tmp/concord
 AWS_ACCESS_KEY_ID       = [your_aws_access_key]
 AWS_SECRET_ACCESS_KEY   = [your_aws_secret_key]
-TF_TEST_FILE            = /path/to/your/main.tf
-PRIVATE_KEY_PATH        = /path/to/your/<aws_pem_file>
-TF_TEST_DOCKER_IMAGE    = dockerImage/withDeps:latest
-TF_TEST_HOSTNAME        = my-laptop.local 
+TF_TEST_FILE            = /path/to/your/main.tf         # optional
+PRIVATE_KEY_PATH        = /path/to/your/<aws_pem_file>  # optional
+TF_TEST_DOCKER_IMAGE    = dockerImage/withDeps:latest   # optional
+TF_TEST_HOSTNAME        = my-laptop.local               # optional
+TF_TOOL_URL             = https://...                   # optional
 ```
 
 __NOTE: Runtime-v2 test(s) make API call to the state backend both inside the
