@@ -51,11 +51,11 @@ public class TaurusTaskCommon {
         this.workDir = workDir;
     }
 
-    public Taurus.Result execute(TaskParams in) throws Exception {
+    public Taurus.Result execute(TaskParams in, BinaryResolver binaryResolver) throws Exception {
 
         // we're going to use a fake JMeter's PluginsManagerCMD script unless users specifically
         // ask us to download JMX plugins
-        Taurus taurus = new Taurus(workDir, in.useFakeHome(), !in.downloadPlugins());
+        Taurus taurus = new Taurus(workDir, in.useFakeHome(), !in.downloadPlugins(), in.jmeterArchiveUrl(), binaryResolver);
 
         Action action = in.action();
         switch (action) {
@@ -93,7 +93,7 @@ public class TaurusTaskCommon {
                 throw new RuntimeException("Taurus execution finished with code " + r.getCode() + ": " + r.getStderr());
             }
 
-            log.info("No problems occured during taurus execution. Completed with code: " + r.getCode());
+            log.info("No problems occurred during taurus execution. Completed with code: " + r.getCode());
             return r;
         } catch (Exception e) {
             if (in.ignoreErrors()) {

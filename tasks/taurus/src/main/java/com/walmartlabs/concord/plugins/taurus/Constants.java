@@ -24,13 +24,13 @@ public final class Constants {
 
     public static final String BINARY_NAME = "bzt";
     public static final String DEFAULT_EXECUTOR = "jmeter";
-    public static final String DEPENDENCY_JMETER = "apache-jmeter.zip";
-    public static final String DEPENDENCY_CMD_RUNNER = "cmdrunner-" + Version.getCmdRunnerVersion() + ".jar";
-    public static final String DEPENDENCY_CASUTG = "jmeter-plugins-casutg-" + Version.getPluginsCasutgVersion() + ".jar";
-    public static final String DEPENDENCY_PLUGINS_MGR = "jmeter-plugins-manager-" + Version.getPluginMgrVersion() + ".jar";
+    public static final String DEFAULT_JMETER_URL = "https://www.apache.org/dist/jmeter/binaries/apache-jmeter-5.5.zip";
+    public static final String DEPENDENCY_CMD_RUNNER = "mvn://kg.apc:cmdrunner:jar:" + Version.getCmdRunnerVersion();
+    public static final String DEPENDENCY_CASUTG = "mvn://kg.apc:jmeter-plugins-casutg:jar:" + Version.getPluginsCasutgVersion();
+    public static final String DEPENDENCY_PLUGINS_MGR = "mvn://kg.apc:jmeter-plugins-manager:jar:" + Version.getPluginMgrVersion();
     public static final String PLUGIN_MANAGER_CMD = "PluginsManagerCMD.sh";
     public static final String DUMMY_PLUGIN_MANAGER_CMD = "DummyPluginsManagerCMD.sh";
-    public static final String DEPENDENCY_PRMCTL = "jmeter-plugins-prmctl-" + Version.getPluginsPrmctlVersion() + ".jar";
+    public static final String DEPENDENCY_PRMCTL = "mvn://kg.apc:jmeter-plugins-prmctl:jar:" + Version.getPluginsPrmctlVersion();
     public static final String JMETER_TMP_DIR = ".bzt/jmeter-taurus";
     public static final String JMETER_PATH = ".bzt/jmeter-taurus/apache-jmeter-" + Version.getJMeterVersion();
     public static final String JMETER_PATH_BIN = JMETER_PATH + "/bin/";

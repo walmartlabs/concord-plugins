@@ -43,6 +43,7 @@ public class TaskParams {
     private static final String ACTION_KEY = "action";
     private static final String DOWNLOAD_PLUGINS = "downloadPlugins";
     private static final String USE_FAKE_HOME_KEY = "useFakeHome";
+    private static final String JMETER_URL_KEY = "jmeterArchiveUrl";
 
     protected final Variables variables;
 
@@ -65,7 +66,9 @@ public class TaskParams {
     public boolean downloadPlugins() {
         return variables.getBoolean(DOWNLOAD_PLUGINS, false);
     }
-
+    public String jmeterArchiveUrl() {
+        return variables.getString(JMETER_URL_KEY, Constants.DEFAULT_JMETER_URL);
+    }
 
     public static class RunParams extends TaskParams {
 
@@ -103,6 +106,7 @@ public class TaskParams {
         public List<Object> configs() {
             return variables.assertList(CONFIGS_KEY);
         }
+
     }
 
     private static Variables merge(Variables variables, Map<String, Object> defaults) {

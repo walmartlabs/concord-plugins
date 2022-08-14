@@ -4,14 +4,14 @@ package com.walmartlabs.concord.plugins.taurus;
  * *****
  * Concord
  * -----
- * Copyright (C) 2017 - 2019 Walmart Inc.
+ * Copyright (C) 2017 - 2022 Walmart Inc., Concord Authors
  * -----
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,33 +20,44 @@ package com.walmartlabs.concord.plugins.taurus;
  * =====
  */
 
-import com.walmartlabs.concord.sdk.Context;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 
+import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+public abstract class AbstractIT {
 
-@Disabled
-public class TaurusTaskTest {
+    private Path workDir;
 
-    @Test
-    public void test() throws Exception {
-        Path workDir = Files.createTempDirectory("test");
+    @BeforeEach
+    public void setup() throws IOException {
+        this.workDir = Files.createTempDirectory("test");
+    }
 
-        Path scenarioFile = Paths.get(TaurusTaskTest.class.getResource("test.yml").toURI());
+    protected static Optional<String> envToOptional(String varName) {
+        String envVal = System.getenv(varName);
+
+        if (envVal != null && !envVal.isEmpty()) {
+            return Optional.of(envVal);
+        }
+
+        return Optional.empty();
+    }
+
+    protected Path workDir() {
+        return this.workDir;
+    }
+
+    protected void prepareScenario() throws IOException, URISyntaxException {
+        Path scenarioFile = Paths.get(TaurusTaskV2IT.class.getResource("test.yml").toURI());
         Files.copy(scenarioFile, workDir.resolve("test.yml"));
+    }
 
+    protected Map<String, Object> getArgs() {
         Map<String, Object> args = new HashMap<>();
         args.put("useFakeHome", false);
         args.put("action", "run");
@@ -56,14 +67,9 @@ public class TaurusTaskTest {
                 Collections.singletonMap("scenarios",
                         Collections.singletonMap("quick-test",
                                 Collections.singletonMap("variables",
-                                        Collections.singletonMap("endpoint", "/api/v1/server/ping"))))
+                                        Collections.singletonMap("apiToTest", envToOptional("TAURUS_TEST_API_ENDPOINT").orElse("http://localhost:8001/api/v1/server/ping")))))
         ));
 
-        Context ctx = mock(Context.class);
-        when(ctx.getVariable(anyString())).then(i -> args.get(i.getArgument(0)));
-        when(ctx.interpolate(any())).then(i -> i.getArgument(0));
-
-        TaurusTask t = new TaurusTask();
-        t.execute(ctx);
+        return args;
     }
 }

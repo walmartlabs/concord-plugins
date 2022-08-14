@@ -22,12 +22,11 @@ package com.walmartlabs.concord.plugins.taurus;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.walmartlabs.concord.runtime.v2.sdk.Variables;
-import com.walmartlabs.concord.sdk.Context;
-import com.walmartlabs.concord.sdk.ContextUtils;
-import com.walmartlabs.concord.sdk.InjectVariable;
-import com.walmartlabs.concord.sdk.Task;
+import com.walmartlabs.concord.sdk.*;
 
+import javax.inject.Inject;
 import javax.inject.Named;
+import java.net.URI;
 import java.util.Map;
 
 @Named("taurus")
@@ -38,10 +37,19 @@ public class TaurusTask implements Task {
 
     @InjectVariable("taurusParams")
     private Map<String, Object> defaults;
+    private final DependencyManager dependencyManager;
+
+    @Inject
+    public TaurusTask(DependencyManager dependencyManager) {
+        this.dependencyManager = dependencyManager;
+    }
 
     @Override
     public void execute(Context ctx) throws Exception {
-        Taurus.Result result = delegate(ctx).execute(TaskParams.of(new ContextVariables(ctx), defaults));
+        BinaryResolver binaryResolver = new BinaryResolver(url -> dependencyManager.resolve(URI.create(url)));
+
+        Taurus.Result result =
+                delegate(ctx).execute(TaskParams.of(new ContextVariables(ctx), defaults), binaryResolver);
 
         ctx.setVariable("result", om.convertValue(result, Map.class));
     }

@@ -7,4 +7,4 @@ execution:
 scenarios:
   quick-test:
     requests:
-      - "http://localhost:8001/${endpoint}"
+      - "${apiToTest}"

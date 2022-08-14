@@ -20,32 +20,36 @@ package com.walmartlabs.concord.plugins.taurus.v2;
  * =====
  */
 
+import com.walmartlabs.concord.plugins.taurus.BinaryResolver;
 import com.walmartlabs.concord.plugins.taurus.TaskParams;
 import com.walmartlabs.concord.plugins.taurus.Taurus;
 import com.walmartlabs.concord.plugins.taurus.TaurusTaskCommon;
-import com.walmartlabs.concord.runtime.v2.sdk.Context;
-import com.walmartlabs.concord.runtime.v2.sdk.Task;
-import com.walmartlabs.concord.runtime.v2.sdk.TaskResult;
-import com.walmartlabs.concord.runtime.v2.sdk.Variables;
+import com.walmartlabs.concord.runtime.v2.sdk.*;
 
 import javax.inject.Inject;
 import javax.inject.Named;
+import java.net.URI;
 
 @Named("taurus")
 public class TaurusTaskV2 implements Task {
 
     private final Context context;
     private final TaurusTaskCommon delegate;
+    private final DependencyManager dependencyManager;
 
     @Inject
-    public TaurusTaskV2(Context context) {
+    public TaurusTaskV2(Context context, DependencyManager dependencyManager) {
         this.context = context;
         this.delegate = new TaurusTaskCommon(context.workingDirectory());
+        this.dependencyManager = dependencyManager;
     }
 
     @Override
     public TaskResult execute(Variables input) throws Exception {
-        Taurus.Result result = delegate.execute(TaskParams.of(input, context.defaultVariables().toMap()));
+        BinaryResolver binaryResolver = new BinaryResolver(url -> dependencyManager.resolve(URI.create(url)));
+
+        Taurus.Result result =
+                delegate.execute(TaskParams.of(input, context.defaultVariables().toMap()), binaryResolver);
 
         return TaskResult.of(result.isOk(), result.getError())
                 .value("code", result.getCode())

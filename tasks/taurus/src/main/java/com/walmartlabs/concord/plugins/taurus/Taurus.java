@@ -42,18 +42,6 @@ import java.util.concurrent.Future;
 
 public class Taurus {
 
-    private static final URL JMETER_DIST = Taurus.class.getResource(Constants.DEPENDENCY_JMETER);
-
-    private static final URL[] JMETER_EXT_FILES = {
-            Taurus.class.getResource(Constants.DEPENDENCY_CASUTG),
-            Taurus.class.getResource(Constants.DEPENDENCY_PLUGINS_MGR),
-            Taurus.class.getResource(Constants.DEPENDENCY_PRMCTL)
-    };
-
-    private static final URL[] JMETER_LIBS = {
-            Taurus.class.getResource(Constants.DEPENDENCY_CMD_RUNNER)
-    };
-
     private static final URL PLUGIN_MANAGER_CMD_SCRIPT = Taurus.class.getResource(Constants.PLUGIN_MANAGER_CMD);
     private static final URL DUMMY_PLUGIN_MANAGER_CMD_SCRIPT = Taurus.class.getResource(Constants.DUMMY_PLUGIN_MANAGER_CMD);
 
@@ -61,10 +49,20 @@ public class Taurus {
 
     private final ExecutorService executor;
     private final Map<String, String> defaultEnv;
+    private final Path jmeterZip;
+    private final List<Path> jmeterLibs;
+    private final List<Path> jmeterExtFiles;
 
-    public Taurus(Path workDir, boolean useFakeHome, boolean useDummyPluginManagerCmd) throws IOException {
+    public Taurus(Path workDir, boolean useFakeHome, boolean useDummyPluginManagerCmd, String jmeterArchiveUrl, BinaryResolver binaryResolver) throws Exception {
         this.executor = Executors.newCachedThreadPool();
         this.defaultEnv = new HashMap<>();
+        this.jmeterZip = binaryResolver.resolve(jmeterArchiveUrl);
+        this.jmeterExtFiles = new LinkedList<>();
+        jmeterExtFiles.add(binaryResolver.resolve(Constants.DEPENDENCY_CASUTG));
+        jmeterExtFiles.add(binaryResolver.resolve(Constants.DEPENDENCY_PLUGINS_MGR));
+        jmeterExtFiles.add(binaryResolver.resolve(Constants.DEPENDENCY_PRMCTL));
+        this.jmeterLibs = new LinkedList<>();
+        jmeterLibs.add(binaryResolver.resolve(Constants.DEPENDENCY_CMD_RUNNER));
 
         if (useFakeHome) {
             // set up a fake ${HOME} to avoid using the system's one
@@ -98,21 +96,21 @@ public class Taurus {
         return Result.ok(stdout.get(), stderr.get());
     }
 
-    private static void init(Path workDir, boolean useDummyPluginManagerCmd) throws IOException {
+    private void init(Path workDir, boolean useDummyPluginManagerCmd) throws IOException {
         // copy and extract jmeter
         Path jmeterDir = workDir.resolve(Constants.JMETER_TMP_DIR);
-        copyAndExtract(JMETER_DIST, workDir, jmeterDir);
+        extractZipFile(jmeterZip, jmeterDir);
 
         // copy jmeter extensions
         Path extDir = workDir.resolve(Constants.JMETER_PATH_EXT);
-        for (URL url : JMETER_EXT_FILES) {
-            copy(url, extDir);
+        for (Path ext : jmeterExtFiles) {
+            copyFile(ext, extDir.resolve(ext.getFileName()));
         }
 
         // copy jmeter extra libs
         Path libDir = workDir.resolve(Constants.JMETER_PATH_LIB);
-        for (URL url : JMETER_LIBS) {
-            copy(url, libDir);
+        for (Path lib : jmeterLibs) {
+            copyFile(lib, libDir.resolve(lib.getFileName()));
         }
 
         // setup pluginMgrCmd
@@ -120,45 +118,40 @@ public class Taurus {
 
         Path p;
         if (useDummyPluginManagerCmd) {
-            p = copy(DUMMY_PLUGIN_MANAGER_CMD_SCRIPT, binDir);
+            p = copyResource(DUMMY_PLUGIN_MANAGER_CMD_SCRIPT, binDir.resolve("PluginsManagerCMD.sh"));
         } else {
-            p = copy(PLUGIN_MANAGER_CMD_SCRIPT, binDir);
+            p = copyResource(PLUGIN_MANAGER_CMD_SCRIPT, binDir.resolve("PluginsManagerCMD.sh"));
         }
         Files.setPosixFilePermissions(p, PosixFilePermissions.fromString("rwxr-xr-x"));
     }
 
-    private static Path copy(URL url, Path dst) throws IOException {
+    private static Path copyResource(URL url, Path dst) throws IOException {
         if (url == null) {
             throw new IllegalStateException("'" + url + "' not found. Check the dependencies");
         }
 
         try (InputStream in = url.openStream()) {
-            Path p = dst.resolve(fileName(url));
-            Files.copy(in, p, StandardCopyOption.REPLACE_EXISTING);
-            return p;
+            Files.copy(in, dst, StandardCopyOption.REPLACE_EXISTING);
+            return dst;
         }
     }
 
-    private static void copyAndExtract(URL url, Path workDir, Path dst) throws IOException {
-        if (url == null) {
-            throw new IllegalStateException("'" + url + "' not found. Check the dependencies");
+    private static Path copyFile(Path src, Path dst) throws IOException {
+        if (!Files.exists(src)) {
+            throw new IllegalStateException("'" + src + "' not found. Check the dependencies");
         }
 
-        try (InputStream in = url.openStream()) {
-            // TODO replace with IOUtils#unzip(in, dst, true) when available
-            Path tmp = Files.createTempFile(workDir, "file", ".zip");
-            Files.copy(in, tmp, StandardCopyOption.REPLACE_EXISTING);
-            IOUtils.unzip(tmp, dst, true);
-        }
+        Files.copy(src, dst, StandardCopyOption.REPLACE_EXISTING);
+
+        return dst;
     }
 
-    private static String fileName(URL url) {
-        String s = url.getFile();
-        int i = s.lastIndexOf("/");
-        if (i < 0 || i + 1 >= s.length()) {
-            return s;
+    private static void extractZipFile(Path srcZip, Path dst) throws IOException {
+        if (!Files.exists(srcZip)) {
+            throw new IllegalArgumentException("Source archive does not exist: " + srcZip);
         }
-        return s.substring(i + 1);
+
+        IOUtils.unzip(srcZip, dst, true);
     }
 
     private static class StreamReader implements Callable<String> {
