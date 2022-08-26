@@ -20,23 +20,28 @@ package com.walmartlabs.concord.plugins.hashivault;
  * =====
  */
 
-import org.junit.ClassRule;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.NginxContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
 import org.testcontainers.vault.VaultContainer;
 
+@Testcontainers
 public abstract class AbstractVaultTest {
+
     private static final String TEST_VAULT_TOKEN = "my-test-token";
     private static final int VAULT_PORT = 8200;
     private static final int NGINX_SSL_PORT = 443;
 
     protected static final Network network = Network.newNetwork();
-    @ClassRule
-    public static final VaultContainer<?> vaultContainer =
-            new VaultContainer<>(DockerImageName.parse(System.getenv("VAULT_IMAGE_VERSION"))
+    @Container
+    public final static VaultContainer<?> vaultContainer =
+            new VaultContainer<>(DockerImageName
+                    // set env var to point to specific image/custom repo
+                    .parse(System.getenv("VAULT_IMAGE_VERSION"))
                     .asCompatibleSubstituteFor("vault"))
                     .withVaultToken(TEST_VAULT_TOKEN)
                     .withNetwork(network)
@@ -44,7 +49,7 @@ public abstract class AbstractVaultTest {
                     .withSecretInVault("secret/testing", "top_secret=password1","db_password=dbpassword1")
                     .withSecretInVault("cubbyhole/hello", "cubbyKey=cubbyVal")
                     .waitingFor(Wait.forLogMessage(".*Vault server started.*", 1));
-    @ClassRule
+    @Container
     public static NginxContainer<?> nginxContainer =
             new NginxContainer<>(DockerImageName
                     // set env var to point to specific image/custom repo

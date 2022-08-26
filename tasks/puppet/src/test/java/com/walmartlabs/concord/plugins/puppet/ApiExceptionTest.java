@@ -21,11 +21,9 @@ package com.walmartlabs.concord.plugins.puppet;
  */
 
 import com.walmartlabs.concord.plugins.puppet.model.exception.ApiException;
-import org.junit.Test;
-import wiremock.org.apache.http.HttpException;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class ApiExceptionTest {
 
@@ -49,12 +47,5 @@ public class ApiExceptionTest {
     public void testMessage() {
         ApiException ex = new ApiException("error occurred");
         assertEquals("error occurred", ex.getMessage());
-    }
-
-    @Test
-    public void testThrowable() {
-        ApiException ex = new ApiException(new HttpException("http error"));
-
-        assertTrue(ex.getMessage().contains("http error"));
     }
 }

@@ -20,6 +20,7 @@ package com.walmartlabs.concord.plugins.git;
  * =====
  */
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.walmartlabs.concord.sdk.MapUtils;
 import org.eclipse.egit.github.core.*;
@@ -65,6 +66,8 @@ public class GitHubTask {
     private static final String GITHUB_MERGECOMMITMSG = "commitMessage";
     private static final String GITHUB_MERGE_METHOD = "mergeMethod";
     private static final String GITHUB_FORKTARGETORG = "targetOrg";
+    private static final String GITHUB_PATH = "path";
+    private static final String GITHUB_REF = "ref";
 
     private static final String STATUS_CHECK_STATE = "state";
     private static final String STATUS_CHECK_TARGET_URL = "targetUrl";
@@ -72,10 +75,23 @@ public class GitHubTask {
     private static final String STATUS_CHECK_CONTEXT = "context";
     private static final String GITHUB_PR_STATE = "state";
 
+    private static final String ISSUE_BODY = "body";
+    private static final String ISSUE_TITLE = "title";
+    private static final String ISSUE_ASSIGNEE = "assignee";
+    private static final String ISSUE_LABELS = "labels";
+
     private static final List<String> GITHUB_VALID_PR_STATES = Arrays.asList("all", "open", "closed");
     private static final Set<String> STATUS_CHECK_STATES = new HashSet<>(Arrays.asList("error", "failure", "pending", "success"));
 
     private static final int STATUS_GITHUB_REPO_NOT_FOUND = 404;
+
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+
+    private static final TypeReference<Map<String, Object>> OBJECT_TYPE = new TypeReference<Map<String, Object>>() {
+    };
+
+    private static final TypeReference<List<Map<String, Object>>> LIST_OF_OBJECT_TYPE = new TypeReference<List<Map<String, Object>>>() {
+    };
 
     public Map<String, Object> execute(Map<String, Object> in, Map<String, Object> defaults) {
         Action action = getAction(in);
@@ -90,11 +106,17 @@ public class GitHubTask {
             case COMMENTPR: {
                 return commentPR(in, gitHubUri);
             }
+            case GETPRCOMMITLIST: {
+                return getPRCommitList(in, gitHubUri);
+            }
             case MERGEPR: {
                 return mergePR(in, gitHubUri);
             }
             case CLOSEPR: {
                 return closePR(in, gitHubUri);
+            }
+            case CREATEISSUE: {
+                return createIssue(in, gitHubUri);
             }
             case CREATETAG: {
                 return createTag(in, gitHubUri);
@@ -141,6 +163,9 @@ public class GitHubTask {
             case DELETEREPO: {
                 return deleteRepo(in, gitHubUri);
             }
+            case GETCONTENT: {
+                return getContent(in, gitHubUri);
+            }
             default:
                 throw new IllegalArgumentException("Unsupported action type: " + action);
         }
@@ -178,6 +203,28 @@ public class GitHubTask {
             return Collections.emptyMap();
         } catch (IOException e) {
             throw new RuntimeException("Cannot create a pull request: " + e.getMessage());
+        }
+    }
+
+    private static Map<String, Object> getPRCommitList(Map<String, Object> in, String gitHubUri) {
+        String gitHubAccessToken = assertString(in, GITHUB_ACCESSTOKEN);
+        String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
+        String gitHubRepoName = assertString(in, GITHUB_REPONAME);
+        int gitHubPRID = assertInt(in, GITHUB_PRID);
+
+        GitHubClient client = GitHubClient.createClient(gitHubUri);
+        client.setOAuth2Token(gitHubAccessToken);
+
+        IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
+
+        PullRequestService prService = new PullRequestService(client);
+        log.info("Getting PR {} commits for {}/{} repo", gitHubPRID, gitHubOrgName, gitHubRepoName);
+        try {
+            List<RepositoryCommit> commits = prService.getCommits(repo, gitHubPRID);
+            log.info("Commits count: {}", commits.size());
+            return Collections.singletonMap("commits", objectMapper.convertValue(commits, LIST_OF_OBJECT_TYPE));
+        } catch (IOException e) {
+            throw new RuntimeException("Cannot get PR " + gitHubPRID + " commits: " + e.getMessage());
         }
     }
 
@@ -753,7 +800,74 @@ public class GitHubTask {
 
             return Collections.singletonMap("latestCommitSHA", latestCommitSHA);
         } catch (Exception e) {
-            throw new RuntimeException("Error occured while getting latest commit SHA: " + e.getMessage());
+            throw new RuntimeException("Error occurred while getting latest commit SHA: " + e.getMessage());
+        }
+    }
+
+    private static Map<String, Object> getContent(Map<String, Object> in, String gitHubUri) {
+        String gitHubAccessToken = assertString(in, GITHUB_ACCESSTOKEN);
+        String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
+        String gitHubRepoName = assertString(in, GITHUB_REPONAME);
+        String gitHubRef = getString(in, GITHUB_REF);
+        String gitHubPath = assertString(in, GITHUB_PATH);
+
+        GitHubClient client = GitHubClient.createClient(gitHubUri);
+        client.setOAuth2Token(gitHubAccessToken);
+        IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
+
+        try {
+            log.info("Getting '{}' file content in {}/{} repo with ref {}", gitHubPath, gitHubOrgName, gitHubRepoName, gitHubRef);
+            ContentsService service = new ContentsService(client);
+            List<RepositoryContents> contents = service.getContents(repo, gitHubPath, gitHubRef);
+            log.info("Contents size: {}", contents.size());
+            List<Map<String, Object>> result = new ArrayList<>(contents.size());
+            for (RepositoryContents rc : contents) {
+                Map<String, Object> item = objectMapper.convertValue(rc, OBJECT_TYPE);
+                if (RepositoryContents.ENCODING_BASE64.equalsIgnoreCase(rc.getEncoding()) && rc.getContent() != null) {
+                    item = new HashMap<>(item);
+
+                    Base64.Decoder decoder;
+                    if (rc.getContent().contains("\n")) {
+                        decoder = Base64.getMimeDecoder();
+                    } else {
+                        decoder = Base64.getDecoder();
+                    }
+                    item.put("content", new String(decoder.decode(rc.getContent())));
+                }
+                result.add(item);
+            }
+
+            return Collections.singletonMap("contents", result);
+        } catch (IOException e) {
+            throw new RuntimeException("Cannot get content: " + e.getMessage());
+        }
+    }
+
+    private static Map<String, Object> createIssue(Map<String, Object> in, String gitHubUri) {
+        String gitHubAccessToken = assertString(in, GITHUB_ACCESSTOKEN);
+        String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
+        String gitHubRepoName = assertString(in, GITHUB_REPONAME);
+
+        GitHubClient client = GitHubClient.createClient(gitHubUri);
+        client.setOAuth2Token(gitHubAccessToken);
+
+        IssueService issueService = new IssueService(client);
+        IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
+
+        Issue issue = new Issue()
+                .setTitle(assertString(in, ISSUE_TITLE))
+                .setBody(getString(in, ISSUE_BODY))
+                .setAssignee(new User().setLogin(getString(in, ISSUE_ASSIGNEE)))
+                .setLabels(getList(in, ISSUE_LABELS, Collections.<String>emptyList()).stream()
+                        .map(l -> new Label().setName(l))
+                        .collect(Collectors.toList()));
+
+        try {
+            Issue result = issueService.createIssue(repo, issue);
+            log.info("Issue created id: {}", result.getId());
+            return Collections.singletonMap("issue", objectMapper.convertValue(result, OBJECT_TYPE));
+        } catch (IOException e) {
+            throw new RuntimeException("Cannot create issue: " + e.getMessage());
         }
     }
 
@@ -805,7 +919,9 @@ public class GitHubTask {
         COMMENTPR,
         MERGEPR,
         CLOSEPR,
+        GETPRCOMMITLIST,
         MERGE,
+        CREATEISSUE,
         CREATETAG,
         DELETETAG,
         DELETEBRANCH,
@@ -819,6 +935,7 @@ public class GitHubTask {
         GETTAGLIST,
         GETLATESTSHA,
         CREATEREPO,
-        DELETEREPO
+        DELETEREPO,
+        GETCONTENT
     }
 }

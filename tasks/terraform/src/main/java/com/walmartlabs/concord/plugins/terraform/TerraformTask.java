@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.walmartlabs.concord.plugins.terraform.Terraform.CliAction.VERSION;
 import static com.walmartlabs.concord.plugins.terraform.TerraformTaskCommon.*;
 
 @Named("terraform")
@@ -41,6 +42,7 @@ public class TerraformTask implements Task {
 
     private final SecretService secretService;
     private final LockService lockService;
+    private final DockerService dockerService;
     private final ObjectStorage objectStorage;
     private final ObjectMapper objectMapper;
     private final DependencyManager dependencyManager;
@@ -49,9 +51,10 @@ public class TerraformTask implements Task {
     private Map<String, Object> defaults;
 
     @Inject
-    public TerraformTask(SecretService secretService, LockService lockService, ObjectStorage objectStorage, DependencyManager dependencyManager) {
+    public TerraformTask(SecretService secretService, LockService lockService, ObjectStorage objectStorage, DependencyManager dependencyManager, DockerService dockerService) {
         this.secretService = secretService;
         this.lockService = lockService;
+        this.dockerService = dockerService;
         this.objectStorage = objectStorage;
         this.dependencyManager = dependencyManager;
         this.objectMapper = new ObjectMapper();
@@ -67,6 +70,9 @@ public class TerraformTask implements Task {
         boolean debug = MapUtils.get(cfg, TaskConstants.DEBUG_KEY, false, Boolean.class);
         Action action = getAction(cfg);
 
+        String dockerImage = MapUtils.getString(cfg, TaskConstants.DOCKER_IMAGE_KEY, null);
+        TerraformDockerService tfDockerService = createTerraformDockerService(dockerService, ctx);
+
         // configure the state backend and populate the environment with necessary parameters
         Backend backend = new BackendFactoryV1(ctx, lockService, objectStorage).getBackend(cfg);
         Map<String, String> env = getEnv(cfg, backend);
@@ -81,11 +87,12 @@ public class TerraformTask implements Task {
 
         // configure the Terraform's binary
         TerraformBinaryResolver binaryResolver = new TerraformBinaryResolver(cfg, workDir, debug,
-                url -> dependencyManager.resolve(URI.create(url)));
+                url -> dependencyManager.resolve(URI.create(url)), tfDockerService);
 
-        Terraform terraform = new Terraform(binaryResolver, debug, baseEnv);
+        Terraform terraform = new Terraform(workDir, binaryResolver, debug, baseEnv, dockerImage, tfDockerService);
+
         if (debug) {
-            terraform.exec(workDir, "version", "version");
+            terraform.exec(workDir, "version", terraform.buildArgs(VERSION));
         }
 
         try {
@@ -94,6 +101,25 @@ public class TerraformTask implements Task {
         } finally {
             gitSshWrapper.cleanup();
         }
+    }
+
+    private static TerraformDockerService createTerraformDockerService(DockerService dockerService, Context ctx) {
+        return (spec, logOut, logErr) -> dockerService.start(ctx, DockerContainerSpec.builder()
+                        .image(spec.image())
+                        .args(spec.args())
+                        .debug(spec.debug())
+                        .forcePull(spec.forcePull())
+                        .env(spec.env())
+                        .workdir(spec.pwd().toString())
+                        .redirectErrorStream(false)
+                        .options(DockerContainerSpec.Options.builder()
+                                .hosts(spec.extraDockerHosts())
+                                .build())
+                        .pullRetryCount(spec.pullRetryCount())
+                        .pullRetryInterval(spec.pullRetryInterval())
+                        .build(),
+                logOut::onLog,
+                logErr::onLog);
     }
 
     private Map<String, Object> createCfg(Context ctx) {
