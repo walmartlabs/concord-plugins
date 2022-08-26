@@ -562,8 +562,9 @@ public class GitTask {
         }
 
         String errorMessage = hideSensitiveData(errorPrefix + ": " + e.getMessage(), secret);
+        log.error("{}: {}", errorPrefix, hideSensitiveData(stacktraceToString(e), secret));
+
         if (!isIgnoreErrors(in)) {
-            log.error("{}: {}", errorPrefix, hideSensitiveData(stacktraceToString(e), secret));
             throw new RuntimeException(errorMessage);
         }
 
