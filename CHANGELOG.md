@@ -1,11 +1,39 @@
 # Change log
 
+## [1.42.0] - 2022-08-26
+
+### Added
+
+- akeyless: akeyless-task: new plugin for Akeyless API
+([#83](https://github.com/walmartlabs/concord-plugins/pull/83)).
+
+### Changed
+
+- github: new createIssue, getContent, getPrCommitList actions
+([#78](https://github.com/walmartlabs/concord-plugins/pull/78));
+- xml: remove workdir param from runtime-v2 public methods
+([#75](https://github.com/walmartlabs/concord-plugins/pull/75));
+- git: Fix accidental regex matching in hideSensitiveData
+([#84](https://github.com/walmartlabs/concord-plugins/pull/84));
+- taurus: update jmeter version to 5.5
+([#85](https://github.com/walmartlabs/concord-plugins/pull/85));
+- terraform: support for executing in a container
+([#89](https://github.com/walmartlabs/concord-plugins/pull/89));
+- hashivault: fix verifySsl option
+([#74](https://github.com/walmartlabs/concord-plugins/pull/74));
+- taurus: plugin removed
+([#91](https://github.com/walmartlabs/concord-plugins/pull/91));
+- git: log error message even if ignoreErrors specified
+([#81](https://github.com/walmartlabs/concord-plugins/pull/81));
+- git-task: default variables
+([#76](https://github.com/walmartlabs/concord-plugins/pull/76)).
+
 ## [1.41.0] - 2021-11-29
 
 ### Changed
 
 - github: allows to specify mergeMethod for mergePR action 
-([#72](https://github.com/walmartlabs/concord-plugins/pull/72)).
+([#72](https://github.com/walmartlabs/concord-plugins/pull/72));
 - terraform: convert `extraEnv` values to string. Fixes
 ClassCastException when `extraEnv` contains non-string values
 ([#68](https://github.com/walmartlabs/concord-plugins/pull/68));
