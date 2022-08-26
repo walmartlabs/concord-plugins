@@ -24,17 +24,16 @@ import com.walmartlabs.concord.plugins.hashivault.model.MockSecretServiceDelegat
 import com.walmartlabs.concord.plugins.hashivault.model.MockSecretServiceV1;
 import com.walmartlabs.concord.plugins.hashivault.v1.HashiVaultTask;
 import com.walmartlabs.concord.sdk.*;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
-public class HashiVaultTaskV1Test extends AbstractVaultTest {
+class HashiVaultTaskV1Test extends AbstractVaultTest {
 
     private Context ctx;
     private final SecretService secretService = new MockSecretServiceV1(new MockSecretServiceDelegate() {
@@ -53,7 +52,7 @@ public class HashiVaultTaskV1Test extends AbstractVaultTest {
         if (setDefaults) {
             Map<String, Object> defaults = new HashMap<>(2);
             defaults.put("apiToken", getApiToken());
-            defaults.put("baseUrl", getBaseUrl());
+            defaults.put("baseUrl", getVaultBaseUrl());
 
             ctx.setVariable("hashivaultParams", defaults);
             injectVariable(t, "hashivaultParams", defaults);
@@ -92,13 +91,13 @@ public class HashiVaultTaskV1Test extends AbstractVaultTest {
     }
 
     @Test
-    public void testReadTokenFromSecretV1() throws Exception {
+    void testReadTokenFromSecretV1() throws Exception {
         Task task = getTask(false);
         Map<String, Object> secretInfo = new HashMap<>(3);
         secretInfo.put("org", "my-org");
         secretInfo.put("name", "my-secret");
         ctx.setVariable("apiTokenSecret", secretInfo);
-        ctx.setVariable("baseUrl", getBaseUrl());
+        ctx.setVariable("baseUrl", getVaultBaseUrl());
         ctx.setVariable("path", "cubbyhole/hello");
 
         // apiToken wasn't given directly, it should be read from SecretService
@@ -111,9 +110,8 @@ public class HashiVaultTaskV1Test extends AbstractVaultTest {
         assertEquals("cubbyVal", MapUtils.getString(data, "cubbyKey"));
     }
 
-
     @Test
-    public void testReadCubbyV1() throws Exception {
+    void testReadCubbyV1() throws Exception {
         Task task = getTask(true);
         ctx.setVariable("path", "cubbyhole/hello");
 
@@ -127,7 +125,7 @@ public class HashiVaultTaskV1Test extends AbstractVaultTest {
     }
 
     @Test
-    public void testReadKvV1() throws Exception {
+    void testReadKvV1() throws Exception {
         Task task = getTask(true);
         ctx.setVariable("path", "secret/testing");
 
@@ -142,7 +140,36 @@ public class HashiVaultTaskV1Test extends AbstractVaultTest {
     }
 
     @Test
-    public void testReadKvSingleV1() throws Exception {
+    void testIgnoreSslVerificationV1() throws Exception {
+        Task task = getTask(true);
+        ctx.setVariable("baseUrl", getVaultHttpsBaseUrl());
+        ctx.setVariable("path", "secret/testing");
+
+        // -- expect ssl verification failure with self-signed certs
+
+        try {
+            task.execute(ctx);
+            fail("HTTPS should fail with self-signed certs");
+        } catch (Exception e) {
+            // carry on
+        }
+
+        // -- should work with verification disabled
+
+        ctx.setVariable("verifySsl", false);
+
+        task.execute(ctx);
+        Map<String, Object> result = ContextUtils.assertMap(ctx, "result");
+
+        assertTrue(MapUtils.getBoolean(result,"ok", false));
+
+        Map<String, Object> data = MapUtils.getMap(result, "data", Collections.emptyMap());
+        assertEquals("password1", MapUtils.getString(data, "top_secret"));
+        assertEquals("dbpassword1", MapUtils.getString(data, "db_password"));
+    }
+
+    @Test
+    void testReadKvSingleV1() throws Exception {
         Task task = getTask(true);
         ctx.setVariable("path", "secret/testing");
         ctx.setVariable("key", "db_password");
@@ -157,12 +184,12 @@ public class HashiVaultTaskV1Test extends AbstractVaultTest {
     }
 
     @Test
-    public void testWriteCubbyV1() throws Exception {
+    void testWriteCubbyV1() throws Exception {
         testWriteAndRead("cubbyhole/newSecretTaskV1", "v1CubbyExecute");
     }
 
     @Test
-    public void testWriteKvV1() throws Exception {
+    void testWriteKvV1() throws Exception {
         testWriteAndRead("secret/newSecretTaskV1", "v1SecretExecute");
     }
 
@@ -196,7 +223,7 @@ public class HashiVaultTaskV1Test extends AbstractVaultTest {
     }
 
     @Test
-    public void testReadKvSinglePublicMethodV1() {
+    void testReadKvSinglePublicMethodV1() {
         String path = "secret/testing";
         String result = getTask(true).readKV(ctx, path, "db_password");
 
@@ -204,7 +231,7 @@ public class HashiVaultTaskV1Test extends AbstractVaultTest {
     }
 
     @Test
-    public void testWriteCubbyPublicMethodV1() {
+    void testWriteCubbyPublicMethodV1() {
         String path = "cubbyhole/newSecretTaskPublicMethodV1";
         Map<String, Object> kvPairs = new HashMap<>(2);
         kvPairs.put("key1", "cubbyValue1");
@@ -223,7 +250,7 @@ public class HashiVaultTaskV1Test extends AbstractVaultTest {
     }
 
     @Test
-    public void testWriteKvPublicMethodV1() {
+    void testWriteKvPublicMethodV1() {
         String path = "secret/newSecretTaskPublicMethodV1";
         Map<String, Object> kvPairs = new HashMap<>(2);
         kvPairs.put("key1", "value1");

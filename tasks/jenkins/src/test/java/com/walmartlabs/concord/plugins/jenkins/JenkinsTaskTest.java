@@ -21,13 +21,13 @@ package com.walmartlabs.concord.plugins.jenkins;
  */
 
 import com.walmartlabs.concord.sdk.MockContext;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 
-@Ignore
+@Disabled
 public class JenkinsTaskTest {
 
     @Test

@@ -15,7 +15,7 @@
 
     <properties>
         <skipTests>true</skipTests>
-        <testcontainers.concord.version>0.0.30</testcontainers.concord.version>
+        <testcontainers.concord.version>0.0.40</testcontainers.concord.version>
     </properties>
 
     <dependencies>
@@ -75,8 +75,8 @@
         </dependency>
 
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -91,13 +91,18 @@
         </dependency>
         <dependency>
             <groupId>com.github.tomakehurst</groupId>
-            <artifactId>wiremock</artifactId>
+            <artifactId>wiremock-jre8</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.squareup.okhttp3</groupId>
+            <groupId>com.squareup.okhttp</groupId>
             <artifactId>okhttp</artifactId>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.walmartlabs.concord.runtime.v2</groupId>
+            <artifactId>concord-runner-v2</artifactId>
+            <version>${concord.version}</version>
         </dependency>
         <dependency>
             <groupId>ca.ibodrov.concord</groupId>
@@ -107,7 +112,7 @@
         </dependency>
         <dependency>
             <groupId>ca.ibodrov.concord</groupId>
-            <artifactId>testcontainers-concord-junit4</artifactId>
+            <artifactId>testcontainers-concord-junit5</artifactId>
             <version>${testcontainers.concord.version}</version>
             <scope>test</scope>
         </dependency>
@@ -139,7 +144,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>2.21.0</version>
+                <version>3.0.0-M5</version>
                 <executions>
                     <execution>
                         <id>integration-test</id>

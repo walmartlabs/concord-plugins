@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>com.walmartlabs.concord.plugins</groupId>
@@ -15,6 +16,7 @@
 
     <properties>
         <okhttp.version>3.11.0</okhttp.version>
+        <nginx.image.version>nginx:1.21.5-alpine</nginx.image.version>
         <vault.image.version>vault:1.1.3</vault.image.version>
     </properties>
 
@@ -22,7 +24,6 @@
         <dependency>
             <groupId>com.walmartlabs.concord</groupId>
             <artifactId>concord-sdk</artifactId>
-            <version>${concord.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -33,7 +34,6 @@
         <dependency>
             <groupId>com.walmartlabs.concord</groupId>
             <artifactId>concord-common</artifactId>
-            <version>${concord.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -53,8 +53,8 @@
         </dependency>
 
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -69,7 +69,17 @@
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
             <artifactId>vault</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>nginx</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -79,7 +89,7 @@
             <dependency>
                 <groupId>org.testcontainers</groupId>
                 <artifactId>testcontainers-bom</artifactId>
-                <version>1.15.1</version>
+                <version>1.17.3</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -94,6 +104,7 @@
                 <configuration>
                     <environmentVariables>
                         <VAULT_IMAGE_VERSION>${vault.image.version}</VAULT_IMAGE_VERSION>
+                        <NGINX_IMAGE_VERSION>${nginx.image.version}</NGINX_IMAGE_VERSION>
                     </environmentVariables>
                 </configuration>
             </plugin>

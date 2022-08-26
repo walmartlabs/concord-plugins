@@ -26,8 +26,8 @@ import com.walmartlabs.concord.plugins.akeyless.model.TaskParams;
 import com.walmartlabs.concord.plugins.akeyless.model.TaskParamsImpl;
 import com.walmartlabs.concord.plugins.akeyless.v2.AkeylessTask;
 import com.walmartlabs.concord.runtime.v2.sdk.SecretService;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.FileInputStream;
@@ -37,7 +37,7 @@ import java.nio.file.Paths;
 import java.security.SecureRandom;
 import java.util.*;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class CommonIT {
 
@@ -45,7 +45,7 @@ public class CommonIT {
 
     private static final String testPath = "/concord_its";
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         itsProps = loadITProps();
     }

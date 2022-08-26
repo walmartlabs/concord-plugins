@@ -23,9 +23,8 @@ package com.walmartlabs.concord.plugins.puppet;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
-import org.junit.Rule;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +42,8 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.StringJoiner;
 
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
+
 public abstract class AbstractApiTest {
     static final Logger log = LoggerFactory.getLogger(AbstractApiTest.class);
 
@@ -53,19 +54,20 @@ public abstract class AbstractApiTest {
     private Path certPath;
     private String certString;
 
-    @Rule
-    public WireMockRule httpRule = new WireMockRule(
-            WireMockConfiguration.wireMockConfig()
+    @RegisterExtension
+    static WireMockExtension httpRule = WireMockExtension.newInstance()
+            .options(wireMockConfig()
                     .dynamicPort()
-                    .notifier(new ConsoleNotifier(false)) // set to true for verbose logging
-        );
-    @Rule
-    public WireMockRule httpsRule = new WireMockRule(
-            WireMockConfiguration.wireMockConfig()
-                .dynamicPort() // still binds to 8080 for an http port if not specified
-                .dynamicHttpsPort()
-                .notifier(new ConsoleNotifier(false)) // set to true for verbose logging
-    );
+                    .notifier(new ConsoleNotifier(false))) // set to true for verbose logging
+            .build();
+
+    @RegisterExtension
+    static WireMockExtension httpsRule = WireMockExtension.newInstance()
+            .options(wireMockConfig()
+                    .dynamicPort()  // still binds to 8080 for an http port if not specified
+                    .dynamicHttpsPort()
+                    .notifier(new ConsoleNotifier(false))) // set to true for verbose logging
+            .build();
 
     AbstractApiTest() {
     }
@@ -74,7 +76,7 @@ public abstract class AbstractApiTest {
      * Values used for most tests
      * @return map of defaults for puppetParams
      */
-    HashMap<String, Object> getDefaults() throws Exception {
+    HashMap<String, Object> getDefaults() {
         HashMap<String, Object> d = new HashMap<>();
         d.put(Constants.Keys.RBAC_URL_KEY, httpRule.baseUrl());
         d.put(Constants.Keys.USERNAME_KEY, "fake-username");
@@ -118,7 +120,7 @@ public abstract class AbstractApiTest {
         String hostname = "localhost";
         SSLSocketFactory factory = HttpsURLConnection.getDefaultSSLSocketFactory();
 
-        SSLSocket socket = (SSLSocket) factory.createSocket(hostname, httpsRule.httpsPort());
+        SSLSocket socket = (SSLSocket) factory.createSocket(hostname, httpsRule.getHttpsPort());
         socket.startHandshake();
         Certificate[] certs = socket.getSession().getPeerCertificates();
         Certificate cert = certs[0];
