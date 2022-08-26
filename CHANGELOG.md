@@ -18,7 +18,9 @@
 - taurus: update jmeter version to 5.5
 ([#85](https://github.com/walmartlabs/concord-plugins/pull/85));
 - terraform: support for executing in a container
-([#89](https://github.com/walmartlabs/concord-plugins/pull/89)).
+([#89](https://github.com/walmartlabs/concord-plugins/pull/89));
+- hashivault: fix verifySsl option (#74)
+([#74](https://github.com/walmartlabs/concord-plugins/pull/74)).
 
 ## [1.41.0] - 2021-11-29
 
