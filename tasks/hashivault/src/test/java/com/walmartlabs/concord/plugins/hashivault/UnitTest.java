@@ -22,24 +22,23 @@ package com.walmartlabs.concord.plugins.hashivault;
 
 import com.walmartlabs.concord.runtime.v2.sdk.MapBackedVariables;
 import com.walmartlabs.concord.runtime.v2.sdk.Variables;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class UnitTest {
 
     private static final TaskParams.SecretExporter exporter =
             (o, n, p) -> "a-secret";
 
-    @Before
+    @BeforeEach
     public void setup() {
-
     }
 
     @Test
@@ -48,15 +47,15 @@ public class UnitTest {
         vars.put("baseUrl", "http://example.com:8200");
 
         TaskParams params = TaskParams.of(new MapBackedVariables(vars), null, exporter);
-        Assert.assertEquals(TaskParams.Action.READKV, params.action());
+        assertEquals(TaskParams.Action.READKV, params.action());
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void invalidActionTest() {
         Map<String, Object> vars = new HashMap<>();
         vars.put("action", "not-an-action");
 
-        TaskParams.of(new MapBackedVariables(vars), null, exporter);
+        Assertions.assertThrows(IllegalArgumentException.class, () -> TaskParams.of(new MapBackedVariables(vars), null, exporter));
     }
 
     @Test

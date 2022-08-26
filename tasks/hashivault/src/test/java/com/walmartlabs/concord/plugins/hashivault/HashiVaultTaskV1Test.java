@@ -24,15 +24,15 @@ import com.walmartlabs.concord.plugins.hashivault.model.MockSecretServiceDelegat
 import com.walmartlabs.concord.plugins.hashivault.model.MockSecretServiceV1;
 import com.walmartlabs.concord.plugins.hashivault.v1.HashiVaultTask;
 import com.walmartlabs.concord.sdk.*;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class HashiVaultTaskV1Test extends AbstractVaultTest {
 
@@ -110,7 +110,6 @@ public class HashiVaultTaskV1Test extends AbstractVaultTest {
         Map<String, Object> data = MapUtils.getMap(result, "data", Collections.emptyMap());
         assertEquals("cubbyVal", MapUtils.getString(data, "cubbyKey"));
     }
-
 
     @Test
     public void testReadCubbyV1() throws Exception {

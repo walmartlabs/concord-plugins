@@ -21,18 +21,16 @@ package com.walmartlabs.concord.plugins.terraform.backend;
  */
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.walmartlabs.concord.plugins.terraform.TaskConstants;
 import com.walmartlabs.concord.plugins.terraform.TerraformTaskTest;
 import com.walmartlabs.concord.sdk.Context;
 import com.walmartlabs.concord.sdk.LockService;
 import com.walmartlabs.concord.sdk.MockContext;
 import com.walmartlabs.concord.sdk.ObjectStorage;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import java.io.File;
 import java.io.FileReader;
@@ -44,8 +42,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
 public class BackendManagerTest {
@@ -53,13 +51,13 @@ public class BackendManagerTest {
     private BackendFactoryV1 backendManager;
     private Path dstDir;
 
-    @Rule
-    public WireMockRule wireMockRule = new WireMockRule(WireMockConfiguration.wireMockConfig().port(12345));
+    @RegisterExtension
+    static WireMockExtension wireMockRule = WireMockExtension.newInstance()
+            .options(wireMockConfig()
+                    .port(12345))
+            .build();
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         Path tmpDir = Paths.get("/tmp/concord");
         if (!Files.exists(tmpDir)) {
@@ -76,16 +74,16 @@ public class BackendManagerTest {
 
     @Test
     public void validateBackendManagerRejectsUnsupportedBackends() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Unsupported backend type: donkykong");
-        backendManager.getBackend(backendConfiguration("donkykong", new HashMap<>()));
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> backendManager.getBackend(backendConfiguration("donkykong", new HashMap<>())));
+        assertEquals("Unsupported backend type: donkykong", exception.getMessage());
     }
 
     @Test
     public void validateBackendManagerRejectsMultipleBackendConfigurations() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Only a single backend configuration is supported. There are 2 configured.");
-        backendManager.getBackend(badBackendConfiguration());
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> backendManager.getBackend(badBackendConfiguration()));
+        assertEquals("Only a single backend configuration is supported. There are 2 configured.", exception.getMessage());
     }
 
     @Test

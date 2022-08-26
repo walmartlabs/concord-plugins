@@ -32,6 +32,8 @@ import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 
 public class TerraformBinaryResolver {
@@ -45,12 +47,17 @@ public class TerraformBinaryResolver {
     private final Path workDir;
     private final boolean debug;
     private final BinaryDownloader binaryDownloader;
+    private final TerraformDockerService dockerService;
 
-    public TerraformBinaryResolver(Map<String, Object> cfg, Path workDir, boolean debug, BinaryDownloader binaryDownloader) {
+    private static final String CMD_WHICH = "which";
+
+    public TerraformBinaryResolver(Map<String, Object> cfg, Path workDir, boolean debug,
+                                   BinaryDownloader binaryDownloader, TerraformDockerService dockerService) {
         this.cfg = cfg;
         this.workDir = workDir;
         this.debug = debug;
         this.binaryDownloader = binaryDownloader;
+        this.dockerService = dockerService;
     }
 
     /**
@@ -78,7 +85,8 @@ public class TerraformBinaryResolver {
      * @return
      * @throws Exception
      */
-    public Path resolve() throws Exception {
+    public TerraformExecutable resolve() throws Exception {
+        String dockerImage = MapUtils.getString(cfg, TaskConstants.DOCKER_IMAGE_KEY, null);
         Path dstDir = workDir.resolve(".terraform");
         if (!Files.exists(dstDir)) {
             Files.createDirectories(dstDir);
@@ -90,7 +98,7 @@ public class TerraformBinaryResolver {
             if (debug) {
                 log.info("init -> using the existing binary {}", workDir.relativize(binaryInWorkDir));
             }
-            return binaryInWorkDir;
+            return new TerraformExecutable(binaryInWorkDir, false);
         }
 
         // try toolUrl first
@@ -108,18 +116,23 @@ public class TerraformBinaryResolver {
                 throw new IllegalStateException(msg);
             }
 
-            return binaryInWorkDir;
+            return new TerraformExecutable(binaryInWorkDir, false);
         }
 
         boolean ignoreLocalBinary = MapUtils.getBoolean(cfg, TaskConstants.IGNORE_LOCAL_BINARY_KEY, false);
         if (!ignoreLocalBinary) {
-            // try $PATH next
-            Path p = findBinaryInPath();
-            if (p != null) {
-                if (debug) {
-                    log.info("init -> using the existing binary {}", p);
-                }
-                return p;
+            TerraformExecutable e;
+
+            if (dockerImage != null) {
+                // try container $PATH next
+                e = new TerraformExecutable(findInDockerContainerPath(dockerImage), true);
+            } else {
+                // try local $PATH next
+                e = new TerraformExecutable(findBinaryInPath(), false);
+            }
+
+            if (e.hasPath()) {
+                return e;
             }
         }
 
@@ -131,7 +144,7 @@ public class TerraformBinaryResolver {
             log.info("init -> extracting the binary into {}", workDir.relativize(dstDir));
         }
 
-        return binaryInWorkDir;
+        return new TerraformExecutable(binaryInWorkDir, false);
     }
 
     private void downloadAndUnpack(String toolUrl, Path dst) throws IOException {
@@ -146,7 +159,7 @@ public class TerraformBinaryResolver {
      */
     private Path findBinaryInPath() throws InterruptedException {
         try {
-            Process proc = new ProcessBuilder().command("which", "terraform")
+            Process proc = new ProcessBuilder().command(CMD_WHICH, "terraform")
                     .start();
 
             int code = proc.waitFor();
@@ -162,7 +175,14 @@ public class TerraformBinaryResolver {
                 if (s == null) {
                     throw new RuntimeException("Unable to locate terraform binary.");
                 }
-                return Paths.get(s.trim());
+
+                Path p = Paths.get(s.trim());
+
+                if (debug) {
+                    log.info("init -> using the existing PATH binary {}", p);
+                }
+
+                return p;
             }
         } catch (IOException e) {
             if (debug) {
@@ -170,6 +190,37 @@ public class TerraformBinaryResolver {
             }
             return null;
         }
+    }
+
+    private Path findInDockerContainerPath(String dockerImage) throws Exception {
+        TerraformDockerService.DockerContainerSpec spec = new TerraformDockerService.DockerContainerSpec()
+                .image(dockerImage)
+                .args(Arrays.asList(CMD_WHICH, "terraform"))
+                .debug(debug)
+                .pwd(Paths.get("/workspace"))
+                .forcePull(false) // TODO add a param to enable? if yes, then be careful to only force pull once
+                .env(Collections.emptyMap())
+                .pullRetryCount(3)
+                .pullRetryInterval(10);
+        Terraform.DockerLogCallback outLog = new Terraform.DockerLogCallback(CMD_WHICH, !debug);
+        Terraform.DockerLogCallback errLog = new Terraform.DockerLogCallback(CMD_WHICH, !debug);
+
+        int code = dockerService.start(spec, outLog, errLog);
+
+        if (code != 0) {
+            return null;
+        }
+
+        String fullLog = outLog.fullLog();
+        String firstLine = fullLog.substring(0, fullLog.indexOf('\n'));
+
+        Path p = Paths.get(firstLine.trim());
+
+        if (debug) {
+            log.info("init -> using the existing container binary {}", p);
+        }
+
+        return p;
     }
 
     private static String userToolUrl(Map<String, Object> cfg) {

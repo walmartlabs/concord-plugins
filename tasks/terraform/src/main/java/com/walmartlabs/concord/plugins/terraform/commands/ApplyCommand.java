@@ -22,11 +22,10 @@ package com.walmartlabs.concord.plugins.terraform.commands;
 
 import com.walmartlabs.concord.plugins.terraform.Terraform;
 import com.walmartlabs.concord.plugins.terraform.Terraform.Result;
-import com.walmartlabs.concord.plugins.terraform.VersionUtils;
+import com.walmartlabs.concord.plugins.terraform.TerraformArgs;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -53,19 +52,16 @@ public class ApplyCommand {
     }
 
     public Result exec(Terraform terraform) throws Exception {
-        List<String> args = new ArrayList<>();
-        boolean hasChdir = VersionUtils.ge(terraform, 0, 14, 0);
-        if (hasChdir && Files.isDirectory(dirOrPlan)) {
-            args.add("-chdir=" + dirOrPlan);
-        }
-        args.add("apply");
-        args.add("-input=false");
+        TerraformArgs args = terraform.buildArgs(Terraform.CliAction.APPLY,
+                (Files.isDirectory(dirOrPlan)) ? dirOrPlan : null);
+
+        args.add("-input", "false");
         args.add("-auto-approve");
 
-        userSuppliedVarFiles.forEach(f -> args.add("-var-file=" + f.toAbsolutePath()));
+        userSuppliedVarFiles.forEach(f -> args.add("-var-file", f));
 
         if (Files.isRegularFile(dirOrPlan)) {
-            args.add(dirOrPlan.toString());
+            args.add(dirOrPlan);
         }
 
         return terraform.exec(pwd, "\u001b[35mapply\u001b[0m", false, env, args);

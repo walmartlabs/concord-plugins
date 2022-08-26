@@ -25,8 +25,8 @@ import com.walmartlabs.concord.plugins.puppet.model.dbquery.DbQueryPayload;
 import com.walmartlabs.concord.plugins.puppet.model.exception.ConfigException;
 import com.walmartlabs.concord.sdk.MockContext;
 import com.walmartlabs.concord.sdk.SecretService;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,8 +34,8 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.*;
 
 public class ConfigurationTest {
@@ -43,7 +43,7 @@ public class ConfigurationTest {
 
     private MockContext ctx;
 
-    @Before
+    @BeforeEach
     public void setup() {
         Map<String, Object> cfg = new HashMap<>();
         cfg.put(Constants.Keys.DATABASE_URL_KEY, "https://example.com");
