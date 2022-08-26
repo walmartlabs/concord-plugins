@@ -95,9 +95,14 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.squareup.okhttp3</groupId>
+            <groupId>com.squareup.okhttp</groupId>
             <artifactId>okhttp</artifactId>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.walmartlabs.concord.runtime.v2</groupId>
+            <artifactId>concord-runner-v2</artifactId>
+            <version>${concord.version}</version>
         </dependency>
         <dependency>
             <groupId>ca.ibodrov.concord</groupId>
@@ -139,7 +144,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>2.21.0</version>
+                <version>3.0.0-M5</version>
                 <executions>
                     <execution>
                         <id>integration-test</id>

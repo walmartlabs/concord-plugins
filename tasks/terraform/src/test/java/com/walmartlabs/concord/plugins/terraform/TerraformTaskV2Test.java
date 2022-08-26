@@ -4,14 +4,14 @@ package com.walmartlabs.concord.plugins.terraform;
  * *****
  * Concord
  * -----
- * Copyright (C) 2017 - 2019 Walmart Inc.
+ * Copyright (C) 2017 - 2022 Walmart Inc., Concord Authors
  * -----
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,12 +20,16 @@ package com.walmartlabs.concord.plugins.terraform;
  * =====
  */
 
-import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
-import com.walmartlabs.concord.plugins.terraform.backend.BackendFactoryV1;
-import com.walmartlabs.concord.sdk.*;
+import com.squareup.okhttp.OkHttpClient;
+import com.walmartlabs.concord.ApiClient;
+import com.walmartlabs.concord.client.ApiClientConfiguration;
+import com.walmartlabs.concord.client.ApiClientFactory;
+import com.walmartlabs.concord.client.ConcordApiClient;
+import com.walmartlabs.concord.runtime.v2.sdk.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -37,7 +41,7 @@ import java.util.Map;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.*;
 
@@ -65,45 +69,57 @@ import static org.mockito.Mockito.*;
 // TODO: need to test destroy, computes are left in AWS
 // TODO: split test apart to prepare for testing OCI/GCP
 //
-
 @Disabled
-public class TerraformTaskTest extends AbstractTerraformTest {
-
+public class TerraformTaskV2Test extends AbstractTerraformTest {
+    private ApiClient apiClient;
     private SecretService secretService;
+    private final LockService lockService = mock(LockService.class);
 
     @BeforeEach
     public void setup() throws Exception {
         abstractSetup();
-        objectStorage = createObjectStorage(wireMockRule);
         secretService = createSecretService(workDir);
+
+        wireMockRule.stubFor(get(urlPathMatching("/api/v1/org/.*/jsonstore/.*"))
+                .willReturn(aResponse()
+                        .withHeader("keep_payload", Boolean.FALSE.toString())
+                        .withStatus(404)));
+        wireMockRule.stubFor(post(urlPathMatching("/api/v1/org/.*/jsonstore"))
+                .willReturn(aResponse()
+                        .withHeader("keep_payload", Boolean.FALSE.toString())
+                        .withStatus(200)));
+        wireMockRule.stubFor(post(urlPathMatching("/api/v1/org/.*/jsonstore/.*"))
+                .willReturn(aResponse()
+                        .withHeader("keep_payload", Boolean.TRUE.toString())
+                        .withStatus(200)));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void test() throws Exception {
         Map<String, Object> args = baseArguments(workDir, dstDir, Action.PLAN.name());
         args.put(TaskConstants.VARS_FILES, varFiles());
         args.put(TaskConstants.EXTRA_VARS_KEY, extraVars());
         args.put(TaskConstants.GIT_SSH_KEY, gitSsh());
 
-        Context ctx = new MockContext(args);
-        backendManager = new BackendFactoryV1(ctx, lockService, objectStorage);
+        String hostname = apiHostName();
+        String apiBaseUrl = String.format("http://%s:%s", hostname, wireMockRule.getPort());
 
-        TerraformTask t = new TerraformTask(secretService, lockService,
-                objectStorage, dependencyManager, dockerService);
+        apiClient = getApiClientFactory().create(ApiClientConfiguration.builder()
+                .baseUrl(apiBaseUrl)
+                .build());
 
-        t.execute(ctx);
-
-        // ---
-
-        Map<String, Object> result = (Map<String, Object>) ctx.getVariable(TaskConstants.RESULT_KEY);
-        assertTrue((boolean) result.get("ok"));
-        assertNotNull(result.get("planPath"));
+        TaskResult.SimpleResult result = (TaskResult.SimpleResult) task(args)
+                .execute(new MapBackedVariables(args));
 
         // ---
 
-        verify(lockService, times(1)).projectLock(any(), any());
-        verify(lockService, times(1)).projectUnlock(any(), any());
+        assertTrue(result.ok());
+        assertNotNull(result.values().get("planPath"));
+
+        // ---
+
+        verify(lockService, times(1)).projectLock(any());
+        verify(lockService, times(1)).projectUnlock(any());
 
         // ---
 
@@ -111,11 +127,9 @@ public class TerraformTaskTest extends AbstractTerraformTest {
 
         args = baseArguments(workDir, dstDir, Action.APPLY.name());
         args.put(TaskConstants.DESTROY_KEY, true);
-        args.put(TaskConstants.PLAN_KEY, result.get("planPath"));
+        args.put(TaskConstants.PLAN_KEY, result.values().get("planPath"));
 
-        ctx = new MockContext(args);
-        t.execute(ctx);
-        result = ContextUtils.getMap(ctx, "result");
+        result = (TaskResult.SimpleResult) task(args).execute(new MapBackedVariables(args));
         System.out.println(result);
 
         //
@@ -127,8 +141,8 @@ public class TerraformTaskTest extends AbstractTerraformTest {
         // name_from_varfile0 = "bob"
         // time_from_varfile1 = "now"
         //
-        assertOutput(".*name_from_varfile0 = \"?bob\"?.*", ((String) result.get("output")));
-        assertOutput(".*time_from_varfile1 = \"?now\"?.*", ((String) result.get("output")));
+        assertOutput(".*name_from_varfile0 = \"?bob\"?.*", ((String) result.values().get("output")));
+        assertOutput(".*time_from_varfile1 = \"?now\"?.*", ((String) result.values().get("output")));
 
         // ---
 
@@ -142,13 +156,11 @@ public class TerraformTaskTest extends AbstractTerraformTest {
         wireMockRule.stubFor(get("/test").willReturn(aResponse().withBody(terraformStateWithOutputs).withStatus(200)));
 
         args = baseArguments(workDir, dstDir, Action.OUTPUT.name());
-        ctx = new MockContext(args);
-        t.execute(ctx);
+        result = (TaskResult.SimpleResult) task(args).execute(new MapBackedVariables(args));
 
         // Validate expected output values were returned in 'data' attribute/key of 'result' variable
-        result = ContextUtils.getMap(ctx, "result");
-        String nameResult = findInMap(result, "data.name_from_varfile0.value");
-        String timeResult = findInMap(result, "data.time_from_varfile1.value");
+        String nameResult = findInMap(result.values(), "data.name_from_varfile0.value");
+        String timeResult = findInMap(result.values(), "data.time_from_varfile1.value");
 
         assertEquals("bob", nameResult);
         assertEquals("now", timeResult);
@@ -160,12 +172,39 @@ public class TerraformTaskTest extends AbstractTerraformTest {
         args = baseArguments(workDir, dstDir, Action.DESTROY.name());
         args.put(TaskConstants.VARS_FILES, varFiles());
         args.put(TaskConstants.EXTRA_VARS_KEY, extraVars());
-        ctx = new MockContext(args);
-        t.execute(ctx);
+        result = (TaskResult.SimpleResult) task(args).execute(new MapBackedVariables(args));
 
         // Validate result
-        result = ContextUtils.getMap(ctx, "result");
-        assertTrue(MapUtils.getBoolean(result, "ok", false));
+        assertTrue(result.ok());
+
+    }
+
+    private TerraformTaskV2 task(Map<String, Object> args) {
+        return new TerraformTaskV2(initCtx(args), apiClient, secretService, lockService,
+                dependencyManager, dockerService);
+    }
+
+    private Context initCtx(Map<String, Object> args) {
+        ProjectInfo projectInfo = mock(ProjectInfo.class);
+        when(projectInfo.orgName()).thenReturn("test-org");
+
+        ProcessInfo processInfo = mock(ProcessInfo.class);
+        when(processInfo.sessionToken()).thenReturn("faketoken");
+
+        ProcessConfiguration processCfg = mock(ProcessConfiguration.class);
+        when(processCfg.projectInfo()).thenReturn(projectInfo);
+        when(processCfg.processInfo()).thenReturn(processInfo);
+
+        Context ctx = mock(Context.class);
+        when(ctx.defaultVariables()).thenReturn(new MapBackedVariables(Collections.emptyMap())); // policy-defaults
+        when(ctx.variables()).thenReturn(new MapBackedVariables(Collections.emptyMap())); // process defaults (e.g. configuration.arguments
+        when(ctx.secretService()).thenReturn(secretService);
+        when(ctx.workingDirectory()).thenReturn(workDir);
+
+        when(ctx.processConfiguration()).thenReturn(processCfg);
+        when(ctx.processConfiguration().projectInfo()).thenReturn(projectInfo);
+
+        return ctx;
     }
 
     private static SecretService createSecretService(Path workDir) throws Exception {
@@ -184,26 +223,26 @@ public class TerraformTaskTest extends AbstractTerraformTest {
         Map<String, String> m = Collections.singletonMap("private", workDir.relativize(dst).toString());
 
         SecretService ss = mock(SecretService.class);
-        when(ss.exportKeyAsFile(any(), any(), any(), any(), any(), any())).thenReturn(m);
+        Mockito.doAnswer(invocationOnMock -> SecretService.KeyPair.builder()
+                .privateKey(dst)
+                .publicKey(Paths.get("we/dont/care"))
+                .build()).when(ss).exportKeyAsFile(any(), any(), any());
 
         return ss;
+
     }
 
-    public static ObjectStorage createObjectStorage(WireMockExtension wireMockRule) throws Exception {
-        String osAddress = String.format("http://%s:%s/test", apiHostName(), wireMockRule.getPort());
+    ApiClientFactory getApiClientFactory() {
+        return cfg -> {
+            ApiClient apiClient = new ConcordApiClient(cfg.baseUrl(), new OkHttpClient());
+            apiClient.setReadTimeout(60000);
+            apiClient.setConnectTimeout(10000);
+            apiClient.setWriteTimeout(60000);
 
-        wireMockRule.stubFor(get("/test").willReturn(aResponse()
-                .withHeader("keep_payload", Boolean.FALSE.toString())
-                .withStatus(404)));
-        wireMockRule.stubFor(post("/test").willReturn(aResponse()
-                .withHeader("keep_payload", Boolean.TRUE.toString())
-                .withStatus(200)));
+            apiClient.addDefaultHeader("X-Concord-Trace-Enabled", "true");
 
-        ObjectStorage os = mock(ObjectStorage.class);
-        when(os.createBucket(any(), anyString())).thenReturn(ImmutableBucketInfo.builder()
-                .address(osAddress)
-                .build());
-
-        return os;
+            apiClient.setApiKey(cfg.apiKey());
+            return apiClient;
+        };
     }
 }
