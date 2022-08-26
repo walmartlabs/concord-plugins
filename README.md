@@ -15,7 +15,6 @@ A collection of plugins for [Concord](https://concord.walmartlabs.com).
 - [packer](./tasks/packer) - [Packer](https://www.packer.io/) plugin
 - [puppet](./tasks/puppet) - [Puppet](https://puppet.com) plugin [[docs](https://concord.walmartlabs.com/docs/plugins-v2/puppet.html)]
 - [s3](./tasks/s3) - [S3](https://aws.amazon.com/s3/) plugin [[docs](https://concord.walmartlabs.com/docs/plugins-v2/s3.html)]
-- [taurus](./tasks/taurus) - [Taurus](https://gettaurus.org/) plugin [[docs](https://concord.walmartlabs.com/docs/plugins-v2/taurus.html)]
 - [terraform](./tasks/terraform) - [Terraform](https://www.terraform.io/) plugin [[docs](https://concord.walmartlabs.com/docs/plugins-v2/terraform.html)].
 - [zoom](./tasks/zoom) - [Zoom](https://marketplace.zoom.us/docs/api-reference/zoom-api) plugin [[docs](https://concord.walmartlabs.com/docs/plugins-v2/zoom.html)]
 
