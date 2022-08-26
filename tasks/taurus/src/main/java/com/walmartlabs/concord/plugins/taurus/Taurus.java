@@ -29,6 +29,7 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.HashMap;
@@ -52,10 +53,14 @@ public class Taurus {
     private final Path jmeterZip;
     private final List<Path> jmeterLibs;
     private final List<Path> jmeterExtFiles;
+    private final TaurusDockerService dockerService;
+    private final Path processWorkDir;
 
-    public Taurus(Path workDir, boolean useFakeHome, boolean useDummyPluginManagerCmd, String jmeterArchiveUrl, BinaryResolver binaryResolver) throws Exception {
+    public Taurus(Path workDir, boolean useFakeHome, boolean useDummyPluginManagerCmd, String jmeterArchiveUrl, BinaryResolver binaryResolver, TaurusDockerService dockerService) throws Exception {
         this.executor = Executors.newCachedThreadPool();
+        this.processWorkDir = workDir;
         this.defaultEnv = new HashMap<>();
+        this.dockerService = dockerService;
         this.jmeterZip = binaryResolver.resolve(jmeterArchiveUrl);
         this.jmeterExtFiles = new LinkedList<>();
         jmeterExtFiles.add(binaryResolver.resolve(Constants.DEPENDENCY_CASUTG));
@@ -94,6 +99,32 @@ public class Taurus {
         }
 
         return Result.ok(stdout.get(), stderr.get());
+    }
+
+    public Result execDocker(List<String> args, String logPrefix) throws Exception {
+        List<String> call = new LinkedList<>();
+//        call.add(Constants.BINARY_NAME);
+        call.addAll(args);
+//        call.add("-l");
+//        call.add("/workspace/.bzt/tmp/bzt.log");
+//        call.add("-o");
+//        call.add("settings.artifacts-dir=/workspace/.bzt/tmp");
+
+        TaurusDockerService.DockerContainerSpec spec = new TaurusDockerService.DockerContainerSpec()
+                .image("blazemeter/taurus:latest") // TODO parameterize
+                .args(call)
+                .debug(false)
+                .pwd(Paths.get("/workspace"))
+                .forcePull(false) // TODO add a param to enable? if yes, then be careful to only force pull once
+                .env(defaultEnv)
+                .pullRetryCount(3)
+                .pullRetryInterval(10);
+        TaurusDockerService.DockerLogCallback outLog = new TaurusDockerService.DockerLogCallback(logPrefix, false);
+        TaurusDockerService.DockerLogCallback errLog = new TaurusDockerService.DockerLogCallback(logPrefix, false);
+
+        int code = dockerService.start(spec, outLog, errLog);
+
+        return new Result(code == 0, code, outLog.fullLog(), errLog.fullLog(), "error executing in container");
     }
 
     private void init(Path workDir, boolean useDummyPluginManagerCmd) throws IOException {

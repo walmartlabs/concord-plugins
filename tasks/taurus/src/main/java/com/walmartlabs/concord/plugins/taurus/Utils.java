@@ -23,6 +23,7 @@ package com.walmartlabs.concord.plugins.taurus;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public final class Utils {
 
@@ -39,6 +40,10 @@ public final class Utils {
 
         Files.createDirectories(p);
         return p;
+    }
+
+    public static Path toContainerPath(Path processWorkDir, Path p) {
+        return Paths.get("/workspace").resolve(processWorkDir.relativize(p));
     }
 
     private Utils() {

@@ -27,13 +27,13 @@ import org.junit.jupiter.api.Test;
 public class TaurusTaskIT extends AbstractIT {
 
     @Test
-    public void test() throws Exception {
+    public void testV1() throws Exception {
         prepareScenario();
 
         Context ctx = new MockContext(getArgs());
 
         TestDependencyManager testDM = new TestDependencyManager("taurus");
-        TaurusTask t = new TaurusTask(testDM::resolve);
+        TaurusTask t = new TaurusTask(testDM::resolve, dockerService());
 
         t.execute(ctx);
     }

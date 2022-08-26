@@ -41,7 +41,7 @@ public class TaurusTaskV2IT extends AbstractIT {
         Mockito.when(ctx.defaultVariables()).thenReturn(new MapBackedVariables(Collections.emptyMap()));
 
         TestDependencyManager testDM = new TestDependencyManager("taurus");
-        TaurusTaskV2 t = new TaurusTaskV2(ctx, testDM::resolve);
+        TaurusTaskV2 t = new TaurusTaskV2(ctx, testDM::resolve, dockerService());
 
         t.execute(new MapBackedVariables(getArgs()));
     }

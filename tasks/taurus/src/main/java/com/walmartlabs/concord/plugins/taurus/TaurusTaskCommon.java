@@ -51,11 +51,11 @@ public class TaurusTaskCommon {
         this.workDir = workDir;
     }
 
-    public Taurus.Result execute(TaskParams in, BinaryResolver binaryResolver) throws Exception {
+    public Taurus.Result execute(TaskParams in, BinaryResolver binaryResolver, TaurusDockerService dockerService) throws Exception {
 
         // we're going to use a fake JMeter's PluginsManagerCMD script unless users specifically
         // ask us to download JMX plugins
-        Taurus taurus = new Taurus(workDir, in.useFakeHome(), !in.downloadPlugins(), in.jmeterArchiveUrl(), binaryResolver);
+        Taurus taurus = new Taurus(workDir, in.useFakeHome(), !in.downloadPlugins(), in.jmeterArchiveUrl(), binaryResolver, dockerService);
 
         Action action = in.action();
         switch (action) {
@@ -74,7 +74,7 @@ public class TaurusTaskCommon {
             List<String> args = new ArrayList<>();
 
             for (Path p : configPaths) {
-                args.add(p.toAbsolutePath().toString());
+                args.add(Utils.toContainerPath(workDir, p.toAbsolutePath()).toString());
             }
 
             if (in.verbose()) {
@@ -88,12 +88,12 @@ public class TaurusTaskCommon {
             }
 
             log.info("Starting Taurus execution....");
-            Taurus.Result r = taurus.exec(args, RUN_ACTION_LOG_PREFIX);
+            Taurus.Result r = taurus.execDocker(args, RUN_ACTION_LOG_PREFIX);
             if (r.getCode() != 0) {
                 throw new RuntimeException("Taurus execution finished with code " + r.getCode() + ": " + r.getStderr());
             }
 
-            log.info("No problems occurred during taurus execution. Completed with code: " + r.getCode());
+            log.info("No problems occurred during taurus execution. Completed with code: {}", r.getCode());
             return r;
         } catch (Exception e) {
             if (in.ignoreErrors()) {
@@ -117,7 +117,7 @@ public class TaurusTaskCommon {
         // set artifacts directory
         SimpleDateFormat fmt = new SimpleDateFormat("yyyy-MM-dd_HHmmss");
         Path artifactsDir = workDir.resolve("_attachments/taurus_" + fmt.format(new Date()));
-        settings.put("artifacts-dir", artifactsDir.toString());
+        settings.put("artifacts-dir", Utils.toContainerPath(workDir, artifactsDir).toString());
 
         // set the proxy
         String proxy = in.proxy();
@@ -129,10 +129,11 @@ public class TaurusTaskCommon {
 
         // set the path to JMeter
         Path jmeterPath = workDir.resolve(".bzt/jmeter-taurus/apache-jmeter-" + Version.getJMeterVersion() + "/bin/jmeter");
-        jmeter.put("path", jmeterPath.toString());
+        jmeter.put("path", Utils.toContainerPath(workDir, jmeterPath).toString());
 
         // set the JMeter's download link to a local copy
-        jmeter.put("download-link", "file://" + workDir + "/apache-jmeter.zip");
+        Path jmeterDownloadPath = Utils.toContainerPath(workDir, workDir.resolve("apache-jmeter.zip"));
+        jmeter.put("download-link", "file://" +  jmeterDownloadPath);
 
         Map<String, Object> modules = Collections.singletonMap("jmeter", jmeter);
 
@@ -174,7 +175,7 @@ public class TaurusTaskCommon {
             return p;
         }
 
-        throw new IllegalArgumentException("'" + CONFIGS_KEY + "' entries must be relative file paths or JSON/YAML objects. Got: " + v);
+        String err = String.format("'%s' entries must be relative file paths or JSON/YAML objects. Got: %s", CONFIGS_KEY, v);
+        throw new IllegalArgumentException(err);
     }
-
 }

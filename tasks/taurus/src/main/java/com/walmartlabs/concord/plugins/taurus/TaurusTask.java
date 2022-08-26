@@ -38,20 +38,42 @@ public class TaurusTask implements Task {
     @InjectVariable("taurusParams")
     private Map<String, Object> defaults;
     private final DependencyManager dependencyManager;
+    private final DockerService dockerService;
 
     @Inject
-    public TaurusTask(DependencyManager dependencyManager) {
+    public TaurusTask(DependencyManager dependencyManager, DockerService dockerService) {
         this.dependencyManager = dependencyManager;
+        this.dockerService = dockerService;
     }
 
     @Override
     public void execute(Context ctx) throws Exception {
         BinaryResolver binaryResolver = new BinaryResolver(url -> dependencyManager.resolve(URI.create(url)));
 
-        Taurus.Result result =
-                delegate(ctx).execute(TaskParams.of(new ContextVariables(ctx), defaults), binaryResolver);
+        Taurus.Result result = delegate(ctx)
+                .execute(TaskParams.of(new ContextVariables(ctx), defaults),
+                        binaryResolver, createTaurusDockerService(dockerService, ctx));
 
         ctx.setVariable("result", om.convertValue(result, Map.class));
+    }
+
+    private static TaurusDockerService createTaurusDockerService(DockerService dockerService, Context ctx) {
+        return (spec, logOut, logErr) -> dockerService.start(ctx, DockerContainerSpec.builder()
+                        .image(spec.image())
+                        .args(spec.args())
+                        .debug(spec.debug())
+                        .forcePull(spec.forcePull())
+                        .env(spec.env())
+                        .workdir(spec.pwd().toString())
+                        .redirectErrorStream(false)
+                        .options(DockerContainerSpec.Options.builder()
+                                .hosts(spec.extraDockerHosts())
+                                .build())
+                        .pullRetryCount(spec.pullRetryCount())
+                        .pullRetryInterval(spec.pullRetryInterval())
+                        .build(),
+                logOut::onLog,
+                logErr::onLog);
     }
 
     private static TaurusTaskCommon delegate(Context ctx) {

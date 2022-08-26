@@ -20,10 +20,7 @@ package com.walmartlabs.concord.plugins.taurus.v2;
  * =====
  */
 
-import com.walmartlabs.concord.plugins.taurus.BinaryResolver;
-import com.walmartlabs.concord.plugins.taurus.TaskParams;
-import com.walmartlabs.concord.plugins.taurus.Taurus;
-import com.walmartlabs.concord.plugins.taurus.TaurusTaskCommon;
+import com.walmartlabs.concord.plugins.taurus.*;
 import com.walmartlabs.concord.runtime.v2.sdk.*;
 
 import javax.inject.Inject;
@@ -36,20 +33,37 @@ public class TaurusTaskV2 implements Task {
     private final Context context;
     private final TaurusTaskCommon delegate;
     private final DependencyManager dependencyManager;
+    private final TaurusDockerService dockerService;
 
     @Inject
-    public TaurusTaskV2(Context context, DependencyManager dependencyManager) {
+    public TaurusTaskV2(Context context, DependencyManager dependencyManager, DockerService dockerService) {
         this.context = context;
         this.delegate = new TaurusTaskCommon(context.workingDirectory());
         this.dependencyManager = dependencyManager;
+        this.dockerService = (spec, logOut, logErr) -> dockerService.start(DockerContainerSpec.builder()
+                        .image(spec.image())
+                        .args(spec.args())
+                        .debug(spec.debug())
+                        .forcePull(spec.forcePull())
+                        .env(spec.env())
+                        .workdir(spec.pwd().toString())
+                        .redirectErrorStream(false)
+                        .options(DockerContainerSpec.Options.builder()
+                                .hosts(spec.extraDockerHosts())
+                                .build())
+                        .pullRetryCount(spec.pullRetryCount())
+                        .pullRetryInterval(spec.pullRetryInterval())
+                        .build(),
+                logOut::onLog,
+                logErr::onLog);
     }
 
     @Override
     public TaskResult execute(Variables input) throws Exception {
         BinaryResolver binaryResolver = new BinaryResolver(url -> dependencyManager.resolve(URI.create(url)));
 
-        Taurus.Result result =
-                delegate.execute(TaskParams.of(input, context.defaultVariables().toMap()), binaryResolver);
+        Taurus.Result result = delegate.execute(TaskParams.of(input, context.defaultVariables().toMap()),
+                                                binaryResolver, dockerService);
 
         return TaskResult.of(result.isOk(), result.getError())
                 .value("code", result.getCode())

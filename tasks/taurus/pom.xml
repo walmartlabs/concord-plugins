@@ -94,6 +94,11 @@
             <version>${concord.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.walmartlabs.concord.runtime.v2</groupId>
+            <artifactId>concord-runner-v2</artifactId>
+            <version>${concord.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

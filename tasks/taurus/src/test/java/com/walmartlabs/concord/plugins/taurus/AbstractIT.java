@@ -20,6 +20,7 @@ package com.walmartlabs.concord.plugins.taurus;
  * =====
  */
 
+import com.walmartlabs.concord.plugins.taurus.docker.DockerService;
 import org.junit.jupiter.api.BeforeEach;
 
 import java.io.IOException;
@@ -32,10 +33,12 @@ import java.util.*;
 public abstract class AbstractIT {
 
     private Path workDir;
+    private DockerService dockerService;
 
     @BeforeEach
     public void setup() throws IOException {
         this.workDir = Files.createTempDirectory("test");
+        this.dockerService = new DockerService(workDir, Collections.emptyList());
     }
 
     protected static Optional<String> envToOptional(String varName) {
@@ -50,6 +53,10 @@ public abstract class AbstractIT {
 
     protected Path workDir() {
         return this.workDir;
+    }
+
+    protected DockerService dockerService() {
+        return this.dockerService;
     }
 
     protected void prepareScenario() throws IOException, URISyntaxException {
