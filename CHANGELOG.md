@@ -23,6 +23,10 @@
 ([#74](https://github.com/walmartlabs/concord-plugins/pull/74));
 - taurus: plugin removed
 ([#91](https://github.com/walmartlabs/concord-plugins/pull/91));
+- git: log error message even if ignoreErrors specified
+([#81](https://github.com/walmartlabs/concord-plugins/pull/81));
+- git-task: default variables #76
+([#76](https://github.com/walmartlabs/concord-plugins/pull/76)).
 
 ## [1.41.0] - 2021-11-29
 
