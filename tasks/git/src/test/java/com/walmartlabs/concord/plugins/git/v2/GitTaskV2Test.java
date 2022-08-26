@@ -25,22 +25,20 @@ import com.walmartlabs.concord.common.secret.UsernamePassword;
 import com.walmartlabs.concord.plugins.git.GitTask;
 import com.walmartlabs.concord.plugins.git.TokenSecret;
 import com.walmartlabs.concord.plugins.git.Utils;
+import com.walmartlabs.concord.runtime.v2.sdk.Context;
 import com.walmartlabs.concord.runtime.v2.sdk.MapBackedVariables;
 import com.walmartlabs.concord.runtime.v2.sdk.SecretService;
 import com.walmartlabs.concord.runtime.v2.sdk.TaskResult;
-import com.walmartlabs.concord.runtime.v2.sdk.WorkingDirectory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class GitTaskV2Test {
 
@@ -63,7 +61,12 @@ public class GitTaskV2Test {
         input.put(GitTask.ACTION_KEY, GitTask.Action.CLONE.name());
         input.put(GitTask.GIT_URL, "https://github.com/walmartlabs/concord-plugins.git");
 
-        GitTaskV2 task = new GitTaskV2(mock(SecretService.class), new WorkingDirectory(workDir));
+        Context context = mock(Context.class);
+        when(context.secretService()).thenReturn(mock(SecretService.class));
+        when(context.workingDirectory()).thenReturn(workDir);
+        when(context.defaultVariables()).thenReturn(new MapBackedVariables(Collections.emptyMap()));
+
+        GitTaskV2 task = new GitTaskV2(context);
         TaskResult.SimpleResult result = task.execute(new MapBackedVariables(input));
         assertTrue(result.ok());
     }

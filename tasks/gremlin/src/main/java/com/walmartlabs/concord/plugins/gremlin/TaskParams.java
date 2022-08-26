@@ -677,7 +677,6 @@ public class TaskParams implements GremlinClientParams {
         return new MapBackedVariables(variablesMap);
     }
 
-
     public static <E extends Enum<E>> E assertEnum(Variables variables, String name, Class<E> enumData) {
         E result = getEnum(variables, name, enumData, null);
         if (result != null) {

@@ -22,10 +22,7 @@ package com.walmartlabs.concord.plugins.git.v1;
 
 import com.walmartlabs.concord.plugins.git.GitSecretService;
 import com.walmartlabs.concord.plugins.git.GitTask;
-import com.walmartlabs.concord.sdk.Context;
-import com.walmartlabs.concord.sdk.ContextUtils;
-import com.walmartlabs.concord.sdk.SecretService;
-import com.walmartlabs.concord.sdk.Task;
+import com.walmartlabs.concord.sdk.*;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -41,6 +38,9 @@ public class GitTaskV1 implements Task {
     private static final String OUT_KEY = "out";
     private static final String DEFAULT_OUT_VAR_KEY = "result";
 
+    @InjectVariable("gitParams")
+    private Map<String, Object> defaults;
+
     private final SecretService secretService;
 
     @Inject
@@ -51,7 +51,7 @@ public class GitTaskV1 implements Task {
     @Override
     public void execute(Context ctx) throws Exception {
         Map<String, Object> result = new GitTask(new SecretServiceV1(secretService, ctx), ContextUtils.getWorkDir(ctx))
-                .execute(ctx.toMap());
+                .execute(ctx.toMap(), defaults);
 
         String out = ContextUtils.getString(ctx, OUT_KEY, DEFAULT_OUT_VAR_KEY);
         ctx.setVariable(out, result);
