@@ -22,12 +22,11 @@ package com.walmartlabs.concord.plugins.terraform.commands;
 
 import com.walmartlabs.concord.plugins.terraform.Terraform;
 import com.walmartlabs.concord.plugins.terraform.Terraform.Result;
+import com.walmartlabs.concord.plugins.terraform.TerraformArgs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 public class OutputCommand {
@@ -52,15 +51,15 @@ public class OutputCommand {
     }
 
     public Result exec(Terraform terraform) throws Exception {
-        List<String> args = new ArrayList<>();
-        args.add("output");
+        TerraformArgs args = terraform.buildArgs(Terraform.CliAction.OUTPUT);
+
         args.add("-json");
 
         if (module != null) {
             if (debug) {
                 log.info("exec -> using module: {}", module);
             }
-            args.add("-module=" + module);
+            args.add("-module", module);
         }
 
         return terraform.exec(pwd, "\u001b[33moutput\u001b[0m", false, env, args);

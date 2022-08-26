@@ -25,8 +25,8 @@ import com.walmartlabs.concord.runtime.v2.sdk.Context;
 import com.walmartlabs.concord.runtime.v2.sdk.SecretService;
 import com.walmartlabs.concord.runtime.v2.sdk.TaskResult;
 import com.walmartlabs.concord.runtime.v2.sdk.Variables;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import javax.net.ssl.SSLHandshakeException;
@@ -34,7 +34,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 
 public class PuppetTaskV2Test extends AbstractApiTest {
@@ -47,7 +47,7 @@ public class PuppetTaskV2Test extends AbstractApiTest {
     private final Variables input = Mockito.mock(Variables.class);
     private final Variables defaults = Mockito.mock(Variables.class);
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         stubForDbQuery();
         stubForTokenCreate();

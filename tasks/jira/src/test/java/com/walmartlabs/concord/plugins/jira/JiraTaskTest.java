@@ -21,13 +21,16 @@ package com.walmartlabs.concord.plugins.jira;
  */
 
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.walmartlabs.concord.sdk.Context;
 import com.walmartlabs.concord.sdk.SecretService;
-import org.junit.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
@@ -37,22 +40,27 @@ import java.util.Map;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 public class JiraTaskTest {
-    @Rule
-    public WireMockRule rule = new WireMockRule(wireMockConfig()
-            .dynamicPort()
-            .notifier(new ConsoleNotifier(true)));
+
+    @RegisterExtension
+    static WireMockExtension rule = WireMockExtension.newInstance()
+            .options(wireMockConfig()
+                    .dynamicPort()
+                    .notifier(new ConsoleNotifier(true)))
+            .build();
 
     private JiraTask task;
-    private Context mockContext = mock(Context.class);
-    private SecretService secretService = Mockito.mock(SecretService.class);
+    private final Context mockContext = mock(Context.class);
+    private final SecretService secretService = Mockito.mock(SecretService.class);
     protected String response;
 
-    @Before
+    @BeforeEach
     public void setup() {
         task = new JiraTask(secretService);
         stubForBasicAuth();
@@ -60,11 +68,10 @@ public class JiraTaskTest {
         stubForAddAttachment();
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         response = null;
     }
-
 
     @Test
     public void testCreateIssueWithBasicAuth() throws Exception {
@@ -123,8 +130,8 @@ public class JiraTaskTest {
 
         task.execute(mockContext);
 
-        Assert.assertNotNull(response);
-        Assert.assertEquals("Open", response);
+        assertNotNull(response);
+        assertEquals("Open1", response);
     }
 
 

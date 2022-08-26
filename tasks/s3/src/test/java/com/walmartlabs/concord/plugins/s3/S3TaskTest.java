@@ -22,8 +22,8 @@ package com.walmartlabs.concord.plugins.s3;
 
 import com.walmartlabs.concord.sdk.MockContext;
 import com.walmartlabs.concord.sdk.Task;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -31,11 +31,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static com.walmartlabs.concord.plugins.s3.TaskParams.*;
+import static com.walmartlabs.concord.plugins.s3.TaskParams.ACTION_KEY;
+import static com.walmartlabs.concord.plugins.s3.TaskParams.PutObjectParams;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@Ignore
+@Disabled
 public class S3TaskTest {
 
     @Test

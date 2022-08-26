@@ -30,65 +30,91 @@ import com.walmartlabs.concord.runtime.v2.sdk.SecretService;
 import com.walmartlabs.concord.runtime.v2.sdk.TaskResult.SimpleResult;
 import com.walmartlabs.concord.runtime.v2.sdk.Variables;
 import com.walmartlabs.concord.sdk.MapUtils;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
-public class HashiVaultTaskV2Test extends AbstractVaultTest {
+class HashiVaultTaskV2Test extends AbstractVaultTest {
 
     @Test
-    public void testReadTokenFromSecretV2() throws Exception {
+    void testReadTokenFromSecretV2() throws Exception {
         Map<String, Object> varMap = new HashMap<>();
         Map<String, Object> secretInfo = new HashMap<>(3);
         secretInfo.put("org", "my-org");
         secretInfo.put("name", "my-secret");
         varMap.put("apiTokenSecret", secretInfo);
-        varMap.put("baseUrl", getBaseUrl());
+        varMap.put("baseUrl", getVaultBaseUrl());
         varMap.put("path", "cubbyhole/hello");
 
         Variables vars = new MapBackedVariables(varMap);
         SimpleResult result = getTask(false).execute(vars);
 
-        Assert.assertTrue(result.ok());
+        assertTrue(result.ok());
         final Map<String, Object> data = MapUtils.assertMap(result.values(), "data");
         assertEquals("cubbyVal", data.get("cubbyKey"));
     }
 
     @Test
-    public void testCubbyV2() throws Exception {
+    void testCubbyV2() throws Exception {
         Map<String, Object> varMap = new HashMap<>();
         varMap.put("path", "cubbyhole/hello");
 
         Variables vars = new MapBackedVariables(varMap);
         SimpleResult result = getTask(true).execute(vars);
 
-        Assert.assertTrue(result.ok());
+        assertTrue(result.ok());
         final Map<String, Object> data = MapUtils.assertMap(result.values(), "data");
         assertEquals("cubbyVal", data.get("cubbyKey"));
     }
 
     @Test
-    public void testKvV2() throws Exception {
+    void testKvV2() throws Exception {
         Map<String, Object> varMap = new HashMap<>();
         varMap.put("path", "secret/testing");
 
         Variables vars = new MapBackedVariables(varMap);
         SimpleResult result = getTask(true).execute(vars);
 
-        Assert.assertTrue(result.ok());
+        assertTrue(result.ok());
         final Map<String, Object> data = MapUtils.assertMap(result.values(), "data");
         assertEquals("password1", data.get("top_secret"));
         assertEquals("dbpassword1", data.get("db_password"));
     }
 
     @Test
-    public void testReadKvSingleV2() throws Exception {
+    void testIgnoreSslVerificationV2() throws Exception {
+        Map<String, Object> varMap = new HashMap<>();
+        varMap.put("baseUrl", getVaultHttpsBaseUrl());
+        varMap.put("path", "secret/testing");
+        Variables vars = new MapBackedVariables(varMap);
+
+        // -- expect ssl verification failure with self-signed certs
+
+        try {
+            getTask(true).execute(vars);
+            fail("HTTPS should fail with self-signed certs and verification enabled");
+        } catch (Exception e) {
+            // carry on
+        }
+
+        // -- should work with verification disabled
+
+        varMap.put("verifySsl", false);
+
+        SimpleResult result = getTask(true).execute(vars);
+
+        assertTrue(result.ok());
+        final Map<String, Object> data = MapUtils.assertMap(result.values(), "data");
+        assertEquals("password1", data.get("top_secret"));
+        assertEquals("dbpassword1", data.get("db_password"));
+    }
+
+    @Test
+    void testReadKvSingleV2() throws Exception {
         Map<String, Object> varMap = new HashMap<>();
         varMap.put("path", "secret/testing");
         varMap.put("key", "db_password");
@@ -96,23 +122,23 @@ public class HashiVaultTaskV2Test extends AbstractVaultTest {
         Variables vars = new MapBackedVariables(varMap);
         SimpleResult result = getTask(true).execute(vars);
 
-        Assert.assertTrue(result.ok());
+        assertTrue(result.ok());
         final String data = MapUtils.getString(result.values(), "data");
         assertEquals("dbpassword1", data);
     }
 
     @Test
-    public void testWriteCubbyV2() throws Exception {
+    void testWriteCubbyV2() throws Exception {
         writeAndRead("cubbyhole/newSecretTaskV2", "v2CubbyExecute");
     }
 
     @Test
-    public void testWriteKvV2() throws Exception {
+    void testWriteKvV2() throws Exception {
         writeAndRead("secret/newSecretTaskV2", "v2SecretExecute");
     }
 
     @Test
-    public void testReadKvSinglePublicMethodV2() {
+    void testReadKvSinglePublicMethodV2() {
         String path = "secret/testing";
         String result = getTask(true).readKV(path, "db_password");
 
@@ -120,7 +146,7 @@ public class HashiVaultTaskV2Test extends AbstractVaultTest {
     }
 
     @Test
-    public void testWriteCubbyPublicMethodV2() {
+    void testWriteCubbyPublicMethodV2() {
         String path = "cubbyhole/newSecretTaskPublicMethodV2";
         Map<String, Object> kvPairs = new HashMap<>();
         kvPairs.put("key1", "cubbyValue1");
@@ -139,7 +165,7 @@ public class HashiVaultTaskV2Test extends AbstractVaultTest {
     }
 
     @Test
-    public void testWriteKvPublicMethodV2() {
+    void testWriteKvPublicMethodV2() {
         String path = "secret/newSecretTaskPublicMethodV2";
         Map<String, Object> kvPairs = new HashMap<>();
         kvPairs.put("key1", "value1");
@@ -197,7 +223,7 @@ public class HashiVaultTaskV2Test extends AbstractVaultTest {
 
         if (setDefaults) {
             Map<String, Object> defaults = new HashMap<>();
-            defaults.put("baseUrl", getBaseUrl());
+            defaults.put("baseUrl", getVaultBaseUrl());
             defaults.put("apiToken", getApiToken());
 
             vars.put("hashivaultParams", defaults);
