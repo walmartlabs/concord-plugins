@@ -19,8 +19,10 @@
 ([#85](https://github.com/walmartlabs/concord-plugins/pull/85));
 - terraform: support for executing in a container
 ([#89](https://github.com/walmartlabs/concord-plugins/pull/89));
-- hashivault: fix verifySsl option (#74)
-([#74](https://github.com/walmartlabs/concord-plugins/pull/74)).
+- hashivault: fix verifySsl option
+([#74](https://github.com/walmartlabs/concord-plugins/pull/74));
+- taurus: plugin removed
+([#91](https://github.com/walmartlabs/concord-plugins/pull/91));
 
 ## [1.41.0] - 2021-11-29
 
