@@ -39,7 +39,7 @@ import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class CommonIT {
+class CommonIT {
 
     private Map<String, Object> itsProps;
 
@@ -51,26 +51,36 @@ public class CommonIT {
     }
 
     @Test
-    public void testCreateUpdateGet() {
+    void testWithAuth() {
+        testCreateUpdateGet(null);
+    }
+
+    @Test
+    void testWithAccessToken() {
+        final String accessToken = createAccessToken();
+
+        testCreateUpdateGet(accessToken);
+    }
+
+    void testCreateUpdateGet(String accessToken) {
         final String path1 = String.join("/", testPath, randomString(6));
         final String value1 = randomString(10);
         final String path2 = String.join("/", testPath, randomString(6));
         final String value2 = randomString(10);
 
-        createSecret(path1, value1);
-        createSecret(path2, value2);
+        createSecret(path1, value1, accessToken);
+        createSecret(path2, value2, accessToken);
 
-        getSecret(path1, value1);
+        getSecret(path1, value1, accessToken);
 
-        getSecrets(path1, value1, path2, value2);
+        getSecrets(path1, value1, path2, value2, accessToken);
 
-        updateSecret(path1, value1 + "_new");
-        getSecret(path1, value1 + "_new");
+        updateSecret(path1, value1 + "_new", accessToken);
+        getSecret(path1, value1 + "_new", accessToken);
 
-        deleteItem(path1);
-        deleteItem(path2);
+        deleteItem(path1, accessToken);
+        deleteItem(path2, accessToken);
     }
-
 
     private String randomString(int len) {
         int lower = 97; // 'a'
@@ -90,16 +100,38 @@ public class CommonIT {
         return Collections.singletonMap("apiKey", cfg);
     }
 
-    private void createSecret(String path, String value) {
+    private String createAccessToken() {
+        Map<String, Object> cfg = baseConfig();
+        cfg.put("apiBasePath", getITsProp("apiBasePath"));
+        cfg.put("auth", createAuth());
+        cfg.put("action", "auth");
+
+        TaskParams params = TaskParamsImpl.of(cfg, Collections.emptyMap(), Collections.emptyMap(), null);
+        AkeylessTaskResult result = new AkeylessCommon().execute(params);
+
+        assertTrue(result.getOk());
+        Map<String, String> data = result.getData();
+
+        String token = data.get("accessToken");
+        assertNotNull(token);
+
+        return token;
+    }
+
+    private void createSecret(String path, String value, String accessToken) {
         Map<String, Object> cfg = baseConfig();
 
         cfg.put("apiBasePath", getITsProp("apiBasePath"));
-        cfg.put("auth", createAuth());
         cfg.put("action", "createSecret");
         cfg.put("path", path);
         cfg.put("description", "Description for " + path);
         cfg.put("value", value);
         cfg.put("multiline", false);
+        if (Objects.isNull(accessToken)) {
+            cfg.put("auth", createAuth());
+        } else {
+            cfg.put("accessToken", accessToken);
+        }
 
         TaskParams params = TaskParamsImpl.of(cfg, Collections.emptyMap(), Collections.emptyMap(), null);
         AkeylessTaskResult result = new AkeylessCommon().execute(params);
@@ -108,41 +140,47 @@ public class CommonIT {
         Map<String, String> data = result.getData();
     }
 
-    public void updateSecret(String path, String value) {
+    public void updateSecret(String path, String value, String accessToken) {
         Map<String, Object> cfg = baseConfig();
 
         cfg.put("apiBasePath", getITsProp("apiBasePath"));
-        cfg.put("auth", createAuth());
         cfg.put("action", "updateSecret");
         cfg.put("path", path);
         cfg.put("value", value);
         cfg.put("multiline", false);
         cfg.put("keepPreviousVersion", false);
+        if (Objects.isNull(accessToken)) {
+            cfg.put("auth", createAuth());
+        } else {
+            cfg.put("accessToken", accessToken);
+        }
 
         TaskParams params = TaskParamsImpl.of(cfg, Collections.emptyMap(), Collections.emptyMap(), null);
         AkeylessTaskResult result = new AkeylessCommon().execute(params);
 
         assertTrue(result.getOk());
-        Map<String, String> data = result.getData();
     }
 
-    public void deleteItem(String path) {
+    public void deleteItem(String path, String accessToken) {
         Map<String, Object> cfg = baseConfig();
 
         cfg.put("apiBasePath", getITsProp("apiBasePath"));
-        cfg.put("auth", createAuth());
         cfg.put("action", "deleteItem");
         cfg.put("path", path);
         cfg.put("deleteImmediately", true);
+        if (Objects.isNull(accessToken)) {
+            cfg.put("auth", createAuth());
+        } else {
+            cfg.put("accessToken", accessToken);
+        }
 
         TaskParams params = TaskParamsImpl.of(cfg, Collections.emptyMap(), Collections.emptyMap(), null);
         AkeylessTaskResult result = new AkeylessCommon().execute(params);
 
         assertTrue(result.getOk());
-        Map<String, String> data = result.getData();
     }
 
-    public void getSecrets(String path1, String expected1, String path2, String expected2) {
+    public void getSecrets(String path1, String expected1, String path2, String expected2, String accessToken) {
         Map<String, Object> cfg = baseConfig();
 
         cfg.put("apiBasePath", getITsProp("apiBasePath"));
@@ -153,9 +191,13 @@ public class CommonIT {
 
         Map<String, Object> auth = Collections.singletonMap("apiKey", apiKey);
 
-        cfg.put("auth", auth);
         cfg.put("action", "getSecrets");
         cfg.put("paths", Arrays.asList(path1, path2));
+        if (Objects.isNull(accessToken)) {
+            cfg.put("auth", createAuth());
+        } else {
+            cfg.put("accessToken", accessToken);
+        }
 
         TaskParams params = TaskParamsImpl.of(cfg, Collections.emptyMap(), Collections.emptyMap(), null);
         AkeylessTaskResult result = new AkeylessCommon().execute(params);
@@ -168,7 +210,7 @@ public class CommonIT {
         assertEquals(expected2, data.get(path2));
     }
 
-    public void getSecret(String path, String expectedValue) {
+    public void getSecret(String path, String expectedValue, String accessToken) {
         Map<String, Object> cfg = baseConfig();
 
         cfg.put("apiBasePath", getITsProp("apiBasePath"));
@@ -179,9 +221,13 @@ public class CommonIT {
 
         Map<String, Object> auth = Collections.singletonMap("apiKey", apiKey);
 
-        cfg.put("auth", auth);
         cfg.put("action", "getSecret");
         cfg.put("path", path);
+        if (Objects.isNull(accessToken)) {
+            cfg.put("auth", createAuth());
+        } else {
+            cfg.put("accessToken", accessToken);
+        }
 
         TaskParams params = TaskParamsImpl.of(cfg, Collections.emptyMap(), Collections.emptyMap(), null);
         AkeylessTaskResult result = new AkeylessCommon().execute(params);

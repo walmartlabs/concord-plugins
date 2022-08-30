@@ -39,6 +39,7 @@ public class TaskParamsImpl implements TaskParams {
     private static final String SESSION_TOKEN_KEY = "sessionToken";
     private static final String TX_ID_KEY = "txId";
     private static final String AUTH_KEY = "auth";
+    private static final String ACCESS_TOKEN = "accessToken";
 
     private static final Map<String, BiFunction<Variables, SecretExporter, Auth>> authBuilders = createAuthBuilders();
     private static SecretCache secretCache;
@@ -57,6 +58,10 @@ public class TaskParamsImpl implements TaskParams {
         TaskParams params;
 
         switch (TaskParamsImpl.action(vars)) {
+            case AUTH: {
+                params = new TaskParamsImpl(vars, secretExporter);
+                break;
+            }
             case GETSECRET: {
                 params = new GetSecretParamsImpl(vars, secretExporter);
                 break;
@@ -138,6 +143,49 @@ public class TaskParamsImpl implements TaskParams {
         return action(input);
     }
 
+    /**
+     * @param o Input value with may be a String or Map of Concord secret
+     *          info (org, name, password)
+     * @param secretExporter for access Concord's Secrets API
+     * @return String value from direct input or exported Secret value
+     */
+    @SuppressWarnings("unchecked")
+    private static String stringOrSecret(Object o, SecretExporter secretExporter) {
+        if (o instanceof String) {
+            return (String) o;
+        }
+
+        if (! (o instanceof Map)) {
+            throw new IllegalArgumentException("Invalid data type given for sensitive argument. Must be string or map.");
+        }
+
+        ((Map<?, ?>) o).forEach((key, value) -> {
+            if (!(key instanceof String)) {
+                throw new IllegalArgumentException("Non-string key used for secret definition");
+            }
+
+            if (!(value instanceof String)) {
+                throw new IllegalArgumentException("Non-string value used for secret definition");
+            }
+        });
+
+        return exportSecret((Map<String, String>) o, secretExporter);
+    }
+
+    private static String exportSecret(Map<String, String> secretInfo, SecretExporter secretExporter) {
+        final String o = secretInfo.get("org");
+        final String n = secretInfo.get("name");
+        final String p = secretInfo.getOrDefault("password", null);
+
+        return secretCache.get(o + n, () -> {
+            try {
+                return secretExporter.exportAsString(o, n, p);
+            } catch (Exception e) {
+                throw new RuntimeException(String.format("Error exporting secret '%s/%s': %s", o, n, e.getMessage()), e);
+            }
+        });
+    }
+
     @Override
     public Auth auth() {
         Map<String, Object> auth = input.assertMap(AUTH_KEY);
@@ -160,6 +208,13 @@ public class TaskParamsImpl implements TaskParams {
         return builder.apply(new MapBackedVariables(authTypeParams), secretExporter);
     }
 
+    @Override
+    public String accessToken() {
+        String fromInput = input.getString(ACCESS_TOKEN);
+
+        return Objects.isNull(fromInput) ? null : stringOrSecret(fromInput, secretExporter);
+    }
+
     private static class ApiKeyAuthImpl extends Auth {
         private static final String ACCESS_ID_KEY = "accessId";
         private static final String ACCESS_KEY_KEY = "accessKey";
@@ -168,49 +223,6 @@ public class TaskParamsImpl implements TaskParams {
             return new Auth()
                     .accessId(stringOrSecret(vars.get(ACCESS_ID_KEY), secretExporter))
                     .accessKey(stringOrSecret(vars.get(ACCESS_KEY_KEY), secretExporter));
-        }
-
-        /**
-         * @param o Input value with may be a String or Map of Concord secret
-         *          info (org, name, password)
-         * @param secretExporter for access Concord's Secrets API
-         * @return String value from direct input or exported Secret value
-         */
-        @SuppressWarnings("unchecked")
-        private static String stringOrSecret(Object o, SecretExporter secretExporter) {
-            if (o instanceof String) {
-                return (String) o;
-            }
-            
-            if (! (o instanceof Map)) {
-                throw new IllegalArgumentException("Invalid data type given for sensitive argument. Must be string or map.");
-            }
-
-            ((Map<?, ?>) o).forEach((key, value) -> {
-                if (!(key instanceof String)) {
-                    throw new IllegalArgumentException("Non-string key used for secret definition");
-                }
-
-                if (!(value instanceof String)) {
-                    throw new IllegalArgumentException("Non-string value used for secret definition");
-                }
-            });
-
-            return exportSecret((Map<String, String>) o, secretExporter);
-        }
-
-        private static String exportSecret(Map<String, String> secretInfo, SecretExporter secretExporter) {
-            final String o = secretInfo.get("org");
-            final String n = secretInfo.get("name");
-            final String p = secretInfo.getOrDefault("password", null);
-
-            return secretCache.get(o + n, () -> {
-                try {
-                    return secretExporter.exportAsString(o, n, p);
-                } catch (Exception e) {
-                    throw new RuntimeException(String.format("Error exporting secret '%s/%s': %s", o, n, e.getMessage()), e);
-                }
-            });
         }
     }
 

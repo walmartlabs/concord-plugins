@@ -1,7 +1,7 @@
 configuration:
   runtime: concord-v2
   dependencies:
-    - mvn://com.walmartlabs.concord.plugins:akeyless-task:1.41.1-SNAPSHOT
+    - mvn://com.walmartlabs.concord.plugins:akeyless-task:1.42.1-SNAPSHOT
   arguments:
     akeylessParams:
       apiBasePath: 'https://api.akeyless.io'
@@ -24,6 +24,18 @@ flows:
         - log: "result5: ${akeyless.getSecret('/second-secret')}"
 
   default:
+    # Get an API access token
+    - name: "Get API access token"
+      task: akeyless
+      in:
+        action: auth
+      out: authResult
+    - if: "${!authResult.ok}"
+      then:
+        - throw: "Failed to get access token: ${authResult.error}"
+    - "${akeylessParams.put('accessToken', authResult.data.accessToken)}"
+
+
     # Create two secrets
     - name: "Create first secret"
       task: akeyless
