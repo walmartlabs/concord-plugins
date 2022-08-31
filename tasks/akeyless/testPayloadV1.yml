@@ -14,6 +14,14 @@ configuration:
 
 flows:
   default:
+    # Get an API access token
+    - task: akeyless
+      in:
+        action: auth
+      out:
+        authResult: "${result}"
+
+
     # Create two secrets
     - task: akeyless
       in:
@@ -29,6 +37,11 @@ flows:
         value: "value2"
         description: "Description for secret 2"
         multiline: false
+
+
+    # Update default params with access token
+    - "${akeylessParams.put('accessToken', authResult.accessToken)}"
+
 
     # Get and validate one secret
     - task: akeyless

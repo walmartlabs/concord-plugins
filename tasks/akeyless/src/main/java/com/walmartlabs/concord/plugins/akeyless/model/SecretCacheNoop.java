@@ -31,12 +31,12 @@ public class SecretCacheNoop implements SecretCache {
     }
 
     @Override
-    public String get(String key, Supplier<String> lookup) {
+    public String get(String org, String name, Supplier<String> lookup) {
         return lookup.get();
     }
 
     @Override
-    public void put(String key, String value) {
+    public void put(String org, String name, String value) {
         // no cache in noop
     }
 }

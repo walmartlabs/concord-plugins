@@ -44,6 +44,9 @@ public class AkeylessCommon {
         Util.debug(params.debug(), log, String.format("Action: %s", params.action()));
 
         switch (params.action()) {
+            case AUTH: {
+                return auth(params);
+            }
             case GETSECRET: {
                 return getSecret((TaskParams.GetSecretParams) params);
             }
@@ -74,13 +77,26 @@ public class AkeylessCommon {
         return new V2Api(apiClient);
     }
 
+    private AkeylessTaskResult auth(TaskParams params) {
+        V2Api api = getApi(params);
+
+        try {
+            AuthOutput authOutput = authenticate(api);
+            Map<String, String> data = Collections.singletonMap("accessToken", authOutput.getToken());
+            return AkeylessTaskResult.of(true, data, null);
+        } catch (ApiException e) {
+            log.error("Error authenticating with akeyless server", e);
+            throw new RuntimeException(e);
+        }
+    }
+
     private Map<String, String> getSecrets(TaskParams params, List<String> paths) {
         V2Api api = getApi(params);
 
         try {
-            AuthOutput authResult = authenticate(api);
+            String accessToken = getAccessToken(api);
             GetSecretValue body = new GetSecretValue()
-                    .token(authResult.getToken());
+                    .token(accessToken);
 
             for (String path : paths) {
                 body.addNamesItem(path);
@@ -128,10 +144,10 @@ public class AkeylessCommon {
 
         try {
             V2Api api = getApi(params);
-            AuthOutput auth = authenticate(api);
+            String accessToken = getAccessToken(api);
 
             api.createSecret(new CreateSecret()
-                    .token(auth.getToken())
+                    .token(accessToken)
                     .name(params.path())
                     .value(params.value())
                     .metadata(params.description())
@@ -150,10 +166,10 @@ public class AkeylessCommon {
 
         try {
             V2Api api = getApi(params);
-            AuthOutput auth = authenticate(api);
+            String accessToken = getAccessToken(api);
 
             api.updateSecretVal(new UpdateSecretVal()
-                    .token(auth.getToken())
+                    .token(accessToken)
                     .value(params.value())
                     .name(params.path())
                     .multiline(params.multiline())
@@ -172,10 +188,10 @@ public class AkeylessCommon {
 
         try {
             V2Api api = getApi(params);
-            AuthOutput auth = authenticate(api);
+            String accessToken = getAccessToken(api);
 
             api.deleteItem(new DeleteItem()
-                    .token(auth.getToken())
+                    .token(accessToken)
                     .name(params.path())
                     .version(params.version())
                     .deleteImmediately(params.deleteImmediately())
@@ -186,6 +202,19 @@ public class AkeylessCommon {
             log.error("Error deleting akeyless item", e);
             throw new RuntimeException(e);
         }
+    }
+
+    private String getAccessToken(V2Api api) throws ApiException {
+        String accessToken = params.accessToken();
+
+        if (accessToken != null) {
+            Util.debug(params.debug(), log, "Using provided accessToken: ****");
+            return accessToken;
+        }
+
+        Util.debug(params.debug(), log, "Using 'auth' param to retrieve an access token.");
+
+        return authenticate(api).getToken();
     }
 
     private AuthOutput authenticate(V2Api api) throws ApiException {

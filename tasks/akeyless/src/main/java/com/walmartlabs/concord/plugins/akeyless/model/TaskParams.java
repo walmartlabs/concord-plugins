@@ -78,6 +78,7 @@ public interface TaskParams {
     String sessionId();
     String txId();
     Auth auth();
+    String accessToken();
 
     interface GetSecretParams extends TaskParams {
         String path();
@@ -104,7 +105,6 @@ public interface TaskParams {
         String path();
         String value();
         String protectionKey();
-
         Boolean multiline();
 
         @Value.Default
@@ -114,7 +114,6 @@ public interface TaskParams {
     }
 
     interface DeleteItemParams extends TaskParams {
-
         String path();
         Integer version();
         boolean deleteImmediately();
@@ -122,6 +121,7 @@ public interface TaskParams {
     }
 
     enum Action {
+        AUTH,
         CREATESECRET,
         DELETEITEM,
         GETSECRET,

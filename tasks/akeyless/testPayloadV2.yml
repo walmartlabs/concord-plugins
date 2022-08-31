@@ -22,6 +22,17 @@ flows:
         - log: "result5: ${akeyless.getSecret('/second-secret')}"
 
   default:
+    # Get an API access token
+    - name: "Get API access token"
+      task: akeyless
+      in:
+        action: auth
+      out: authResult
+    - if: "${!authResult.ok}"
+      then:
+        - throw: "Failed to get access token: ${authResult.error}"
+
+
     # Create two secrets
     - name: "Create first secret"
       task: akeyless
@@ -39,6 +50,10 @@ flows:
         value: "value2"
         description: "Description for secret 2"
         multiline: false
+
+
+    - name: "Update default params with access token"
+      expr: "${akeylessParams.put('accessToken', authResult.data.accessToken)}"
 
 
     # Get and validate one secret
