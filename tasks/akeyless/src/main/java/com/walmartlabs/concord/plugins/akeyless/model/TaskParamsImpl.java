@@ -176,9 +176,8 @@ public class TaskParamsImpl implements TaskParams {
         final String o = secretInfo.get("org");
         final String n = secretInfo.get("name");
         final String p = secretInfo.getOrDefault("password", null);
-        final String cacheKey = String.format("%s/%s", o, n);
 
-        return secretCache.get(cacheKey, () -> {
+        return secretCache.get(o, n, () -> {
             try {
                 return secretExporter.exportAsString(o, n, p);
             } catch (Exception e) {

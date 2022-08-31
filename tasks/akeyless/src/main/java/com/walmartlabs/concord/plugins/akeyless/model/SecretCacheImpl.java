@@ -60,17 +60,24 @@ public class SecretCacheImpl implements SecretCache {
     }
 
     @Override
-    public String get(String key, Supplier<String> lookup) {
-        String hash = Util.hash(key + salt);
+    public String get(String org, String name, Supplier<String> lookup) {
+        final String cacheKey = buildKey(org, name, salt);
+        final String hash = Util.hash(cacheKey);
 
         return data.computeIfAbsent(hash, k -> {
-            Util.debug(debug, log, "secret cache miss");
+            Util.debug(debug, log, String.format("secret cache miss: %s/%s", org, name));
             return lookup.get();
         });
     }
 
     @Override
-    public void put(String key, String value) {
-        data.put(Util.hash(key + salt), value);
+    public void put(String org, String name, String value) {
+        final String cacheKey = buildKey(org, name, salt);
+
+        data.put(Util.hash(cacheKey), value);
+    }
+
+    private static String buildKey(String org, String name, String salt) {
+        return String.format("%s/%s/%s", org, salt, name);
     }
 }

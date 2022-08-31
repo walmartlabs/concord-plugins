@@ -18,8 +18,8 @@ flows:
     - task: akeyless
       in:
         action: auth
-    - log: "result: ${resource.prettyPrintJson(result)}"
-    - "${akeylessParams.put('accessToken', result.accessToken)}"
+      out:
+        authResult: "${result}"
 
 
     # Create two secrets
@@ -37,6 +37,10 @@ flows:
         value: "value2"
         description: "Description for secret 2"
         multiline: false
+
+
+    # Update default params with access token
+    - "${akeylessParams.put('accessToken', authResult.accessToken)}"
 
 
     # Get and validate one secret
