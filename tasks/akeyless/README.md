@@ -62,12 +62,14 @@ $ IT_PROPERTIES_FILE=~/my_it_props/akeyless.props mvn -DskipAkeylessITs=false cl
 # or 
 $ IT_PROPERTIES_FILE=~/my_it_props/akeyless.props mvn -DskipAkeylessITs=false failsafe:integration-test
 
-[INFO] -------------------------------------------------------
-[INFO]  T E S T S
-[INFO] -------------------------------------------------------
-[INFO] Running com.walmartlabs.concord.plugins.akeyless.it.CommonIT
-[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.949 s - in com.walmartlabs.concord.plugins.akeyless.it.CommonIT
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0
 [INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  01:03 min
+[INFO] Finished at: 2022-08-31T11:02:00-05:00
+[INFO] ------------------------------------------------------------------------
 ```
 
 ## Testing via Payload

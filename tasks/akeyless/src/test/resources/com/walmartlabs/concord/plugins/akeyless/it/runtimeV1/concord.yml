@@ -1,0 +1,112 @@
+configuration:
+  runtime: "concord-v1"
+  dependencies:
+    - "mvn://com.walmartlabs.concord.plugins:akeyless-task:%%version%%"
+  arguments:
+    akeylessParams:
+      apiBasePath: 'https://api.akeyless.io'
+      debug: true
+      auth:
+        apiKey:
+          accessId: { org: '${projectInfo.orgName}', name: 'dev-akeyless-id' }
+          accessKey: { org: '${projectInfo.orgName}', name: 'dev-akeyless-key' }
+    testData:
+      path1: "/concord_validation/secret1"
+      path2: "/concord_validation/secret2"
+
+flows:
+  default:
+    # Get an API access token
+    - task: akeyless
+      in:
+        action: auth
+      out:
+        authResult: "${result}"
+
+
+    # Create two secrets
+    - task: akeyless
+      in:
+        action: createSecret
+        path: "${testData.path1}"
+        value: "value1"
+        description: "Description for secret 1"
+        multiline: false
+    - task: akeyless
+      in:
+        action: createSecret
+        path: "${testData.path2}"
+        value: "value2"
+        description: "Description for secret 2"
+        multiline: false
+
+
+    # Update default params with access token
+    - "${akeylessParams.put('accessToken', authResult.accessToken)}"
+
+
+    # Get and validate one secret
+    - task: akeyless
+      in:
+        action: getSecret
+        path: "${testData.path1}"
+      out:
+        singleGetData: "${result}"
+    - call: assertEqual
+      in: { expected: "value1", actual: "${singleGetData[testData.path1]}" }
+
+
+    # Get and validate two secrets
+    - task: akeyless
+      in:
+        action: getSecrets
+        paths:
+          - "${testData.path1}"
+          - "${testData.path2}"
+      out:
+        multiGetData: "${result}"
+    - call: assertEqual
+      in: { expected: "value1", actual: "${multiGetData[testData.path1]}" }
+    - call: assertEqual
+      in: { expected: "value2", actual: "${multiGetData[testData.path2]}" }
+
+
+    # Again, with the public method
+    - call: assertEqual
+      in: { expected: "value1", actual: "${akeyless.getSecret(testData.path1)}" }
+
+
+    # update a secret
+    - task: akeyless
+      in:
+        action: updateSecret
+        path: "${testData.path1}"
+        value: "value1updated"
+        multiline: false
+        keepPreviousVersion: false
+    - task: akeyless
+      in:
+        action: getSecret
+        path: "${testData.path1}"
+      out:
+        singleGetData: "${result}"
+    - call: assertEqual
+      in: { expected: "value1updated", actual: "${singleGetData[testData.path1]}" }
+
+
+    # Cleanup. Delete the secrets
+    - task: akeyless
+      in:
+        action: deleteItem
+        path: "${testData.path1}"
+        deleteImmediately: true
+    - task: akeyless
+      in:
+        action: deleteItem
+        path: "${testData.path2}"
+        deleteImmediately: true
+
+  assertEqual:
+    - if: ${expected != actual}
+      then:
+        - throw: "Got unexpected data: ${expected} != ${actual}"

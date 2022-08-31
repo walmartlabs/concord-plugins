@@ -21,15 +21,79 @@ package com.walmartlabs.concord.plugins.akeyless;
  */
 
 
+import com.walmartlabs.concord.plugins.akeyless.model.SecretCache;
+import com.walmartlabs.concord.plugins.akeyless.model.SecretCacheImpl;
+import com.walmartlabs.concord.runtime.v2.sdk.SecretService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.when;
 
-public class CommonTest {
+class CommonTest {
+
+    private static final String DEFAULT_SALT = "test-salt";
+    private SecretCache secretCache;
+
+    @BeforeEach
+    void setup() {
+        secretCache = SecretCacheImpl.getInstance(DEFAULT_SALT, false);
+    }
 
     @Test
-    public void testExecute() {
-        // TODO implement tests
-        assertTrue(true);
+    void testSecretCache() throws Exception {
+        final String expectedValue = "the-value";
+        final SecretService secretService = Mockito.mock(SecretService.class);
+
+        when(secretService.exportAsString("myOrg", "mySecret", null))
+                .thenReturn(expectedValue);
+
+        // --- value from cache should be the same as a fresh call
+
+        assertEquals(expectedValue, callCache(secretCache, secretService, "myOrg", "mySecret", null));
+        assertEquals(expectedValue, callCache(secretCache, secretService, "myOrg", "mySecret", null));
+
+        // --- Cache should only pull secret data once
+
+        Mockito.verify(secretService, times(1))
+                .exportAsString("myOrg", "mySecret", null);
+
+    }
+
+    @Test
+    void testDirtyCache() throws Exception {
+        final String expectedValue = "the-value";
+        final SecretService secretService = Mockito.mock(SecretService.class);
+
+        when(secretService.exportAsString("myOrg", "mySecret", null))
+                .thenReturn(expectedValue);
+
+        // first call misses cache
+        assertEquals(expectedValue, callCache(secretCache, secretService, "myOrg", "mySecret", null));
+
+        // changing the salt resets the cache
+        SecretCache cache2 = SecretCacheImpl.getInstance("new-salt", false);
+        assertEquals(expectedValue, callCache(cache2, secretService, "myOrg", "mySecret", null));
+        assertEquals(expectedValue, callCache(cache2, secretService, "myOrg", "mySecret", null));
+        assertEquals(expectedValue, callCache(cache2, secretService, "myOrg", "mySecret", null));
+
+        // ---
+
+        Mockito.verify(secretService, times(2))
+                .exportAsString("myOrg", "mySecret", null);
+    }
+
+    private static String callCache(SecretCache cache, SecretService secretService, String org, String name, String password) {
+        return cache.get(org, name, () -> {
+            try {
+                return secretService.exportAsString(org, name, password);
+            } catch (Exception e) {
+                fail();
+                return null;
+            }
+        });
     }
 }
