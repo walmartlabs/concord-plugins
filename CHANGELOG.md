@@ -1,5 +1,12 @@
 # Change log
 
+## [Unreleased]
+
+### Changed
+
+- akeyless: support direct usage of access token
+([#94](https://github.com/walmartlabs/concord-plugins/pull/94)).
+
 ## [1.42.0] - 2022-08-26
 
 ### Added
