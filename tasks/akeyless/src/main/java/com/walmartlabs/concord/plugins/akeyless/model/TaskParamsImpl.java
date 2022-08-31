@@ -165,7 +165,7 @@ public class TaskParamsImpl implements TaskParams {
             }
 
             if (!(value instanceof String)) {
-                throw new IllegalArgumentException("Non-string value used for secret definition");
+                throw new IllegalArgumentException("Non-string value used for key '" + key + "' in secret definition");
             }
         });
 
@@ -176,8 +176,9 @@ public class TaskParamsImpl implements TaskParams {
         final String o = secretInfo.get("org");
         final String n = secretInfo.get("name");
         final String p = secretInfo.getOrDefault("password", null);
+        final String cacheKey = String.format("%s/%s", o, n);
 
-        return secretCache.get(o + n, () -> {
+        return secretCache.get(cacheKey, () -> {
             try {
                 return secretExporter.exportAsString(o, n, p);
             } catch (Exception e) {
