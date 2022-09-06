@@ -24,31 +24,17 @@ import com.walmartlabs.concord.plugins.akeyless.AkeylessCommon;
 import com.walmartlabs.concord.plugins.akeyless.AkeylessTaskResult;
 import com.walmartlabs.concord.plugins.akeyless.model.TaskParams;
 import com.walmartlabs.concord.plugins.akeyless.model.TaskParamsImpl;
-import com.walmartlabs.concord.plugins.akeyless.v2.AkeylessTask;
-import com.walmartlabs.concord.runtime.v2.sdk.SecretService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
-import java.io.FileInputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.security.SecureRandom;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class CommonIT {
-
-    private Map<String, Object> itsProps;
+class CommonIT extends AbstractIT {
 
     private static final String testPath = "/concord_its";
-
-    @BeforeEach
-    public void setup() throws Exception {
-        itsProps = loadITProps();
-    }
+    private static final String txId = UUID.randomUUID().toString();
 
     @Test
     void testWithAuth() {
@@ -90,14 +76,6 @@ class CommonIT {
                 .limit(len)
                 .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
                 .toString();
-    }
-
-    private Map<String, Object> createAuth() {
-        Map<String, Object> cfg = new HashMap<>();
-        cfg.put("accessId", getITsProp("accessId"));
-        cfg.put("accessKey", getITsProp("accessKey"));
-
-        return Collections.singletonMap("apiKey", cfg);
     }
 
     private String createAccessToken() {
@@ -240,64 +218,8 @@ class CommonIT {
 
     private static Map<String, Object> baseConfig() {
         Map<String, Object> cfg = new HashMap<>();
-        cfg.put("txId", UUID.randomUUID().toString());
+        cfg.put("txId", txId);
 
         return cfg;
-    }
-
-    public void testGetSecretPublic() {
-        Map<String, Object> cfg = new HashMap<>();
-
-        cfg.put("apiBasePath", getITsProp("apiBasePath"));
-
-        Map<String, Object> apiKey = new HashMap<>();
-        apiKey.put("accessId", getITsProp("accessId"));
-        apiKey.put("accessKey", getITsProp("accessKey"));
-
-        Map<String, Object> auth = Collections.singletonMap("apiKey", apiKey);
-        cfg.put("auth", auth);
-
-        Map<String, Object> arguments = Collections.singletonMap("akeylessParams", cfg);
-
-        SecretService secretService = Mockito.mock(SecretService.class);
-
-
-        AkeylessTask task = new AkeylessTask(new MockContext(Collections.emptyMap(), arguments), secretService);
-
-        String data = task.getSecret(getITsProp("path"));
-
-        assertNotNull(data);
-    }
-
-    @SuppressWarnings("unchecked")
-    protected <T> T getITsProp(String k) {
-        if (!itsProps.containsKey(k)) {
-            throw new IllegalArgumentException(String.format(
-                    "Cannot find value for '%s' in ITs properties file", k));
-        }
-
-        return (T) itsProps.get(k);
-    }
-
-    private static Map<String, Object> loadITProps() throws Exception {
-        String propsFileEnv = System.getenv("IT_PROPERTIES_FILE");
-
-        if (propsFileEnv == null || propsFileEnv.isEmpty()) {
-            throw new IllegalArgumentException("IT_PROPERTIES_FILE environment variable is required for tests.");
-        }
-
-        Path propsFile = Paths.get(propsFileEnv);
-        if (!Files.exists(propsFile)) {
-            throw new RuntimeException("Cannot find akeyless IT properties file: " + propsFile);
-        }
-        Properties props = new Properties();
-        try (FileInputStream is = new FileInputStream(propsFile.toFile())) {
-            props.load(is);
-        }
-
-        Map<String, Object> result = new HashMap<>(props.size());
-        props.forEach((key, value) -> result.put((String) key, value));
-
-        return result;
     }
 }
