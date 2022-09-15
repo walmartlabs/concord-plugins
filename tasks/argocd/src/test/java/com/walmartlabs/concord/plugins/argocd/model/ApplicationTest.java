@@ -1,9 +1,3 @@
-/**
- * Concord
- * -----
- * Copyright (C) 2017 - 2021 Walmart Inc.
- * -----
- */
 package com.walmartlabs.concord.plugins.argocd.model;
 
 /*-
