@@ -281,10 +281,10 @@ public class ArgoCdClient {
         }
 
         if (in.helm() != null) {
-            if (in.helm().parameters() != null)
-                helm.put("parameters", in.helm().parameters());
+            if (Objects.requireNonNull(in.helm()).parameters() != null)
+                helm.put("parameters", Objects.requireNonNull(in.helm()).parameters());
 
-            helm.put("values", in.helm().values());
+            helm.put("values", Objects.requireNonNull(in.helm()).values());
             source.put("helm", helm);
         }
 

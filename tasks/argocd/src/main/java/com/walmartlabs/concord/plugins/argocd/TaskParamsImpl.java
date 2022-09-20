@@ -282,8 +282,14 @@ public class TaskParamsImpl implements TaskParams {
             return new HelmRepoImpl(helmRepo);
         }
 
+        @Nullable
         @Override
         public Helm helm() {
+            Map<String, Object> helmMap = variables.getMap(HELM_KEY, Collections.emptyMap());
+
+            if (helmMap.isEmpty()) {
+                return null;
+            }
             MapBackedVariables helm = new MapBackedVariables(variables.assertMap(HELM_KEY));
             return new HelmImpl(helm);
         }

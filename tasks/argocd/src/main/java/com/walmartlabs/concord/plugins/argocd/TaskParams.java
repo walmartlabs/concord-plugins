@@ -124,6 +124,7 @@ public interface TaskParams {
         @Nullable
         HelmRepo helmRepo();
 
+        @Nullable
         Helm helm();
 
         @Nullable
