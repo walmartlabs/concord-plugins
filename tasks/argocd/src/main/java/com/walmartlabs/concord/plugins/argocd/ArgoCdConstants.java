@@ -26,6 +26,8 @@ public class ArgoCdConstants {
 
     static final List<String> FINALIZERS = Collections.singletonList("resources-finalizer.argocd.argoproj.io");
 
+    static final List<String> CREATE_NAMESPACE_OPTION = Collections.singletonList("CreateNamespace=true");
+
     static final Map<String, Object> SYNC_POLICY = Collections.unmodifiableMap(new HashMap<String, Object>() {{
         put("automated", new HashMap<String, Object>() {{
             put("prune", true);

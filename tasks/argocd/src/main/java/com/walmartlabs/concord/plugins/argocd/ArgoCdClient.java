@@ -291,7 +291,14 @@ public class ArgoCdClient {
         spec.put("project", in.project());
         spec.put("destination", destination);
         spec.put("source", source);
-        spec.put("syncPolicy", ArgoCdConstants.SYNC_POLICY);
+
+        if (in.createNamespace()) {
+            Map<String, Object> syncPolicy = new HashMap<>(ArgoCdConstants.SYNC_POLICY);
+            syncPolicy.put("syncOptions", ArgoCdConstants.CREATE_NAMESPACE_OPTION);
+            spec.put("syncPolicy", syncPolicy);
+        } else {
+            spec.put("syncPolicy", ArgoCdConstants.SYNC_POLICY);
+        }
 
         body.put("metadata", metadata);
         body.put("spec", spec);

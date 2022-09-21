@@ -226,6 +226,7 @@ public class TaskParamsImpl implements TaskParams {
 
         private static final String APP_KEY = "app";
         private static final String NAMESPACE_KEY = "namespace";
+        private static final String CREATE_NAMESPACE_KEY = "createNamespace";
         private static final String PROJECT_KEY = "project";
         private static final String CLUSTER_KEY = "cluster";
         private static final String GIT_REPO_KEY = "gitRepo";
@@ -251,6 +252,11 @@ public class TaskParamsImpl implements TaskParams {
         @Override
         public String namespace() {
             return variables.assertString(NAMESPACE_KEY);
+        }
+
+        @Override
+        public boolean createNamespace() {
+            return variables.getBoolean(CREATE_NAMESPACE_KEY, CreateUpdateParams.super.createNamespace());
         }
 
         @Override

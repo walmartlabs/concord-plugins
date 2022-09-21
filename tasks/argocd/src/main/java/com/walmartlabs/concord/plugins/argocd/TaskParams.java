@@ -114,6 +114,11 @@ public interface TaskParams {
         String namespace();
 
         @Value.Default
+        default boolean createNamespace() {
+            return false;
+        }
+
+        @Value.Default
         default String project() {
             return "default";
         }
