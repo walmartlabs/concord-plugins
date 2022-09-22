@@ -29,10 +29,10 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 
-public class TaskParamsImplTest {
+class TaskParamsImplTest {
 
     @Test
-    public void testGetSecretsParams() {
+    void testGetSecretsParams() {
         Map<String, Object> cfg = new HashMap<>();
         cfg.put("txId", UUID.randomUUID().toString());
         cfg.put("action", "getSecrets");
