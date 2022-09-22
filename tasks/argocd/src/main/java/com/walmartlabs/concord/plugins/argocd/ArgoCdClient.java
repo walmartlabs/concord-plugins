@@ -277,7 +277,9 @@ public class ArgoCdClient {
             source.put("chart", Objects.requireNonNull(in.helmRepo()).chart());
             source.put("targetRevision", Objects.requireNonNull(in.helmRepo()).targetRevision());
         } else {
-            throw new RuntimeException("Source information not provided for " + in.app() + ". Cannot proceed further");
+            throw new RuntimeException("Source information not provided for " + in.app() + "." +
+                    "Provide either `gitRepo` or `helmRepo` details for the application to be created." +
+                    "Cannot proceed further. Refer docs (https://concord.walmartlabs.com/docs/plugins-v2/argocd.html#usage) for usage");
         }
 
         if (in.helm() != null) {
