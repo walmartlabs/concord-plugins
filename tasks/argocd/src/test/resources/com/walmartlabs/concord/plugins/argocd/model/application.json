@@ -1,0 +1,282 @@
+{
+  "metadata": {
+    "name": "hello-app",
+    "namespace": "argocd",
+    "uid": "deecf6ca-0c79-45ec-813f-bed5087a3c04",
+    "resourceVersion": "8038937",
+    "generation": 34599,
+    "creationTimestamp": "2021-10-11T10:24:30Z",
+    "managedFields": [
+      {
+        "manager": "argocd-application-controller",
+        "operation": "Update",
+        "apiVersion": "argoproj.io/v1alpha1",
+        "time": "2021-12-21T20:52:05Z",
+        "fieldsType": "FieldsV1",
+        "fieldsV1": {
+          "f:status": {
+            "f:health": {
+              "f:status": {}
+            },
+            "f:history": {},
+            "f:reconciledAt": {},
+            "f:resources": {},
+            "f:sourceType": {},
+            "f:summary": {
+              "f:images": {}
+            },
+            "f:sync": {
+              "f:comparedTo": {
+                "f:destination": {
+                  "f:namespace": {},
+                  "f:server": {}
+                },
+                "f:source": {
+                  "f:path": {},
+                  "f:repoURL": {},
+                  "f:targetRevision": {}
+                }
+              },
+              "f:revision": {},
+              "f:status": {}
+            }
+          }
+        }
+      },
+      {
+        "manager": "argocd-server",
+        "operation": "Update",
+        "apiVersion": "argoproj.io/v1alpha1",
+        "time": "2021-12-21T20:53:29Z",
+        "fieldsType": "FieldsV1",
+        "fieldsV1": {
+          "f:operation": {
+            ".": {},
+            "f:initiatedBy": {
+              ".": {},
+              "f:username": {}
+            },
+            "f:retry": {},
+            "f:sync": {
+              ".": {},
+              "f:revision": {}
+            }
+          },
+          "f:spec": {
+            ".": {},
+            "f:destination": {
+              ".": {},
+              "f:namespace": {},
+              "f:server": {}
+            },
+            "f:project": {},
+            "f:source": {
+              ".": {},
+              "f:path": {},
+              "f:repoURL": {},
+              "f:targetRevision": {}
+            },
+            "f:syncPolicy": {}
+          },
+          "f:status": {
+            ".": {},
+            "f:health": {},
+            "f:summary": {},
+            "f:sync": {
+              ".": {},
+              "f:comparedTo": {
+                ".": {},
+                "f:destination": {},
+                "f:source": {}
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "spec": {
+    "source": {
+      "repoURL": "https://github.com/devtools-testing/argocd-demo.git",
+      "path": "hello-app",
+      "targetRevision": "cd"
+    },
+    "destination": {
+      "server": "https://kubernetes.default.svc",
+      "namespace": "gbijarn-demo"
+    },
+    "project": "default",
+    "syncPolicy": {}
+  },
+  "status": {
+    "resources": [
+      {
+        "version": "v1",
+        "kind": "Service",
+        "namespace": "gbijarn-demo",
+        "name": "hello-app-service",
+        "status": "Synced",
+        "health": {
+          "status": "Healthy"
+        }
+      },
+      {
+        "group": "apps",
+        "version": "v1",
+        "kind": "Deployment",
+        "namespace": "gbijarn-demo",
+        "name": "hello-app-deployment",
+        "status": "Synced",
+        "health": {
+          "status": "Healthy"
+        }
+      }
+    ],
+    "sync": {
+      "status": "Synced",
+      "comparedTo": {
+        "source": {
+          "repoURL": "https://github.com/devtools-testing/argocd-demo.git",
+          "path": "hello-app",
+          "targetRevision": "cd"
+        },
+        "destination": {
+          "server": "https://kubernetes.default.svc",
+          "namespace": "gbijarn-demo"
+        }
+      },
+      "revision": "f06dbab5e4da2b965fd49d041ffb91d78603c84b"
+    },
+    "health": {
+      "status": "Healthy"
+    },
+    "history": [
+      {
+        "revision": "f402fdae203c2b46c0e027e67e6ded618ecb7e63",
+        "deployedAt": "2021-12-19T20:58:58Z",
+        "id": 20,
+        "source": {
+          "repoURL": "https://github.com/devtools-testing/argocd-demo.git",
+          "path": "hello-app",
+          "targetRevision": "cd"
+        },
+        "deployStartedAt": "2021-12-19T20:58:57Z"
+      },
+      {
+        "revision": "f402fdae203c2b46c0e027e67e6ded618ecb7e63",
+        "deployedAt": "2021-12-19T20:59:00Z",
+        "id": 21,
+        "source": {
+          "repoURL": "https://github.com/devtools-testing/argocd-demo.git",
+          "path": "hello-app",
+          "targetRevision": "cd"
+        },
+        "deployStartedAt": "2021-12-19T20:59:00Z"
+      },
+      {
+        "revision": "60548da71ca9f6cb82ad9f283d50e8b84289654f",
+        "deployedAt": "2021-12-19T21:11:32Z",
+        "id": 22,
+        "source": {
+          "repoURL": "https://github.com/devtools-testing/argocd-demo.git",
+          "path": "hello-app",
+          "targetRevision": "cd"
+        },
+        "deployStartedAt": "2021-12-19T21:11:32Z"
+      },
+      {
+        "revision": "8321ecc17c4dc18c262707d0bb40d5ea8074278b",
+        "deployedAt": "2021-12-19T21:33:15Z",
+        "id": 23,
+        "source": {
+          "repoURL": "https://github.com/devtools-testing/argocd-demo.git",
+          "path": "hello-app",
+          "targetRevision": "cd"
+        },
+        "deployStartedAt": "2021-12-19T21:33:15Z"
+      },
+      {
+        "revision": "f06dbab5e4da2b965fd49d041ffb91d78603c84b",
+        "deployedAt": "2021-12-19T21:37:00Z",
+        "id": 24,
+        "source": {
+          "repoURL": "https://github.com/devtools-testing/argocd-demo.git",
+          "path": "hello-app",
+          "targetRevision": "cd"
+        },
+        "deployStartedAt": "2021-12-19T21:36:59Z"
+      },
+      {
+        "revision": "f06dbab5e4da2b965fd49d041ffb91d78603c84b",
+        "deployedAt": "2021-12-21T17:05:49Z",
+        "id": 25,
+        "source": {
+          "repoURL": "https://github.com/devtools-testing/argocd-demo.git",
+          "path": "hello-app",
+          "targetRevision": "cd"
+        },
+        "deployStartedAt": "2021-12-21T17:05:49Z"
+      },
+      {
+        "revision": "f06dbab5e4da2b965fd49d041ffb91d78603c84b",
+        "deployedAt": "2021-12-21T18:44:36Z",
+        "id": 26,
+        "source": {
+          "repoURL": "https://github.com/devtools-testing/argocd-demo.git",
+          "path": "hello-app",
+          "targetRevision": "cd"
+        },
+        "deployStartedAt": "2021-12-21T18:44:36Z"
+      },
+      {
+        "revision": "f06dbab5e4da2b965fd49d041ffb91d78603c84b",
+        "deployedAt": "2021-12-21T18:54:43Z",
+        "id": 27,
+        "source": {
+          "repoURL": "https://github.com/devtools-testing/argocd-demo.git",
+          "path": "hello-app",
+          "targetRevision": "cd"
+        },
+        "deployStartedAt": "2021-12-21T18:54:42Z"
+      },
+      {
+        "revision": "f06dbab5e4da2b965fd49d041ffb91d78603c84b",
+        "deployedAt": "2021-12-21T19:13:39Z",
+        "id": 28,
+        "source": {
+          "repoURL": "https://github.com/devtools-testing/argocd-demo.git",
+          "path": "hello-app",
+          "targetRevision": "cd"
+        },
+        "deployStartedAt": "2021-12-21T19:13:39Z"
+      },
+      {
+        "revision": "f06dbab5e4da2b965fd49d041ffb91d78603c84b",
+        "deployedAt": "2021-12-21T20:52:05Z",
+        "id": 29,
+        "source": {
+          "repoURL": "https://github.com/devtools-testing/argocd-demo.git",
+          "path": "hello-app",
+          "targetRevision": "cd"
+        },
+        "deployStartedAt": "2021-12-21T20:52:05Z"
+      }
+    ],
+    "reconciledAt": "2021-12-21T20:52:05Z",
+    "sourceType": "Directory",
+    "summary": {
+      "images": [
+        "nginx:1.23.1"
+      ]
+    }
+  },
+  "operation": {
+    "sync": {
+      "revision": "f06dbab5e4da2b965fd49d041ffb91d78603c84b"
+    },
+    "initiatedBy": {
+      "username": "admin"
+    },
+    "retry": {}
+  }
+}
