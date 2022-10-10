@@ -1,5 +1,17 @@
 # Change log
 
+## [1.44.0] - 22-10-10
+
+### Added
+
+- argocd: Plugin to perform various actions on ArgoCD
+([#97](https://github.com/walmartlabs/concord-plugins/pull/97)).
+
+### Changed
+
+- akeyless: testcontainers task integration tests
+([#96](https://github.com/walmartlabs/concord-plugins/pull/96)).
+
 ## [1.43.0] - 22-08-31
 
 ### Changed
