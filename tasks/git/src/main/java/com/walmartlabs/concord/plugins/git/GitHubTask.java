@@ -68,6 +68,12 @@ public class GitHubTask {
     private static final String GITHUB_FORKTARGETORG = "targetOrg";
     private static final String GITHUB_PATH = "path";
     private static final String GITHUB_REF = "ref";
+    private static final String GITHUB_HOOK_URL = "url";
+    private static final String GITHUB_HOOK_EVENTS = "events";
+    private static final String GITHUB_HOOK_CFG = "config";
+    private static final String GITHUB_HOOK_CONTENT_TYPE = "contentType";
+    private static final String GITHUB_HOOK_SECRET = "secret";
+    private static final String GITHUB_HOOK_INSECURE_SSL = "insecureSsl";
 
     private static final String STATUS_CHECK_STATE = "state";
     private static final String STATUS_CHECK_TARGET_URL = "targetUrl";
@@ -165,6 +171,8 @@ public class GitHubTask {
             }
             case GETCONTENT: {
                 return getContent(in, gitHubUri);
+            } case CREATEHOOK: {
+                return createHook(in, gitHubUri);
             }
             default:
                 throw new IllegalArgumentException("Unsupported action type: " + action);
@@ -843,6 +851,42 @@ public class GitHubTask {
         }
     }
 
+    private static Map<String, Object> createHook(Map<String, Object> in, String gitHubUri) {
+        String gitHubAccessToken = assertString(in, GITHUB_ACCESSTOKEN);
+        String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
+        String gitHubRepoName = assertString(in, GITHUB_REPONAME);
+
+        GitHubClient client = GitHubClient.createClient(gitHubUri);
+        client.setOAuth2Token(gitHubAccessToken);
+
+        RepositoryService service = new RepositoryService(client);
+        IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
+
+        Map<String, String> config = getMap(in, GITHUB_HOOK_CFG, Collections.emptyMap());
+        if (config.isEmpty()) {
+            config = new HashMap<>();
+
+            config.put("content_type", getString(in, GITHUB_HOOK_CONTENT_TYPE, "form"));
+            config.put("secret", getString(in, GITHUB_HOOK_SECRET));
+            config.put("insecure_ssl", getString(in, GITHUB_HOOK_INSECURE_SSL, "0"));
+        }
+        config.put("url", assertString(in, GITHUB_HOOK_URL));
+
+        RepositoryHook hook = new RepositoryHook()
+                .setActive(true)
+                .setName("web")
+                .setEvents(assertList(in, GITHUB_HOOK_EVENTS))
+                .setConfig(config);
+
+        try {
+            RepositoryHook result = service.createHook(repo, hook);
+            log.info("Hook created id: {}", result.getId());
+            return Collections.singletonMap("hook", objectMapper.convertValue(result, OBJECT_TYPE));
+        } catch (IOException e) {
+            throw new RuntimeException("Cannot create hook: " + e.getMessage());
+        }
+    }
+
     private static Map<String, Object> createIssue(Map<String, Object> in, String gitHubUri) {
         String gitHubAccessToken = assertString(in, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
@@ -923,6 +967,7 @@ public class GitHubTask {
         MERGE,
         CREATEISSUE,
         CREATETAG,
+        CREATEHOOK,
         DELETETAG,
         DELETEBRANCH,
         GETCOMMIT,
