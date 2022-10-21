@@ -20,10 +20,13 @@ package com.walmartlabs.concord.plugins.s3;
  * =====
  */
 
+import com.adobe.testing.s3mock.testcontainers.S3MockContainer;
 import com.walmartlabs.concord.sdk.MockContext;
 import com.walmartlabs.concord.sdk.Task;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -36,12 +39,65 @@ import static com.walmartlabs.concord.plugins.s3.TaskParams.PutObjectParams;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@Disabled
-public class S3TaskTest {
+@Testcontainers
+class S3TaskTest {
+    private static final String TEST_BUCKET = "my-bucket";
+
+    // Container will be started before each test method and stopped after
+    @Container
+    private final S3MockContainer s3Mock =
+            new S3MockContainer(System.getenv("S3_MOCK_IMAGE_VERSION"))
+                    .withInitialBuckets(TEST_BUCKET);
 
     @Test
+    void localMockTestV1() throws Exception {
+        String data = "Hello!";
+
+        Path p = Files.createTempFile("test", ".txt");
+        Files.write(p, data.getBytes());
+
+        Map<String, Object> auth = new HashMap<>();
+        auth.put("accessKey", "my-access-key");
+        auth.put("secretKey", "my-secret-key");
+
+        Map<String, Object> args = new HashMap<>();
+        args.put(com.walmartlabs.concord.sdk.Constants.Context.WORK_DIR_KEY, p.getParent().toAbsolutePath().toString());
+        args.put(ACTION_KEY, TaskParams.Action.PUTOBJECT.name());
+        args.put(PutObjectParams.BUCKET_NAME_KEY, TEST_BUCKET);
+        args.put(PutObjectParams.OBJECT_KEY, "xyz");
+        args.put(PutObjectParams.SRC_KEY, p.getFileName().toString());
+        args.put(TaskParams.PutObjectParams.ENDPOINT_KEY, s3Mock.getHttpEndpoint());
+        args.put(PutObjectParams.REGION_KEY, "us-west-2");
+        args.put(PutObjectParams.PATH_STYLE_ACCESS_KEY, true);
+        args.put(PutObjectParams.AUTH_KEY, Collections.singletonMap("basic", auth));
+
+        MockContext ctx = new MockContext(args);
+
+        Task t = new S3Task();
+        t.execute(ctx);
+
+        Map<String, Object> r = (Map<String, Object>) ctx.getVariable(Constants.RESULT_KEY);
+        assertTrue((Boolean) r.get("ok"));
+
+        // ---
+
+        args.put(Constants.ACTION_KEY, TaskParams.Action.GETOBJECT.name());
+
+        ctx = new MockContext(args);
+        t.execute(ctx);
+
+        r = (Map<String, Object>) ctx.getVariable(Constants.RESULT_KEY);
+        assertTrue((Boolean) r.get("ok"));
+
+        String storedObject = (String) r.get("path");
+        String s = new String(Files.readAllBytes(p.getParent().resolve(storedObject)));
+        assertEquals(data, s);
+    }
+
+    @Disabled
+    @Test
     @SuppressWarnings("unchecked")
-    public void test() throws Exception {
+    void test() throws Exception {
         String data = "Hello!";
 
         Path p = Files.createTempFile("test", ".txt");
