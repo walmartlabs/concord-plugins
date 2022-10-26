@@ -112,6 +112,23 @@ public class ArgoCdClientTest {
         System.out.println("app: " + app);
     }
 
+
+
+    @Test
+    public void testGetWithToken() throws Exception {
+        TaskParams.GetParams in = ImmutableTestGetParams.builder()
+                .baseUrl(System.getProperty("ARGO_CD_BASE_URL"))
+                .auth(token())
+                .debug(true)
+                .app(System.getProperty("ARGO_CD_APP"))
+                .build();
+
+        ArgoCdClient client = new ArgoCdClient(in);
+        String token = client.auth(in.auth());
+        Application app = client.getApp(token, in.app(), in.refresh());
+        System.out.println("app: " + app);
+    }
+
     @Test
     public void testPatch() throws Exception {
         Map<String, Object> patch = new HashMap<>();
@@ -172,6 +189,13 @@ public class ArgoCdClientTest {
         return ImmutableTestLdapAuth.builder()
                 .username(System.getProperty("ARGO_CD_USER"))
                 .password(System.getProperty("ARGO_CD_PASSWORD"))
+                .build();
+    }
+
+
+    private static TaskParams.TokenAuth token() {
+        return ImmutableTestTokenAuth.builder()
+                .token("tes-jwt-token")
                 .build();
     }
 
@@ -313,6 +337,13 @@ public class ArgoCdClientTest {
     @Value.Immutable
     @Value.Style(jdkOnly = true)
     public interface TestLdapAuth extends TaskParams.LdapAuth {
+
+    }
+
+
+    @Value.Immutable
+    @Value.Style(jdkOnly = true)
+    public interface TestTokenAuth extends  TaskParams.TokenAuth {
 
     }
 

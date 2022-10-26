@@ -52,6 +52,11 @@ public interface TaskParams {
         String password();
     }
 
+    interface TokenAuth extends AuthParams {
+        String token();
+
+    }
+
     int DEFAULT_CONNECT_TIMEOUT = 30;
     int DEFAULT_READ_TIMEOUT = 30;
     int DEFAULT_WRITE_TIMEOUT = 30;
