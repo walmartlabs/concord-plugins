@@ -81,6 +81,7 @@ public class TaskParamsImpl implements TaskParams {
         Map<String, Function<Variables, AuthParams>> result = new HashMap<>();
         result.put("basic", BasicAuthImpl::new);
         result.put("ldap", LdapAuthImpl::new);
+        result.put("token", TokenAuthImpl::new);
         return result;
     }
 
@@ -148,8 +149,13 @@ public class TaskParamsImpl implements TaskParams {
             throw new IllegalArgumentException("Unknown auth type '" + authType + "'. Available: " + authBuilders.keySet());
         }
 
-        Map<String, Object> authTypeParams = new MapBackedVariables(auth).assertMap(authType);
-        return builder.apply(new MapBackedVariables(authTypeParams));
+        Variables authParams;
+        if (auth.get(authType) instanceof Map) {
+            authParams = new MapBackedVariables(new MapBackedVariables(auth).assertMap(authType));
+        } else {
+            authParams = new MapBackedVariables(Collections.singletonMap(authType, auth.get(authType)));
+        }
+        return builder.apply(authParams);
     }
 
     private static class BasicAuthImpl implements BasicAuth {
@@ -199,6 +205,22 @@ public class TaskParamsImpl implements TaskParams {
         @Override
         public String password() {
             return variables.assertString(PASSWORD_KEY);
+        }
+    }
+
+    private static class TokenAuthImpl implements TokenAuth {
+
+        private static final String TOKEN_KEY = "token";
+
+        private final Variables variables;
+
+        private TokenAuthImpl(Variables variables) {
+            this.variables = variables;
+        }
+
+        @Override
+        public String token() {
+            return variables.assertString(TOKEN_KEY);
         }
     }
 

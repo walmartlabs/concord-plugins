@@ -27,7 +27,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class TaskParamsImplTest {
 
@@ -40,6 +40,33 @@ public class TaskParamsImplTest {
 
         TaskParams.GetParams in = (TaskParams.GetParams) TaskParamsImpl.of(new MapBackedVariables(vars), Collections.emptyMap());
         assertEquals(123, in.readTimeout());
-        assertEquals(false, in.recordEvents());
+        assertFalse(in.recordEvents());
+    }
+
+    @Test
+    public void testTokenAuth() {
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("action", TaskParams.Action.GET.name());
+        vars.put("auth", Collections.singletonMap("token", "iddqd"));
+
+        TaskParams.GetParams in = (TaskParams.GetParams) TaskParamsImpl.of(new MapBackedVariables(vars), Collections.emptyMap());
+        assertTrue(in.auth() instanceof TaskParams.TokenAuth);
+        assertEquals("iddqd", ((TaskParams.TokenAuth)in.auth()).token());
+    }
+
+    @Test
+    public void testBasicAuth() {
+        Map<String, Object> authParams = new HashMap<>();
+        authParams.put("username", "duke");
+        authParams.put("password", "nukem");
+
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("action", TaskParams.Action.GET.name());
+        vars.put("auth", Collections.singletonMap("basic", authParams));
+
+        TaskParams.GetParams in = (TaskParams.GetParams) TaskParamsImpl.of(new MapBackedVariables(vars), Collections.emptyMap());
+        assertTrue(in.auth() instanceof TaskParams.BasicAuth);
+        assertEquals("duke", ((TaskParams.BasicAuth)in.auth()).username());
+        assertEquals("nukem", ((TaskParams.BasicAuth)in.auth()).password());
     }
 }

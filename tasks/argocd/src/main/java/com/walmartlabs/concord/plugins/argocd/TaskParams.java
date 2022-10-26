@@ -53,8 +53,8 @@ public interface TaskParams {
     }
 
     interface TokenAuth extends AuthParams {
-        String token();
 
+        String token();
     }
 
     int DEFAULT_CONNECT_TIMEOUT = 30;
