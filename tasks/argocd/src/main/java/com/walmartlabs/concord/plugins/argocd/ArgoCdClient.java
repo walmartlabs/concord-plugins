@@ -56,12 +56,15 @@ public class ArgoCdClient {
 
     public String auth(TaskParams.AuthParams in) throws IOException {
         if (in instanceof TaskParams.BasicAuth) {
-            return BasicAuthHandler.auth(this, (TaskParams.BasicAuth) in);
+            return authValue(BasicAuthHandler.auth(this, (TaskParams.BasicAuth) in));
         } else if(in instanceof TaskParams.LdapAuth) {
             TokenCookieJar tokenCookieJar = LdapAuthHandler.auth(this, (TaskParams.LdapAuth) in);
             this.client = client.newBuilder().cookieJar(tokenCookieJar).build();
-            return tokenCookieJar.token;
-        } else {
+            return authValue(tokenCookieJar.token);
+        } else if (in instanceof TaskParams.TokenAuth){
+            return authValue(TokenAuthHandler.auth((TaskParams.TokenAuth)in));
+        }
+        else {
             throw new IllegalArgumentException("Unknown auth type: " + in);
         }
     }
@@ -74,7 +77,7 @@ public class ArgoCdClient {
 
         Request.Builder rb = new Request.Builder()
                 .url(urlBuilder.build())
-                .header(AUTHORIZATION, authValue(token))
+                .header(AUTHORIZATION,token)
                 .get();
 
         return exec(rb.build(), response -> objectMapper.readValue(response.byteStream(), Application.class));
@@ -88,7 +91,7 @@ public class ArgoCdClient {
 
         Request.Builder rb = new Request.Builder()
                 .url(url)
-                .header(AUTHORIZATION, authValue(token))
+                .header(AUTHORIZATION, token)
                 .delete();
 
         exec(rb.build());
@@ -103,7 +106,7 @@ public class ArgoCdClient {
         Request.Builder rb = new Request.Builder()
                 .url(urlBuilder("api/v1/applications/").addPathSegment(app).build())
                 .patch(RequestBody.create(APPLICATION_JSON, objectMapper.writeValueAsString(body)))
-                .header(AUTHORIZATION, authValue(token));
+                .header(AUTHORIZATION, token);
 
         exec(rb.build());
     }
@@ -112,7 +115,7 @@ public class ArgoCdClient {
         Request.Builder rb = new Request.Builder()
                 .url(urlBuilder("api/v1/applications/").addPathSegment(app).addPathSegment("spec").build())
                 .put(RequestBody.create(APPLICATION_JSON, objectMapper.writeValueAsString(spec)))
-                .header(AUTHORIZATION, authValue(token));
+                .header(AUTHORIZATION, token);
 
         return exec(rb.build(), response -> objectMapper.readMap(response.byteStream()) );
     }
@@ -133,7 +136,7 @@ public class ArgoCdClient {
 
         Request.Builder rb = new Request.Builder()
                 .url(url)
-                .header(AUTHORIZATION, authValue(token))
+                .header(AUTHORIZATION, token)
                 .get();
 
         Request request = rb.build();
@@ -309,7 +312,7 @@ public class ArgoCdClient {
         Request.Builder rb = new Request.Builder()
                 .url(urlBuilder("api/v1/applications").build())
                 .post(requestBody)
-                .header(AUTHORIZATION, authValue(token));
+                .header(AUTHORIZATION, token);
 
         return exec(rb.build(), response -> objectMapper.readValue(response.byteStream(), Application.class));
 
@@ -345,7 +348,7 @@ public class ArgoCdClient {
         Request.Builder rb = new Request.Builder()
                 .url(urlBuilder("api/v1/applications/").addPathSegment(in.app()).addPathSegment("sync").build())
                 .post(request)
-                .header(AUTHORIZATION, authValue(token));
+                .header(AUTHORIZATION, token);
 
         return exec(rb.build(), response -> objectMapper.readValue(response.byteStream(), Application.class));
     }
