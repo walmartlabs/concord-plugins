@@ -61,7 +61,7 @@ public class ArgoCdClient {
             TokenCookieJar tokenCookieJar = LdapAuthHandler.auth(this, (TaskParams.LdapAuth) in);
             this.client = client.newBuilder().cookieJar(tokenCookieJar).build();
             return authValue(tokenCookieJar.token);
-        } else if (in instanceof TaskParams.TokenAuth){
+        } else if (in instanceof TaskParams.TokenAuth) {
             return authValue(TokenAuthHandler.auth((TaskParams.TokenAuth)in));
         }
         else {

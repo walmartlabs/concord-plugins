@@ -20,12 +20,9 @@ package com.walmartlabs.concord.plugins.argocd;
  * =====
  */
 
-import java.io.IOException;
-
-
 public class TokenAuthHandler {
-    public static String auth(TaskParams.TokenAuth auth)  {
-            return auth.token();
-    }
 
+    public static String auth(TaskParams.TokenAuth auth)  {
+        return auth.token();
+    }
 }
