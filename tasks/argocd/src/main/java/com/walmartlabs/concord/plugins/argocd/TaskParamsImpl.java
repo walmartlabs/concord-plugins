@@ -59,6 +59,12 @@ public class TaskParamsImpl implements TaskParams {
             case CREATE: {
                 return new CreateParamsImpl(variables);
             }
+            case GETPROJECT: {
+                return new GetProjectParamsImpl(variables);
+            }
+            case CREATEPROJECT: {
+                return new CreateProjectParamsImpl(variables);
+            }
             default: {
                 throw new IllegalArgumentException("Unsupported action type: " + action(variables));
             }
@@ -241,6 +247,20 @@ public class TaskParamsImpl implements TaskParams {
         @Override
         public boolean refresh() {
             return variables.getBoolean(REFRESH_KEY, false);
+        }
+    }
+
+    private static class GetProjectParamsImpl extends TaskParamsImpl implements GetProjectParams {
+
+        private static final String PROJECT_KEY = "project";
+
+        protected GetProjectParamsImpl(Variables variables) {
+            super(variables);
+        }
+
+        @Override
+        public String project() {
+            return variables.assertString(PROJECT_KEY);
         }
     }
 
@@ -447,6 +467,101 @@ public class TaskParamsImpl implements TaskParams {
             @Override
             public String value() {
                 return variables.assertString(VALUE_KEY);
+            }
+        }
+    }
+
+    private static class CreateProjectParamsImpl extends TaskParamsImpl implements CreateProjectParams {
+
+        private static final String PROJECT_KEY = "project";
+        private static final String NAMESPACE_KEY = "namespace";
+        private static final String CLUSTER_KEY = "cluster";
+        private static final String ANNOTATIONS_KEY = "annotations";
+        private static final String DESCRIPTION_KEY = "description";
+        private static final String SOURCE_REPOS_KEY = "sourceRepos";
+        private static final String DESTINATIONS_KEY = "destinations";
+
+        protected CreateProjectParamsImpl(Variables variables) {
+            super(variables);
+        }
+
+        @Override
+        public String project() {
+            return variables.assertString(PROJECT_KEY);
+        }
+
+        @Override
+        public String namespace() {
+            return variables.getString(NAMESPACE_KEY, CreateProjectParams.super.namespace());
+        }
+
+        @Nullable
+        @Override
+        public String cluster() {
+            return variables.getString(CLUSTER_KEY, null);
+        }
+
+        @Nullable
+        @Override
+        public String description() {
+            return variables.getString(DESCRIPTION_KEY, null);
+        }
+
+        @Nullable
+        @Override
+        public Map<String, String> annotations() {
+            return variables.getMap(ANNOTATIONS_KEY, Collections.emptyMap());
+        }
+
+        @Nullable
+        @Override
+        public List<String> sourceRepos() {
+            return variables.getList(SOURCE_REPOS_KEY, CreateProjectParams.super.sourceRepos());
+        }
+
+        @Nullable
+        @Override
+        public List<Destinations> destinations() {
+            List<Map<String, Object>> destinationList = variables.getList(DESTINATIONS_KEY, Collections.emptyList());
+
+            if (destinationList.isEmpty()) {
+                return null;
+            }
+
+            return destinationList.stream()
+                    .map(MapBackedVariables::new)
+                    .map(CreateProjectParamsImpl.DestinationsImpl::new)
+                    .collect(Collectors.toList());
+        }
+
+        private static class DestinationsImpl implements Destinations {
+
+            private static final String NAME_KEY = "name";
+            private static final String SERVER_KEY = "server";
+            private static final String NAMESPACE_KEY = "namespace";
+
+            private final Variables variables;
+
+            public DestinationsImpl(Variables variables) {
+                this.variables = variables;
+            }
+
+            @Nullable
+            @Override
+            public String name() {
+                return variables.getString(NAME_KEY, null);
+            }
+
+            @Nullable
+            @Override
+            public String namespace() {
+                return variables.getString(NAMESPACE_KEY, null);
+            }
+
+            @Nullable
+            @Override
+            public String server() {
+                return variables.getString(SERVER_KEY, null);
             }
         }
     }

@@ -100,6 +100,50 @@ public interface TaskParams {
 
     AuthParams auth();
 
+    interface GetProjectParams extends TaskParams {
+
+        String project();
+    }
+
+    interface CreateProjectParams extends TaskParams {
+
+        String project();
+
+        @Value.Default
+        default String namespace() {
+            return "argocd";
+        }
+
+        @Nullable
+        String cluster();
+
+        @Nullable
+        String description();
+
+        @Nullable
+        Map<String, String> annotations();
+
+        @Value.Default
+        default List<String> sourceRepos() {
+            return Collections.emptyList();
+        }
+
+        @Nullable
+        List<Destinations> destinations();
+
+        interface Destinations {
+
+            @Nullable
+            String name();
+
+            @Nullable
+            String namespace();
+
+            @Nullable
+            String server();
+        }
+    }
+
     interface GetParams extends TaskParams {
 
         String app();
@@ -270,6 +314,8 @@ public interface TaskParams {
         PATCH,
         UPDATESPEC,
         SETPARAMS,
-        CREATE
+        CREATE,
+        GETPROJECT,
+        CREATEPROJECT
     }
 }

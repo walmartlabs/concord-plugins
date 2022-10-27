@@ -24,12 +24,14 @@ import com.walmartlabs.concord.ApiClient;
 import com.walmartlabs.concord.client.ProcessEventsApi;
 import com.walmartlabs.concord.common.ConfigurationUtils;
 import com.walmartlabs.concord.plugins.argocd.model.Application;
+import com.walmartlabs.concord.plugins.argocd.model.Project;
 import com.walmartlabs.concord.runtime.v2.sdk.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Named;
+import java.io.IOException;
 import java.util.*;
 
 @Named("argocd")
@@ -74,6 +76,12 @@ public class ArgoCdTask implements Task {
             }
             case CREATE: {
                 return processCreateAction((TaskParams.CreateUpdateParams) params);
+            }
+            case GETPROJECT: {
+                return processGetProjectAction((TaskParams.GetProjectParams) params);
+            }
+            case CREATEPROJECT: {
+                return processProjectCreateAction((TaskParams.CreateProjectParams) params);
             }
             default: {
                 throw new IllegalArgumentException("Unsupported action type: " + params.action());
@@ -147,6 +155,19 @@ public class ArgoCdTask implements Task {
                 .value("app", toMap(app));
     }
 
+    private TaskResult processGetProjectAction(TaskParams.GetProjectParams in) throws IOException {
+        ArgoCdClient client = new ArgoCdClient(in);
+        log.info("Getting '{}' project info", in.project());
+
+        String token = client.auth(in.auth());
+
+        record(in.recordEvents(), in.project(), in.baseUrl(), in.action().toString());
+
+        Project project = client.getProject(token, in.project());
+        return TaskResult.success()
+                .value("project", objectMapper.toMap(project));
+    }
+
     private TaskResult processSyncAction(TaskParams.SyncParams in) throws Exception {
         assertProjectInfo(context);
         lockService.projectLock(in.app());
@@ -183,6 +204,24 @@ public class ArgoCdTask implements Task {
                     .value("app", toMap(app));
         } finally {
             lockService.projectUnlock(in.app());
+        }
+    }
+
+    private TaskResult processProjectCreateAction(TaskParams.CreateProjectParams in) throws Exception {
+        assertProjectInfo(context);
+        lockService.projectLock(in.project());
+        log.info("Creating '{}' project", in.project());
+
+        record(in.recordEvents(), in.project(), in.baseUrl(), in.action().toString());
+
+        try {
+            ArgoCdClient client = new ArgoCdClient(in);
+            String token = client.auth(in.auth());
+            Project project = client.createProject(token, in);
+            return TaskResult.success()
+                    .value("project", objectMapper.toMap(project));
+        } finally {
+            lockService.projectUnlock(in.project());
         }
     }
 

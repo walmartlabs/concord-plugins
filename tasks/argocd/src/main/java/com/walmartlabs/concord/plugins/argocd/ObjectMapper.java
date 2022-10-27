@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.walmartlabs.concord.plugins.argocd.model.Application;
+import com.walmartlabs.concord.plugins.argocd.model.Project;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -68,5 +69,9 @@ public class ObjectMapper {
 
     public Map<String, Object> toMap(Application app) {
         return delegate.convertValue(app, ObjectMapper.MAP_TYPE);
+    }
+
+    public Map<String, Object> toMap(Project project) {
+        return delegate.convertValue(project, ObjectMapper.MAP_TYPE);
     }
 }

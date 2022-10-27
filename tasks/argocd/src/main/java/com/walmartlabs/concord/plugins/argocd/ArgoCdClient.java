@@ -82,6 +82,17 @@ public class ArgoCdClient {
 
         return exec(rb.build(), response -> objectMapper.readValue(response.byteStream(), Application.class));
     }
+
+    public Project getProject(String token, String project) throws IOException {
+        HttpUrl.Builder urlBuilder = urlBuilder("api/v1/projects/" + project);
+
+        Request.Builder rb = new Request.Builder()
+                .url(urlBuilder.build())
+                .header(AUTHORIZATION, authValue(token))
+                .get();
+
+        return exec(rb.build(), response -> objectMapper.readValue(response.byteStream(), Project.class));
+    }
     
     public void deleteApp(String token, String app, boolean cascade, String propagationPolicy) throws IOException {
         HttpUrl url = urlBuilder("api/v1/applications/" + app)
@@ -316,6 +327,49 @@ public class ArgoCdClient {
 
         return exec(rb.build(), response -> objectMapper.readValue(response.byteStream(), Application.class));
 
+    }
+
+    public Project createProject(String token, TaskParams.CreateProjectParams in) throws IOException {
+        Map<String, Object> metadata = new HashMap<>();
+        Map<String, Object> spec = new HashMap<>();
+        Map<String, Object> project = new HashMap<>();
+        Map<String, Object> body = new HashMap<>();
+
+        metadata.put("name", in.project());
+        metadata.put("namespace", in.namespace());
+        metadata.put("finalizers", ArgoCdConstants.FINALIZERS);
+
+        if (in.cluster() != null) {
+            metadata.put("clusterName", in.cluster());
+        }
+
+        if (in.description() != null) {
+            spec.put("description", in.description());
+        }
+
+        if (in.sourceRepos() == null || Objects.requireNonNull(in.sourceRepos()).isEmpty()) {
+            spec.put("sourceRepos", ArgoCdConstants.DEFAULT_SOURCE_REPOS);
+        } else {
+            spec.put("sourceRepos", in.sourceRepos());
+        }
+
+        if (in.destinations() == null || Objects.requireNonNull(in.destinations()).isEmpty()) {
+            spec.put("destinations", ArgoCdConstants.DEFAULT_DESTINATIONS);
+        } else {
+            spec.put("destinations", in.destinations());
+        }
+
+        project.put("metadata", metadata);
+        project.put("spec", spec);
+        body.put("project", project);
+
+        RequestBody requestBody = RequestBody.create(APPLICATION_JSON, objectMapper.writeValueAsString(body));
+        Request.Builder rb = new Request.Builder()
+                .url(urlBuilder("api/v1/projects").build())
+                .post(requestBody)
+                .header(AUTHORIZATION, authValue(token));
+
+        return exec(rb.build(), response -> objectMapper.readValue(response.byteStream(), Project.class));
     }
 
     private Application syncApplication(String token, TaskParams.SyncParams in) throws IOException {
