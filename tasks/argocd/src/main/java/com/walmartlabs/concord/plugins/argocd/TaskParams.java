@@ -161,15 +161,9 @@ public interface TaskParams {
 
         interface Helm {
             @Nullable
-            List<HelmParams> parameters();
+            List<Map<String, Object>> parameters();
 
             String values();
-        }
-
-        interface HelmParams {
-            String name();
-
-            String value();
         }
     }
 

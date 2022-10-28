@@ -285,21 +285,9 @@ public class ArgoCdClientTest {
 
         @Value.Immutable
         @Value.Style(jdkOnly = true)
-        interface TestHelmParams extends CreateUpdateParams.HelmParams {
-
-            static TestHelmParams of(String name, String value) {
-                return ImmutableTestHelmParams.builder()
-                        .name(name)
-                        .value(value)
-                        .build();
-            }
-        }
-
-        @Value.Immutable
-        @Value.Style(jdkOnly = true)
         interface TestHelm extends TaskParams.CreateUpdateParams.Helm {
 
-            static TestHelm of(List <TestHelmParams> parameters, String values) {
+            static TestHelm of(List <Map<String, Object>> parameters, String values) {
                 return ImmutableTestHelm.builder()
                         .parameters(parameters)
                         .values(values)
