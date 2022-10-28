@@ -166,6 +166,9 @@ public class GitHubTask {
             case GETCONTENT: {
                 return getContent(in, gitHubUri);
             }
+            case GETPRFILESLIST: {
+                return getPRFilesList(in, gitHubUri);
+            }
             default:
                 throw new IllegalArgumentException("Unsupported action type: " + action);
         }
@@ -701,6 +704,38 @@ public class GitHubTask {
         }
     }
 
+    private static Map<String, Object> getPRFilesList(Map<String , Object> in, String gitHubUri) {
+        String gitHubAccessToken = assertString(in, GITHUB_ACCESSTOKEN);
+        String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
+        String gitHubRepoName = assertString(in, GITHUB_REPONAME);
+        int gitHubPRNumber = assertInt(in, GITHUB_PRNUMBER);
+
+        GitHubClient client = GitHubClient.createClient(gitHubUri);
+
+        try {
+            //Connect to GitHub
+            client.setOAuth2Token(gitHubAccessToken);
+            IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
+
+            //Getting list of files from PR
+            PullRequestService prService = new PullRequestService(client);
+
+            Map<String, Object> result = Collections.emptyMap();
+
+            log.info("Getting PR files list from '{}/{}'...", gitHubOrgName, gitHubRepoName, gitHubPRNumber);
+            List<CommitFile> list = prService.getFiles(repo, gitHubPRNumber);
+            if (list != null && !list.isEmpty()) {
+                List<String> filesList = list.stream().map(CommitFile::getFilename).collect(Collectors.toList());
+                log.info("List of Files: '{}'", filesList);
+                result = Collections.singletonMap("filesList", filesList);
+            }
+            log.info("'getPRFilesList' action completed");
+            return result;
+        } catch (Exception e) {
+            throw new RuntimeException("Error occured while getting list of PR Files: " + e.getMessage());
+        }
+    }
+
     private static Map<String, Object> createRepo(Map<String, Object> in, String gitHubUri) {
         String gitHubAccessToken = assertString(in, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
@@ -936,6 +971,7 @@ public class GitHubTask {
         GETLATESTSHA,
         CREATEREPO,
         DELETEREPO,
-        GETCONTENT
+        GETCONTENT,
+        GETPRFILESLIST
     }
 }
