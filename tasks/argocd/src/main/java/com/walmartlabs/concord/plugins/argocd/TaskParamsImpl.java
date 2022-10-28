@@ -412,41 +412,13 @@ public class TaskParamsImpl implements TaskParams {
             }
 
             @Override
-            public List<HelmParams> parameters() {
-                List<Map<String, Object>> params = variables.getList(PARAMS_KEY, Collections.emptyList());
-                if (params.isEmpty()) {
-                    return null;
-                }
-                return params.stream()
-                        .map(MapBackedVariables::new)
-                        .map(CreateParamsImpl.HelmParamsImpl::new)
-                        .collect(Collectors.toList());
+            public List<Map<String, Object>> parameters() {
+                return variables.getList(PARAMS_KEY, null);
             }
 
             @Override
             public String values() {
                 return variables.assertString(VALUES_KEY);
-            }
-        }
-
-        private static class HelmParamsImpl implements HelmParams {
-            private static final String NAME_KEY = "name";
-            private static final String VALUE_KEY = "value";
-
-            private final Variables variables;
-
-            public HelmParamsImpl(Variables variables) {
-                this.variables = variables;
-            }
-
-            @Override
-            public String name() {
-                return variables.assertString(NAME_KEY);
-            }
-
-            @Override
-            public String value() {
-                return variables.assertString(VALUE_KEY);
             }
         }
     }
