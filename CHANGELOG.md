@@ -1,5 +1,19 @@
 # Change log
 
+## [1.45.0] - 
+
+### Added
+
+- argocd: add support for jwt tokens 
+([#102](https://github.com/walmartlabs/concord-plugins/pull/102)).
+
+### Changed
+
+- s3: exclude unnecessary transitive dependencies
+([#101](https://github.com/walmartlabs/concord-plugins/pull/101)).
+- argocd: make helm parameters as a list, instead of a class
+([#108](https://github.com/walmartlabs/concord-plugins/pull/108)).
+
 ## [1.44.0] - 22-10-10
 
 ### Added
