@@ -23,7 +23,6 @@ package com.walmartlabs.concord.plugins.git;
 import com.walmartlabs.concord.common.IOUtils;
 import com.walmartlabs.concord.common.secret.KeyPair;
 import com.walmartlabs.concord.common.secret.UsernamePassword;
-import com.walmartlabs.concord.plugins.git.model.exception.RefNotFoundException;
 import com.walmartlabs.concord.sdk.MapUtils;
 import com.walmartlabs.concord.sdk.Secret;
 import org.eclipse.jgit.api.*;
@@ -45,6 +44,7 @@ import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.function.Supplier;
 
 import static com.walmartlabs.concord.plugins.git.Utils.getBoolean;
 import static com.walmartlabs.concord.plugins.git.Utils.hideSensitiveData;
@@ -249,10 +249,10 @@ public class GitTask {
         String committerUId = assertString(in, GIT_COMMITTER_USERNAME);
         String committerEmail = assertString(in, GIT_COMMITTER_EMAIL);
         boolean pushChangesToOrigin = getBoolean(in, GIT_PUSH_CHANGES_TO_ORIGIN, false);
-        boolean ignoreErrors = isIgnoreErrors(in);
         boolean allowEmptyCommit = getBoolean(in, GIT_ALLOW_EMPTY_COMMIT, false);
-
-        TransportConfigCallback transportCallback = JGitClient.createTransportConfigCallback(getSecret(in));
+        Secret secret = getSecret(in);
+        boolean ignoreErrors = isIgnoreErrors(in);
+        TransportConfigCallback transportCallback = JGitClient.createTransportConfigCallback(secret);
 
         try (Git git = Git.open(dstDir.toFile())) {
             log.info("Scanning folder for changes.");
@@ -277,10 +277,7 @@ public class GitTask {
                 commitResult = toResult(true, ResultStatus.SUCCESS, "", status.getUncommittedChanges(), getHeadSHA(dstDir));
             } catch (Exception e) {
                 String error = "Problem committing changes.\n" + e.getMessage();
-                if (!ignoreErrors) {
-                    throw new IllegalArgumentException(error, e);
-                }
-                return toResult(false, ResultStatus.FAILURE, error, status.getUncommittedChanges(), getHeadSHA(dstDir));
+                return handleError(error, e, in, null, secret, status.getUncommittedChanges(), () -> getHeadSHA(dstDir));
             }
 
             if (!pushChangesToOrigin) {
@@ -350,12 +347,8 @@ public class GitTask {
 
             return Collections.emptyMap();
         } catch (Exception e) {
-            String error = "Exception occurred while accessing the git repo or while pushing the changes to origin\n" + e.getMessage();
-            if (!ignoreErrors) {
-                throw new IllegalArgumentException(error, e);
-            }
-
-            return toResult(false, ResultStatus.FAILURE, error, Collections.emptySet(), getHeadSHA(dstDir));
+            String error = "Exception occurred while accessing the git repo or while pushing the changes to origi";
+            return handleError(error, e, in, null, secret, Collections.emptySet(), () -> getHeadSHA(dstDir));
         }
     }
 
@@ -555,10 +548,16 @@ public class GitTask {
     }
 
     private static Map<String, Object> handleError(String errorPrefix, Exception e, Map<String, Object> in, Path dstDir, Secret secret) {
-        try {
-            IOUtils.deleteRecursively(dstDir);
-        } catch (Exception ex) {
-            log.info("cleanup -> error: " + ex.getMessage());
+        return handleError(errorPrefix, e, in, dstDir, secret, Collections.emptySet(), () -> null);
+    }
+
+    private static Map<String, Object> handleError(String errorPrefix, Exception e, Map<String, Object> in, Path dstDir, Secret secret, Set<String> changeList, Supplier<String> headShaSupplier) {
+        if (dstDir != null) {
+            try {
+                IOUtils.deleteRecursively(dstDir);
+            } catch (Exception ex) {
+                log.info("cleanup -> error: " + ex.getMessage());
+            }
         }
 
         String errorMessage = hideSensitiveData(errorPrefix + ": " + e.getMessage(), secret);
@@ -568,7 +567,7 @@ public class GitTask {
             throw new RuntimeException(errorMessage);
         }
 
-        return toResult(false, ResultStatus.FAILURE, errorMessage, Collections.emptySet(), null);
+        return toResult(false, ResultStatus.FAILURE, errorMessage, changeList, headShaSupplier.get());
     }
 
     private static String stacktraceToString(Throwable t) {
@@ -592,27 +591,26 @@ public class GitTask {
      *
      * @param dstDir git repository location
      * @return SHA value for HEAD in the current branch of the given repository
-     * @throws RefNotFoundException on error determining HEAD SHA
      */
-    private static String getHeadSHA(Path dstDir) throws RefNotFoundException {
+    private static String getHeadSHA(Path dstDir) {
         try (Git git = Git.open(dstDir.toFile())) {
             Repository repo = git.getRepository();
             String branchName = repo.getBranch();
             Ref ref = repo.findRef("HEAD");
             if (ref == null) {
-                throw new RefNotFoundException("HEAD ref not found for branch: " + branchName);
+                throw new RuntimeException("HEAD ref not found for branch: " + branchName);
             }
 
             ObjectId oId = ref.getObjectId();
             if (oId == null) {
-                throw new RefNotFoundException("HEAD ref not found for branch: " + branchName);
+                throw new RuntimeException("HEAD ref not found for branch: " + branchName);
             }
 
             return oId.getName();
-        } catch (RefNotFoundException e) {
+        } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
-            throw new RefNotFoundException("Unexpected error locating HEAD SHA: " + e.getMessage());
+            throw new RuntimeException("Unexpected error locating HEAD SHA: " + e.getMessage());
         }
     }
 
