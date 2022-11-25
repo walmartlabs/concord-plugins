@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -180,6 +181,8 @@ public class GitHubTask {
         String gitHubPRHead = assertString(in, GITHUB_PRHEAD);
         String gitHubPRBase = assertString(in, GITHUB_PRBASE);
 
+        log.info("Creating PR in {}/{} from {} to {}", gitHubOrgName, gitHubRepoName, gitHubPRHead, gitHubPRBase);
+
         GitHubClient client = GitHubClient.createClient(gitHubUri);
         try {
             //Connect to GitHub
@@ -242,8 +245,9 @@ public class GitHubTask {
         IssueService issueService = new IssueService(client);
         PullRequestService prService = new PullRequestService(client);
 
+        log.info("Commenting PR #{} in {}/{}", gitHubPRID, gitHubOrgName, gitHubRepoName);
+
         try {
-            log.info("Using PR# {}", gitHubPRID);
             PullRequest pullRequest = prService.getPullRequest(repo, gitHubPRID);
             issueService.createComment(repo, Integer.toString(pullRequest.getNumber()), gitHubPRComment);
             log.info("Commented on PR# {}", gitHubPRID);
@@ -266,7 +270,7 @@ public class GitHubTask {
         IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
 
         try {
-            log.info("Using PR# {}", gitHubPRID);
+            log.info("Merging PR #{} in {}/{}", gitHubPRID, gitHubOrgName, gitHubRepoName);
 
             String repoId = repo.generateId();
             Map<String, Object> body = new HashMap<>();
@@ -296,7 +300,8 @@ public class GitHubTask {
 
         PullRequestService prService = new PullRequestService(client);
         try {
-            log.info("Using PR# {}", gitHubPRID);
+            log.info("Closing PR #{} in {}/{}", gitHubPRID, gitHubOrgName, gitHubRepoName);
+
             PullRequest pullRequest = prService.getPullRequest(repo, gitHubPRID);
             pullRequest.setState("closed");
             pullRequest.setClosedAt(Calendar.getInstance().getTime());
@@ -322,19 +327,17 @@ public class GitHubTask {
         client.setOAuth2Token(gitHubAccessToken);
         IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
 
-        //Build the uri
-        StringBuilder uri = new StringBuilder("/repos");
-        uri.append('/').append(repo);
-        uri.append("/merges");
+        String uri = "/repos" + '/' + repo + "/merges";
 
-        //Get Input params for merge
         Map<String, String> params = new HashMap<>();
         params.put("base", base);
         params.put("head", head);
         params.put("commit_message", commitMessage);
-        try {
-            log.info("Using head '{}'", head);
-            client.postStream(uri.toString(), params);
+
+        log.info("Merging {} in {}/{}", head, gitHubOrgName, gitHubRepoName);
+
+        try (InputStream ignored = client.postStream(uri, params)){
+
             log.info("Merged '{}' with '{}'", head, base);
 
             return Collections.emptyMap();
@@ -343,6 +346,7 @@ public class GitHubTask {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private static Map<String, Object> getCommit(Map<String, Object> in, String gitHubUri) {
         String gitHubAccessToken = assertString(in, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
@@ -356,11 +360,11 @@ public class GitHubTask {
         CommitService commitService = new CommitService(client);
 
         try {
-            log.info("Getting commit {}", gitHubCommitSha);
-            RepositoryCommit repositoryCommit = commitService.getCommit(repo, gitHubCommitSha);
-            Map data = new ObjectMapper().convertValue(repositoryCommit, Map.class);
+            log.info("Getting commit '{}' in {}/{}", gitHubCommitSha, gitHubOrgName, gitHubRepoName);
 
-            log.info("Calling repository service to get the default branch");
+            RepositoryCommit repositoryCommit = commitService.getCommit(repo, gitHubCommitSha);
+            Map<String, Object> data = new ObjectMapper().convertValue(repositoryCommit, Map.class);
+
             RepositoryService repositoryService = new RepositoryService(client);
             Repository repository = repositoryService.getRepository(repo);
             String defaultBranch = repository.getDefaultBranch();
@@ -406,6 +410,8 @@ public class GitHubTask {
         tag.setObject(typedResource);
         tag.setTagger(commitUser);
 
+        log.info("Creating tag '{}' for commit '{}' in {}/{}", gitHubTagVersion, gitHubBranchSHA, gitHubOrgName, gitHubRepoName);
+
         DataService dataService = new DataService(client);
         try {
             //Create Tag
@@ -445,6 +451,8 @@ public class GitHubTask {
         Tag tag = new Tag();
         tag.setTag(gitHubTagName);
 
+        log.info("Deleting tag '{}' in {}/{}", gitHubTagName, gitHubOrgName, gitHubRepoName);
+
         DataService dataService = new DataService(client);
         try {
             //delete Tag
@@ -469,6 +477,8 @@ public class GitHubTask {
         client.setOAuth2Token(gitHubAccessToken);
         IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
 
+        log.info("Deleting branch '{}' in {}/{}", gitHubBranchName, gitHubOrgName, gitHubRepoName);
+
         DataService dataService = new DataService(client);
         try {
             //delete branch
@@ -492,7 +502,7 @@ public class GitHubTask {
         String description = getString(in, STATUS_CHECK_DESCRIPTION, null);
         String context = getString(in, STATUS_CHECK_CONTEXT, "default");
 
-        log.info("Creating status check ({}) for {}/{} repo with sha '{}'",
+        log.info("Creating status check ({}) in {}/{} repo with sha '{}'",
                 state, gitHubOrgName, gitHubRepoName, commitSha);
 
         GitHubClient client = GitHubClient.createClient(gitHubUri);
@@ -516,6 +526,7 @@ public class GitHubTask {
 
         try {
             commitService.createStatus(repo, commitSha, commitStatus);
+
             log.info("Status check created");
 
             return Collections.emptyMap();
@@ -538,7 +549,7 @@ public class GitHubTask {
         CommitService commitService = new CommitService(client);
         List<CommitStatus> statuses;
         try {
-            log.info("Getting status for commit {}", commitSha);
+            log.info("Getting status for commit {} in {}/{}", commitSha, gitHubOrgName, gitHubRepoName);
             statuses = commitService.getStatuses(repo, commitSha);
             return Collections.singletonMap("commitStatuses", objectMapper.convertValue(statuses, Object.class));
         } catch (Exception e) {
@@ -594,14 +605,13 @@ public class GitHubTask {
 
             Map<String, Object> result = Collections.emptyMap();
 
-            log.info("Getting branch list from '{}/{}'...", gitHubOrgName, gitHubRepoName);
+            log.info("Getting branch list from {}/{}...", gitHubOrgName, gitHubRepoName);
             List<RepositoryBranch> list = repoService.getBranches(repo);
             if (list != null && !list.isEmpty()) {
                 List<String> branchList = list.stream().map(RepositoryBranch::getName).collect(Collectors.toList());
-                log.info("List of Branches:  '{}'", branchList);
                 result = Collections.singletonMap("branchList", branchList);
             }
-            log.info("'getBranchList' action completed");
+
             return result;
         } catch (Exception e) {
             throw new RuntimeException("Error occured while getting branch list: " + e.getMessage());
@@ -629,10 +639,9 @@ public class GitHubTask {
             List<RepositoryTag> list = repoService.getTags(repo);
             if (list != null && !list.isEmpty()) {
                 List<String> tagList = list.stream().map(RepositoryTag::getName).collect(Collectors.toList());
-                log.info("List of Tags: '{}'", tagList);
                 result = Collections.singletonMap("tagList", tagList);
             }
-            log.info("'getTagList' action completed");
+
             return result;
         } catch (Exception e) {
             throw new RuntimeException("Error occured while getting tag list: " + e.getMessage());
@@ -655,7 +664,7 @@ public class GitHubTask {
             //Get PR
             PullRequestService prService = new PullRequestService(client);
 
-            log.info("Getting PR {} from '{}/{}'...", gitHubPRNumber, gitHubOrgName, gitHubRepoName);
+            log.info("Getting PR {} info from '{}/{}'...", gitHubPRNumber, gitHubOrgName, gitHubRepoName);
             PullRequest pullRequest = prService.getPullRequest(repo, gitHubPRNumber);
 
             ObjectMapper om = new ObjectMapper();
@@ -692,8 +701,6 @@ public class GitHubTask {
                 list = Collections.emptyList();
             }
 
-            log.info("Got total of {} PRs.", list.size());
-
             ObjectMapper om = new ObjectMapper();
             return Collections.singletonMap("prList", om.convertValue(list, Object.class));
         } catch (Exception e) {
@@ -708,7 +715,7 @@ public class GitHubTask {
 
         GitHubClient client = GitHubClient.createClient(gitHubUri);
 
-        log.info("Creating repository " + gitHubRepoName + " in " + gitHubOrgName + " organization.");
+        log.info("Creating repository '{}' in '{}' organization", gitHubRepoName, gitHubOrgName);
 
         try {
             client.setOAuth2Token(gitHubAccessToken);
@@ -746,7 +753,7 @@ public class GitHubTask {
 
         GitHubClient client = GitHubClient.createClient(gitHubUri);
 
-        log.info("Deleting repository " + gitHubRepoName + " from " + gitHubOrgName + " organization.");
+        log.info("Deleting repository '{}' from '{}' organization", gitHubRepoName, gitHubOrgName);
 
         try {
             client.setOAuth2Token(gitHubAccessToken);
@@ -861,6 +868,8 @@ public class GitHubTask {
                 .setLabels(getList(in, ISSUE_LABELS, Collections.<String>emptyList()).stream()
                         .map(l -> new Label().setName(l))
                         .collect(Collectors.toList()));
+
+        log.info("Creating issue in {}/{}", gitHubOrgName, gitHubRepoName);
 
         try {
             Issue result = issueService.createIssue(repo, issue);
