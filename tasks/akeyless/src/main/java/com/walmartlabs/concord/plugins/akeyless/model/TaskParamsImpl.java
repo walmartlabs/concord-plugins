@@ -41,6 +41,7 @@ public class TaskParamsImpl implements TaskParams {
     private static final String TX_ID_KEY = "txId";
     private static final String AUTH_KEY = "auth";
     private static final String ACCESS_TOKEN = "accessToken";
+    private static final String IGNORE_CACHE_KEY = "ignoreCache";
 
     private static final Map<String, BiFunction<Variables, SecretExporter, Auth>> authBuilders = createAuthBuilders();
     private static SecretCache secretCache;
@@ -113,6 +114,19 @@ public class TaskParamsImpl implements TaskParams {
     @Override
     public String apiBasePath() {
         return input.getString(API_BASE_PATH, TaskParams.super.apiBasePath());
+    }
+
+    @Override
+    public String ignoreCache() {
+        boolean ignore = input.getBoolean(IGNORE_CACHE_KEY, false);
+        String value = TaskParams.super.ignoreCache();
+
+        if (ignore) {
+            Util.debug(this.debug(), log, "ignoring cache");
+            value = "true";
+        }
+
+        return value;
     }
 
     @Override
@@ -249,24 +263,30 @@ public class TaskParamsImpl implements TaskParams {
 
     private static class LdapAuthImpl extends Auth {
         private static final String ACCESS_ID_KEY = "accessId";
-        private static final String LDAP_USERNAME_KEY = "username";
-        private static final String LDAP_PASSWORD_KEY = "password";
+        private static final String USERNAME_KEY = "username";
+        private static final String PASSWORD_KEY = "password";
+        private static final String LDAP_CREDS_KEY = "credentials";
 
         private static Auth of(Variables vars, SecretExporter secretExporter) {
-            Auth auth = new Auth()
-                    .accessType("ldap")
-                    .accessId(vars.assertString(ACCESS_ID_KEY));
-
-            if (vars.has(LDAP_USERNAME_KEY) && vars.has(LDAP_PASSWORD_KEY)) {
-                return auth
-                        .ldapUsername(vars.assertString(LDAP_USERNAME_KEY))
-                        .ldapPassword(vars.assertString(LDAP_PASSWORD_KEY));
+            if (!vars.has(LDAP_CREDS_KEY)) {
+                throw new IllegalArgumentException("LDAP auth config is missing " + LDAP_CREDS_KEY + " option");
             }
 
-            if (vars.has("org") && vars.has("name")) {
-                Secret.CredentialsSecret creds = exportUsernamePassword(vars, secretExporter);
-                return auth
-                        .ldapUsername(creds.getUsername())
+            Auth auth = new Auth()
+                    .accessType("ldap")
+                    .accessId(stringOrSecret(vars.get(ACCESS_ID_KEY), secretExporter));
+
+            Variables authCreds = new MapBackedVariables(vars.assertMap(LDAP_CREDS_KEY));
+
+            if (authCreds.has(USERNAME_KEY) && authCreds.has(PASSWORD_KEY)) {
+                return auth.ldapUsername(authCreds.assertString(USERNAME_KEY))
+                        .ldapPassword(authCreds.assertString(PASSWORD_KEY));
+            }
+
+            if (authCreds.has("org") && authCreds.has("name")) {
+                Secret.CredentialsSecret creds = exportUsernamePassword(authCreds, secretExporter);
+
+                return auth.ldapUsername(creds.getUsername())
                         .ldapPassword(creds.getPassword());
             }
 

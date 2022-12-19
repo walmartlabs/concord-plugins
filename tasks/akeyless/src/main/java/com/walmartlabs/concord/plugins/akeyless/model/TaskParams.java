@@ -70,6 +70,11 @@ public interface TaskParams {
         return DEFAULT_BASE_API;
     }
 
+    @Value.Default
+    default String ignoreCache() {
+        return "false";
+    }
+
     /**
      * @return unique identifier for the current session. Must change each time
      * a process runs. For example, the value must change between execution before
@@ -82,10 +87,20 @@ public interface TaskParams {
 
     interface GetSecretParams extends TaskParams {
         String path();
+
+        @Value.Default
+        default String ignoreCache() {
+            return "false";
+        }
     }
 
     interface GetSecretsParams extends TaskParams {
         List<String> paths();
+
+        @Value.Default
+        default String ignoreCache() {
+            return "false";
+        }
     }
 
     interface CreateSecretParams extends TaskParams {

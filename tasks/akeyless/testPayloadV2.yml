@@ -1,16 +1,33 @@
 configuration:
   runtime: concord-v2
   arguments:
+    secretBasePath: ""
     akeylessParams:
       apiBasePath: 'https://api.akeyless.io'
+      ignoreCache: true
       debug: true
-      auth:
-        apiKey:
-          accessId: { org: 'Default', name: 'dev-akeyless-id' }
-          accessKey: { org: 'Default', name: 'dev-akeyless-key' }
     testData:
-      path1: "/concord_validation/secret1"
-      path2: "/concord_validation/secret2"
+      path1: "${secretBasePath}/concord_validation/secret1"
+      path2: "${secretBasePath}/concord_validation/secret2"
+
+profiles:
+  apikey:
+    configuration:
+      arguments:
+        akeylessParams:
+          auth:
+            apiKey:
+              accessId: { org: 'Default', name: 'dev-akeyless-id' }
+              accessKey: { org: 'Default', name: 'dev-akeyless-key' }
+  ldap:
+    configuration:
+      arguments:
+        akeylessParams:
+          apiBasePath: "${null}"  # override with process payload var
+          auth:
+            ldap:
+              accessId: { org: 'Default', name: 'dev-akeyless-ldap-id' }
+              credentials: { org: 'Default', name: 'dev-akeyless-ldap-auth' }
 
 flows:
   testParallel:

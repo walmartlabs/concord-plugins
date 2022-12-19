@@ -60,8 +60,11 @@ public abstract class AbstractIT {
     protected Map<String, Object> createLdapAuth() {
         Map<String, Object> cfg = new HashMap<>();
         cfg.put("accessId", getITsProp("accessId"));
-        cfg.put("username", getITsProp("ldapUsername"));
-        cfg.put("password", getITsProp("ldapPassword"));
+
+        Map<String, Object> credentials = new HashMap<>();
+        credentials.put("username", getITsProp("ldapUsername"));
+        credentials.put("password", getITsProp("ldapPassword"));
+        cfg.put("credentials", credentials);
 
         return Collections.singletonMap("ldap", cfg);
     }

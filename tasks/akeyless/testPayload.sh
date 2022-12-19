@@ -77,6 +77,9 @@ HTTP_CODE=$(curl -sn \
   ${ORG:+ -F "org=${ORG}"} \
   ${PROJECT:+ -F "project=${PROJECT}"} \
   -F archive=@target/test/payload.zip \
+  ${ACTIVE_PROFILES:+ -F "activeProfiles=${ACTIVE_PROFILES}"} \
+  ${SECRET_BASE_PATH:+ -F "arguments.secretBasePath=${SECRET_BASE_PATH}"} \
+  ${API_BASE_PATH:+ -F "arguments.akeylessParams.apiBasePath=${API_BASE_PATH}"} \
   "${SERVER_URL}/api/v1/process"
 )
 

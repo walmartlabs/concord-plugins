@@ -96,6 +96,7 @@ public class AkeylessCommon {
         try {
             String accessToken = getAccessToken(api);
             GetSecretValue body = new GetSecretValue()
+                    .ignoreCache(params.ignoreCache())
                     .token(accessToken);
 
             for (String path : paths) {
