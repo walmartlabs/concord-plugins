@@ -34,6 +34,7 @@ public class TaskParamsImpl implements TaskParams {
     private static final Logger log = LoggerFactory.getLogger(TaskParamsImpl.class);
 
     public static final String ACTION_KEY = "action";
+    public static final String API_BASE_PATH = "apiBasePath";
     public static final String DEBUG_KEY = "debug";
     private static final String ENABLE_CONCORD_SECRETS_CACHE_KEY = "enableConcordSecretCache";
     private static final String SESSION_TOKEN_KEY = "sessionToken";
@@ -98,6 +99,7 @@ public class TaskParamsImpl implements TaskParams {
     private static Map<String, BiFunction<Variables, SecretExporter, Auth>> createAuthBuilders() {
         Map<String, BiFunction<Variables, SecretExporter, Auth>> result = new HashMap<>();
         result.put("apiKey", ApiKeyAuthImpl::of);
+        result.put("ldap", LdapAuthImpl::of);
         return result;
     }
 
@@ -106,6 +108,11 @@ public class TaskParamsImpl implements TaskParams {
     protected TaskParamsImpl(Variables input, SecretExporter secretExporter) {
         this.input = input;
         this.secretExporter = secretExporter;
+    }
+
+    @Override
+    public String apiBasePath() {
+        return input.getString(API_BASE_PATH, TaskParams.super.apiBasePath());
     }
 
     @Override
@@ -169,17 +176,31 @@ public class TaskParamsImpl implements TaskParams {
             }
         });
 
-        return exportSecret((Map<String, String>) o, secretExporter);
+        return exportStringSecret((Map<String, String>) o, secretExporter).getValue();
     }
 
-    private static String exportSecret(Map<String, String> secretInfo, SecretExporter secretExporter) {
+    private static Secret.StringSecret exportStringSecret(Map<String, String> secretInfo, SecretExporter secretExporter) {
         final String o = secretInfo.get("org");
         final String n = secretInfo.get("name");
         final String p = secretInfo.getOrDefault("password", null);
 
-        return secretCache.get(o, n, () -> {
+        return (Secret.StringSecret) secretCache.get(o, n, () -> {
             try {
                 return secretExporter.exportAsString(o, n, p);
+            } catch (Exception e) {
+                throw new RuntimeException(String.format("Error exporting secret '%s/%s': %s", o, n, e.getMessage()), e);
+            }
+        });
+    }
+
+    private static Secret.CredentialsSecret exportUsernamePassword(Variables secretInfo, SecretExporter secretExporter) {
+        final String o = secretInfo.assertString("org");
+        final String n = secretInfo.assertString("name");
+        final String p = secretInfo.getString("password", null);
+
+        return (Secret.CredentialsSecret) secretCache.get(o, n, () -> {
+            try {
+                return secretExporter.exportCredentials(o, n, p);
             } catch (Exception e) {
                 throw new RuntimeException(String.format("Error exporting secret '%s/%s': %s", o, n, e.getMessage()), e);
             }
@@ -223,6 +244,33 @@ public class TaskParamsImpl implements TaskParams {
             return new Auth()
                     .accessId(stringOrSecret(vars.get(ACCESS_ID_KEY), secretExporter))
                     .accessKey(stringOrSecret(vars.get(ACCESS_KEY_KEY), secretExporter));
+        }
+    }
+
+    private static class LdapAuthImpl extends Auth {
+        private static final String ACCESS_ID_KEY = "accessId";
+        private static final String LDAP_USERNAME_KEY = "username";
+        private static final String LDAP_PASSWORD_KEY = "password";
+
+        private static Auth of(Variables vars, SecretExporter secretExporter) {
+            Auth auth = new Auth()
+                    .accessType("ldap")
+                    .accessId(vars.assertString(ACCESS_ID_KEY));
+
+            if (vars.has(LDAP_USERNAME_KEY) && vars.has(LDAP_PASSWORD_KEY)) {
+                return auth
+                        .ldapUsername(vars.assertString(LDAP_USERNAME_KEY))
+                        .ldapPassword(vars.assertString(LDAP_PASSWORD_KEY));
+            }
+
+            if (vars.has("org") && vars.has("name")) {
+                Secret.CredentialsSecret creds = exportUsernamePassword(vars, secretExporter);
+                return auth
+                        .ldapUsername(creds.getUsername())
+                        .ldapPassword(creds.getPassword());
+            }
+
+            throw new IllegalArgumentException("Invalid LDAP auth parameters given");
         }
     }
 

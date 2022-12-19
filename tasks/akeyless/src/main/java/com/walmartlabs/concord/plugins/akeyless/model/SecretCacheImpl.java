@@ -33,7 +33,7 @@ public class SecretCacheImpl implements SecretCache {
     private static SecretCacheImpl instance;
 
     private final String salt;
-    private final Map<String, String> data;
+    private final Map<String, Secret> data;
     private final boolean debug;
 
     public static synchronized SecretCache getInstance(String salt, boolean debug) {
@@ -60,7 +60,7 @@ public class SecretCacheImpl implements SecretCache {
     }
 
     @Override
-    public String get(String org, String name, Supplier<String> lookup) {
+    public Secret get(String org, String name, Supplier<Secret> lookup) {
         final String cacheKey = buildKey(org, name, salt);
         final String hash = Util.hash(cacheKey);
 
@@ -71,7 +71,7 @@ public class SecretCacheImpl implements SecretCache {
     }
 
     @Override
-    public void put(String org, String name, String value) {
+    public void put(String org, String name, Secret value) {
         final String cacheKey = buildKey(org, name, salt);
 
         data.put(Util.hash(cacheKey), value);

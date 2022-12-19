@@ -43,7 +43,7 @@ public class AkeylessTask implements Task {
 
     @Inject
     public AkeylessTask(Context ctx, SecretService secretService) {
-        this.secretExporter = secretService::exportAsString;
+        this.secretExporter = new SecretExporterV2(secretService);
         this.defaults = new HashMap<>(ctx.variables().getMap(TaskParams.DEFAULT_PARAMS_KEY, Collections.emptyMap()));
         this.defaults.put("sessionToken", ctx.processConfiguration().processInfo().sessionToken());
         this.defaults.put("txId", ctx.processInstanceId().toString());

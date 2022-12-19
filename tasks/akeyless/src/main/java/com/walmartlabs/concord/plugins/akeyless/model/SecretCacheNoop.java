@@ -24,19 +24,19 @@ import java.util.function.Supplier;
 
 public class SecretCacheNoop implements SecretCache {
 
-    private final static SecretCache instance = new SecretCacheNoop();
+    private static final SecretCache instance = new SecretCacheNoop();
 
     public static SecretCache getInstance() {
         return instance;
     }
 
     @Override
-    public String get(String org, String name, Supplier<String> lookup) {
+    public Secret get(String org, String name, Supplier<Secret> lookup) {
         return lookup.get();
     }
 
     @Override
-    public void put(String org, String name, String value) {
+    public void put(String org, String name, Secret value) {
         // no cache in noop
     }
 }

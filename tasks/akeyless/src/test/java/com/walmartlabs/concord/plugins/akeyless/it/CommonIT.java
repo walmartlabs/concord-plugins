@@ -24,6 +24,7 @@ import com.walmartlabs.concord.plugins.akeyless.AkeylessCommon;
 import com.walmartlabs.concord.plugins.akeyless.AkeylessTaskResult;
 import com.walmartlabs.concord.plugins.akeyless.model.TaskParams;
 import com.walmartlabs.concord.plugins.akeyless.model.TaskParamsImpl;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.security.SecureRandom;
@@ -46,6 +47,37 @@ class CommonIT extends AbstractIT {
         final String accessToken = createAccessToken();
 
         testCreateUpdateGet(accessToken);
+    }
+
+    @Test
+    @Disabled()
+    void testLdap() {
+        Map<String, Object> cfg = baseConfig();
+        cfg.put("apiBasePath", getITsProp("apiBasePath"));
+        cfg.put("auth", createLdapAuth());
+        cfg.put("action", "auth");
+
+        TaskParams params = TaskParamsImpl.of(cfg, Collections.emptyMap(), Collections.emptyMap(), null);
+        AkeylessTaskResult result = new AkeylessCommon().execute(params);
+
+        assertTrue(result.getOk());
+        Map<String, String> data = result.getData();
+
+        String token = data.get("accessToken");
+        assertNotNull(token);
+
+
+        String secretPath = getITsProp("existingSecretPath");
+
+        cfg.put("action", "getSecret");
+        cfg.put("path", secretPath);
+        cfg.put("accessToken", token);
+
+        params = TaskParamsImpl.of(cfg, Collections.emptyMap(), Collections.emptyMap(), null);
+        result = new AkeylessCommon().execute(params);
+
+        assertTrue(result.getOk());
+        assertNotNull(result.getData().get(secretPath));
     }
 
     void testCreateUpdateGet(String accessToken) {

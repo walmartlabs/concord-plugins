@@ -21,6 +21,7 @@ package com.walmartlabs.concord.plugins.akeyless;
  */
 
 
+import com.walmartlabs.concord.plugins.akeyless.model.Secret;
 import com.walmartlabs.concord.plugins.akeyless.model.SecretCache;
 import com.walmartlabs.concord.plugins.akeyless.model.SecretCacheImpl;
 import com.walmartlabs.concord.runtime.v2.sdk.SecretService;
@@ -53,14 +54,13 @@ class CommonTest {
 
         // --- value from cache should be the same as a fresh call
 
-        assertEquals(expectedValue, callCache(secretCache, secretService, "myOrg", "mySecret", null));
-        assertEquals(expectedValue, callCache(secretCache, secretService, "myOrg", "mySecret", null));
+        assertEquals(expectedValue, callCache(secretCache, secretService, "myOrg", "mySecret", null).getValue());
+        assertEquals(expectedValue, callCache(secretCache, secretService, "myOrg", "mySecret", null).getValue());
 
         // --- Cache should only pull secret data once
 
         Mockito.verify(secretService, times(1))
                 .exportAsString("myOrg", "mySecret", null);
-
     }
 
     @Test
@@ -72,13 +72,13 @@ class CommonTest {
                 .thenReturn(expectedValue);
 
         // first call misses cache
-        assertEquals(expectedValue, callCache(secretCache, secretService, "myOrg", "mySecret", null));
+        assertEquals(expectedValue, callCache(secretCache, secretService, "myOrg", "mySecret", null).getValue());
 
         // changing the salt resets the cache
         SecretCache cache2 = SecretCacheImpl.getInstance("new-salt", false);
-        assertEquals(expectedValue, callCache(cache2, secretService, "myOrg", "mySecret", null));
-        assertEquals(expectedValue, callCache(cache2, secretService, "myOrg", "mySecret", null));
-        assertEquals(expectedValue, callCache(cache2, secretService, "myOrg", "mySecret", null));
+        assertEquals(expectedValue, callCache(cache2, secretService, "myOrg", "mySecret", null).getValue());
+        assertEquals(expectedValue, callCache(cache2, secretService, "myOrg", "mySecret", null).getValue());
+        assertEquals(expectedValue, callCache(cache2, secretService, "myOrg", "mySecret", null).getValue());
 
         // ---
 
@@ -86,10 +86,11 @@ class CommonTest {
                 .exportAsString("myOrg", "mySecret", null);
     }
 
-    private static String callCache(SecretCache cache, SecretService secretService, String org, String name, String password) {
-        return cache.get(org, name, () -> {
+    private static Secret.StringSecret callCache(SecretCache cache, SecretService secretService, String org, String name, String password) {
+        return (Secret.StringSecret) cache.get(org, name, () -> {
             try {
-                return secretService.exportAsString(org, name, password);
+                String value = secretService.exportAsString(org, name, password);
+                return new Secret.StringSecret(value);
             } catch (Exception e) {
                 fail();
                 return null;
