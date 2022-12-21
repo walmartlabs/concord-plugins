@@ -24,6 +24,7 @@ import org.immutables.value.Value;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public interface TaskParams {
 
@@ -82,8 +83,8 @@ public interface TaskParams {
      */
     String sessionId();
     String txId();
-    Auth auth();
-    String accessToken();
+    Map<String, Object> auth();
+    Object accessToken();
 
     interface GetSecretParams extends TaskParams {
         String path();

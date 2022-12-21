@@ -28,7 +28,6 @@ import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-
 class TaskParamsImplTest {
 
     @Test
@@ -41,8 +40,7 @@ class TaskParamsImplTest {
         paths.add("/second/path");
         cfg.put("paths", paths);
 
-
-        TaskParams params = TaskParamsImpl.of(cfg, Collections.emptyMap(), Collections.emptyMap(), null);
+        TaskParams params = TaskParamsImpl.of(cfg, Collections.emptyMap(), Collections.emptyMap());
         assertEquals(TaskParams.Action.GETSECRETS, params.action());
 
         TaskParams.GetSecretsParams getSecretsParams = (TaskParams.GetSecretsParams) params;

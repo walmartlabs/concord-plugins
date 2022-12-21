@@ -49,7 +49,6 @@ flows:
     - if: "${!authResult.ok}"
       then:
         - throw: "Failed to get access token: ${authResult.error}"
-    - "${akeylessParams.put('accessToken', authResult.data.accessToken)}"
 
 
     # Create two secrets
@@ -69,6 +68,10 @@ flows:
         value: "value2"
         description: "Description for secret 2"
         multiline: false
+
+
+    # Update default params with access token to use for all subsequent calls
+    - "${akeylessParams.put('accessToken', authResult.data.accessToken)}"
 
 
     # Get and validate one secret

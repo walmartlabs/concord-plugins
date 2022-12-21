@@ -56,7 +56,7 @@ flows:
         multiline: false
 
 
-    # Update default params with access token
+    # Update default params with access token to use for all subsequent calls
     - "${akeylessParams.put('accessToken', authResult.accessToken)}"
 
 

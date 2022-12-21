@@ -55,7 +55,7 @@ public class AkeylessTask implements Task {
     public TaskResult.SimpleResult execute(Variables input) throws Exception {
         final TaskParams params = createParams(input);
 
-        AkeylessTaskResult result = delegate.execute(params);
+        AkeylessTaskResult result = delegate.execute(params, secretExporter);
 
         return TaskResult.success()
                 .values(Collections.singletonMap("data", result.getData()));
@@ -71,10 +71,10 @@ public class AkeylessTask implements Task {
         vars.put("path", path);
         TaskParams params = createParams(new MapBackedVariables(vars));
 
-        return delegate.execute(params).getData().get(path);
+        return delegate.execute(params, secretExporter).getData().get(path);
     }
 
     private TaskParams createParams(Variables input) {
-        return TaskParamsImpl.of(input.toMap(), defaults, policyDefaults, secretExporter);
+        return TaskParamsImpl.of(input.toMap(), defaults, policyDefaults);
     }
 }

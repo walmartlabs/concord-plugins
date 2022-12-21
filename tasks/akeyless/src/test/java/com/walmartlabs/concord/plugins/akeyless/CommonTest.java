@@ -37,11 +37,11 @@ import static org.mockito.Mockito.when;
 class CommonTest {
 
     private static final String DEFAULT_SALT = "test-salt";
-    private SecretCache secretCache;
+    private SecretCache<Secret.StringSecret> secretCache;
 
     @BeforeEach
     void setup() {
-        secretCache = SecretCacheImpl.getInstance(DEFAULT_SALT, false);
+        secretCache = SecretCacheImpl.getStringCache(DEFAULT_SALT, false);
     }
 
     @Test
@@ -75,7 +75,7 @@ class CommonTest {
         assertEquals(expectedValue, callCache(secretCache, secretService, "myOrg", "mySecret", null).getValue());
 
         // changing the salt resets the cache
-        SecretCache cache2 = SecretCacheImpl.getInstance("new-salt", false);
+        SecretCache<Secret.StringSecret> cache2 = SecretCacheImpl.getStringCache("new-salt", false);
         assertEquals(expectedValue, callCache(cache2, secretService, "myOrg", "mySecret", null).getValue());
         assertEquals(expectedValue, callCache(cache2, secretService, "myOrg", "mySecret", null).getValue());
         assertEquals(expectedValue, callCache(cache2, secretService, "myOrg", "mySecret", null).getValue());

@@ -21,7 +21,7 @@ package com.walmartlabs.concord.plugins.akeyless.model;
  */
 
 /**
- * Marker interface (no methods) for indicating a type which is a secretfff
+ * Marker interface (no methods) for indicating a type which is a secret
  */
 public interface Secret {
 

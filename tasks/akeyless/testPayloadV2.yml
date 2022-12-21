@@ -69,7 +69,7 @@ flows:
         multiline: false
 
 
-    - name: "Update default params with access token"
+    - name: "Update default params with access token to use for all subsequent calls"
       expr: "${akeylessParams.put('accessToken', authResult.data.accessToken)}"
 
 

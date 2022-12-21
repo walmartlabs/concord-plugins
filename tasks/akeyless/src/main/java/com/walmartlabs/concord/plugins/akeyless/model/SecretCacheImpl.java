@@ -28,25 +28,39 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
-public class SecretCacheImpl implements SecretCache {
+public class SecretCacheImpl<T extends Secret> implements SecretCache<T> {
     private static final Logger log = LoggerFactory.getLogger(SecretCacheImpl.class);
-    private static SecretCacheImpl instance;
+    private static SecretCacheImpl<Secret.StringSecret> stringCache;
+    private static SecretCacheImpl<Secret.CredentialsSecret> credentialCache;
 
     private final String salt;
-    private final Map<String, Secret> data;
+    private final Map<String, T> data;
     private final boolean debug;
 
-    public static synchronized SecretCache getInstance(String salt, boolean debug) {
-        if (instance == null) {
-            instance = new SecretCacheImpl(salt, debug);
+    public static synchronized SecretCache<Secret.StringSecret> getStringCache(String salt, boolean debug) {
+        if (stringCache == null) {
+            stringCache = new SecretCacheImpl<>(salt, debug);
         }
 
-        if (instance.isDirty(salt)) {
-            log.warn("Secret cache is dirty. Re-initializing");
-            instance = new SecretCacheImpl(salt, debug);
+        if (stringCache.isDirty(salt)) {
+            log.warn("String secret cache is dirty. Re-initializing");
+            stringCache = new SecretCacheImpl<>(salt, debug);
         }
 
-        return instance;
+        return stringCache;
+    }
+
+    public static synchronized SecretCache<Secret.CredentialsSecret> getCredentialCache(String salt, boolean debug) {
+        if (credentialCache == null) {
+            credentialCache = new SecretCacheImpl<>(salt, debug);
+        }
+
+        if (credentialCache.isDirty(salt)) {
+            log.warn("String secret cache is dirty. Re-initializing");
+            credentialCache = new SecretCacheImpl<>(salt, debug);
+        }
+
+        return credentialCache;
     }
 
     private SecretCacheImpl(String s, boolean debug) {
@@ -60,7 +74,7 @@ public class SecretCacheImpl implements SecretCache {
     }
 
     @Override
-    public Secret get(String org, String name, Supplier<Secret> lookup) {
+    public T get(String org, String name, Supplier<T> lookup) {
         final String cacheKey = buildKey(org, name, salt);
         final String hash = Util.hash(cacheKey);
 
@@ -71,7 +85,7 @@ public class SecretCacheImpl implements SecretCache {
     }
 
     @Override
-    public void put(String org, String name, Secret value) {
+    public void put(String org, String name, T value) {
         final String cacheKey = buildKey(org, name, salt);
 
         data.put(Util.hash(cacheKey), value);

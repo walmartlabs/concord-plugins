@@ -25,6 +25,7 @@ import org.slf4j.Logger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Map;
 
 public final class Util {
 
@@ -62,5 +63,40 @@ public final class Util {
         }
 
         log.info("DEBUG: {}", msg);
+    }
+
+    /**
+     * @param o Input value with may be a String or Map of Concord secret
+     *          info ('org', 'name', 'password')
+     * @param secretExporter for access Concord's Secrets API
+     * @return String value from direct input or exported Secret value
+     */
+    @SuppressWarnings("unchecked")
+    public static String stringOrSecret(Object o, SecretExporter secretExporter) {
+        if (o == null) {
+            return null;
+        }
+
+        if (o instanceof String) {
+            return (String) o;
+        }
+
+        if (!(o instanceof Map)) {
+            throw new IllegalArgumentException("Invalid data type given for sensitive argument. Must be string or map.");
+        }
+
+        ((Map<?, ?>) o).forEach((key, value) -> {
+            if (!(key instanceof String)) {
+                throw new IllegalArgumentException("Non-string key used for secret definition");
+            }
+
+            if (!(value instanceof String)) {
+                throw new IllegalArgumentException("Non-string value used for key '" + key + "' in secret definition");
+            }
+        });
+
+        Map<String, String> secretInfo = (Map<String, String>) o;
+
+        return secretExporter.exportAsString(secretInfo.get("org"), secretInfo.get("name"), secretInfo.get("password")).getValue();
     }
 }

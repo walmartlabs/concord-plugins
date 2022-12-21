@@ -22,7 +22,7 @@ package com.walmartlabs.concord.plugins.akeyless.model;
 
 import java.util.function.Supplier;
 
-public interface SecretCache {
-    Secret get(String org, String name, Supplier<Secret> lookup);
-    void put(String org, String name, Secret value);
+public interface SecretCache<T extends Secret> {
+    T get(String org, String name, Supplier<T> lookup);
+    void put(String org, String name, T value);
 }

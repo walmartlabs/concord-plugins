@@ -22,18 +22,26 @@ package com.walmartlabs.concord.plugins.akeyless.v1;
 
 import com.walmartlabs.concord.plugins.akeyless.SecretExporter;
 import com.walmartlabs.concord.plugins.akeyless.model.Secret;
+import com.walmartlabs.concord.plugins.akeyless.model.SecretCache;
+import com.walmartlabs.concord.plugins.akeyless.model.SecretCacheImpl;
 import com.walmartlabs.concord.sdk.Context;
 import com.walmartlabs.concord.sdk.SecretService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.UUID;
 
 public class SecretExporterV1 implements SecretExporter {
+    private static final Logger log = LoggerFactory.getLogger(SecretExporterV1.class);
     private final Context ctx;
     private final String txId;
     private final String workDir;
     private final SecretService secretService;
+
+    private SecretCache<Secret.StringSecret> stringCache;
+    private SecretCache<Secret.CredentialsSecret> credentialCache;
 
     public SecretExporterV1(Context ctx, UUID txId, Path workDir, SecretService secretService) {
         this.ctx = ctx;
@@ -42,15 +50,36 @@ public class SecretExporterV1 implements SecretExporter {
         this.secretService = secretService;
     }
 
-    @Override
-    public Secret.StringSecret exportAsString(String orgName, String secretName, String password) throws Exception {
-        return new Secret.StringSecret(secretService.exportAsString(ctx, txId, orgName, secretName, password));
+    public void initCache(String salt, boolean debug) {
+        this.stringCache = SecretCacheImpl.getStringCache(salt, debug);
+        this.credentialCache = SecretCacheImpl.getCredentialCache(salt, debug);
     }
 
     @Override
-    public Secret.CredentialsSecret exportCredentials(String orgName, String secretName, String password) throws Exception {
-        Map<String, String> up =  secretService.exportCredentials(ctx, txId, workDir, orgName, secretName, password);
+    public Secret.StringSecret exportAsString(String o, String n, String p) {
+        return stringCache.get(o, n, () -> {
+            String value;
+            try {
+                value = secretService.exportAsString(ctx, o, n, p);
+            } catch (Exception e) {
+                throw new RuntimeException(String.format("Error exporting secret '%s/%s': %s", o, n, e.getMessage()), e);
+            }
 
-        return new Secret.CredentialsSecret(up.get("username"), up.get("password"));
+            return new Secret.StringSecret(value);
+        });
+    }
+
+    @Override
+    public Secret.CredentialsSecret exportCredentials(String o, String n, String p) {
+        return credentialCache.get(o, n, () -> {
+            try {
+                Map<String, String> up = secretService.exportCredentials(ctx, txId, workDir, o, n, p);
+                return new Secret.CredentialsSecret(up.get("username"), up.get("password"));
+            } catch (Exception e) {
+                log.error("error exporting credentials secret: {}", e.getMessage());
+            }
+
+            return new Secret.CredentialsSecret(null, null);
+        });
     }
 }
