@@ -96,14 +96,14 @@ public class AkeylessCommon {
         try {
             String accessToken = getAccessToken(api);
             GetSecretValue body = new GetSecretValue()
-                    .ignoreCache(params.ignoreCache())
+                    .ignoreCache(params.ignoreCache() ? "true" : "false")
                     .token(accessToken);
 
             for (String path : paths) {
                 body.addNamesItem(path);
             }
-            return api.getSecretValue(body);
 
+            return api.getSecretValue(body);
         } catch (Exception e) {
             log.error("Error fetching akeyless secret data", e);
             throw new RuntimeException(e);

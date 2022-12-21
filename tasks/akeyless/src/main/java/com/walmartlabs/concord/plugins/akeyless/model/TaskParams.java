@@ -71,8 +71,8 @@ public interface TaskParams {
     }
 
     @Value.Default
-    default String ignoreCache() {
-        return "false";
+    default boolean ignoreCache() {
+        return false;
     }
 
     /**
@@ -87,20 +87,10 @@ public interface TaskParams {
 
     interface GetSecretParams extends TaskParams {
         String path();
-
-        @Value.Default
-        default String ignoreCache() {
-            return "false";
-        }
     }
 
     interface GetSecretsParams extends TaskParams {
         List<String> paths();
-
-        @Value.Default
-        default String ignoreCache() {
-            return "false";
-        }
     }
 
     interface CreateSecretParams extends TaskParams {
@@ -143,5 +133,4 @@ public interface TaskParams {
         GETSECRETS,
         UPDATESECRET
     }
-
 }

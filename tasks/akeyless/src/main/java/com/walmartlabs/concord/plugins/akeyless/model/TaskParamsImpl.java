@@ -117,16 +117,14 @@ public class TaskParamsImpl implements TaskParams {
     }
 
     @Override
-    public String ignoreCache() {
-        boolean ignore = input.getBoolean(IGNORE_CACHE_KEY, false);
-        String value = TaskParams.super.ignoreCache();
+    public boolean ignoreCache() {
+        boolean ignore = input.getBoolean(IGNORE_CACHE_KEY, TaskParams.super.ignoreCache());
 
         if (ignore) {
             Util.debug(this.debug(), log, "ignoring cache");
-            value = "true";
         }
 
-        return value;
+        return ignore;
     }
 
     @Override
