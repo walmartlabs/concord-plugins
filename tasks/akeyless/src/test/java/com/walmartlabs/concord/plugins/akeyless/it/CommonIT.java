@@ -22,9 +22,12 @@ package com.walmartlabs.concord.plugins.akeyless.it;
 
 import com.walmartlabs.concord.plugins.akeyless.AkeylessCommon;
 import com.walmartlabs.concord.plugins.akeyless.AkeylessTaskResult;
+import com.walmartlabs.concord.plugins.akeyless.SecretExporter;
 import com.walmartlabs.concord.plugins.akeyless.model.TaskParams;
 import com.walmartlabs.concord.plugins.akeyless.model.TaskParamsImpl;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.security.SecureRandom;
 import java.util.*;
@@ -35,6 +38,7 @@ class CommonIT extends AbstractIT {
 
     private static final String testPath = "/concord_its";
     private static final String txId = UUID.randomUUID().toString();
+    private static final SecretExporter secretExporter = Mockito.mock(SecretExporter.class);
 
     @Test
     void testWithAuth() {
@@ -46,6 +50,37 @@ class CommonIT extends AbstractIT {
         final String accessToken = createAccessToken();
 
         testCreateUpdateGet(accessToken);
+    }
+
+    @Test
+    @Disabled()
+    void testLdap() {
+        Map<String, Object> cfg = baseConfig();
+        cfg.put("apiBasePath", getITsProp("apiBasePath"));
+        cfg.put("auth", createLdapAuth());
+        cfg.put("action", "auth");
+
+        TaskParams params = TaskParamsImpl.of(cfg, Collections.emptyMap(), Collections.emptyMap());
+        AkeylessTaskResult result = new AkeylessCommon().execute(params, secretExporter);
+
+        assertTrue(result.getOk());
+        Map<String, String> data = result.getData();
+
+        String token = data.get("accessToken");
+        assertNotNull(token);
+
+
+        String secretPath = getITsProp("existingSecretPath");
+
+        cfg.put("action", "getSecret");
+        cfg.put("path", secretPath);
+        cfg.put("accessToken", token);
+
+        params = TaskParamsImpl.of(cfg, Collections.emptyMap(), Collections.emptyMap());
+        result = new AkeylessCommon().execute(params, secretExporter);
+
+        assertTrue(result.getOk());
+        assertNotNull(result.getData().get(secretPath));
     }
 
     void testCreateUpdateGet(String accessToken) {
@@ -84,8 +119,8 @@ class CommonIT extends AbstractIT {
         cfg.put("auth", createAuth());
         cfg.put("action", "auth");
 
-        TaskParams params = TaskParamsImpl.of(cfg, Collections.emptyMap(), Collections.emptyMap(), null);
-        AkeylessTaskResult result = new AkeylessCommon().execute(params);
+        TaskParams params = TaskParamsImpl.of(cfg, Collections.emptyMap(), Collections.emptyMap());
+        AkeylessTaskResult result = new AkeylessCommon().execute(params, secretExporter);
 
         assertTrue(result.getOk());
         Map<String, String> data = result.getData();
@@ -111,8 +146,8 @@ class CommonIT extends AbstractIT {
             cfg.put("accessToken", accessToken);
         }
 
-        TaskParams params = TaskParamsImpl.of(cfg, Collections.emptyMap(), Collections.emptyMap(), null);
-        AkeylessTaskResult result = new AkeylessCommon().execute(params);
+        TaskParams params = TaskParamsImpl.of(cfg, Collections.emptyMap(), Collections.emptyMap());
+        AkeylessTaskResult result = new AkeylessCommon().execute(params, secretExporter);
 
         assertTrue(result.getOk());
         Map<String, String> data = result.getData();
@@ -133,8 +168,8 @@ class CommonIT extends AbstractIT {
             cfg.put("accessToken", accessToken);
         }
 
-        TaskParams params = TaskParamsImpl.of(cfg, Collections.emptyMap(), Collections.emptyMap(), null);
-        AkeylessTaskResult result = new AkeylessCommon().execute(params);
+        TaskParams params = TaskParamsImpl.of(cfg, Collections.emptyMap(), Collections.emptyMap());
+        AkeylessTaskResult result = new AkeylessCommon().execute(params, secretExporter);
 
         assertTrue(result.getOk());
     }
@@ -152,8 +187,8 @@ class CommonIT extends AbstractIT {
             cfg.put("accessToken", accessToken);
         }
 
-        TaskParams params = TaskParamsImpl.of(cfg, Collections.emptyMap(), Collections.emptyMap(), null);
-        AkeylessTaskResult result = new AkeylessCommon().execute(params);
+        TaskParams params = TaskParamsImpl.of(cfg, Collections.emptyMap(), Collections.emptyMap());
+        AkeylessTaskResult result = new AkeylessCommon().execute(params, secretExporter);
 
         assertTrue(result.getOk());
     }
@@ -162,13 +197,6 @@ class CommonIT extends AbstractIT {
         Map<String, Object> cfg = baseConfig();
 
         cfg.put("apiBasePath", getITsProp("apiBasePath"));
-
-        Map<String, Object> apiKey = new HashMap<>();
-        apiKey.put("accessId", getITsProp("accessId"));
-        apiKey.put("accessKey", getITsProp("accessKey"));
-
-        Map<String, Object> auth = Collections.singletonMap("apiKey", apiKey);
-
         cfg.put("action", "getSecrets");
         cfg.put("paths", Arrays.asList(path1, path2));
         if (Objects.isNull(accessToken)) {
@@ -177,8 +205,8 @@ class CommonIT extends AbstractIT {
             cfg.put("accessToken", accessToken);
         }
 
-        TaskParams params = TaskParamsImpl.of(cfg, Collections.emptyMap(), Collections.emptyMap(), null);
-        AkeylessTaskResult result = new AkeylessCommon().execute(params);
+        TaskParams params = TaskParamsImpl.of(cfg, Collections.emptyMap(), Collections.emptyMap());
+        AkeylessTaskResult result = new AkeylessCommon().execute(params, secretExporter);
 
         assertTrue(result.getOk());
         Map<String, String> data = result.getData();
@@ -192,13 +220,6 @@ class CommonIT extends AbstractIT {
         Map<String, Object> cfg = baseConfig();
 
         cfg.put("apiBasePath", getITsProp("apiBasePath"));
-
-        Map<String, Object> apiKey = new HashMap<>();
-        apiKey.put("accessId", getITsProp("accessId"));
-        apiKey.put("accessKey", getITsProp("accessKey"));
-
-        Map<String, Object> auth = Collections.singletonMap("apiKey", apiKey);
-
         cfg.put("action", "getSecret");
         cfg.put("path", path);
         if (Objects.isNull(accessToken)) {
@@ -207,8 +228,8 @@ class CommonIT extends AbstractIT {
             cfg.put("accessToken", accessToken);
         }
 
-        TaskParams params = TaskParamsImpl.of(cfg, Collections.emptyMap(), Collections.emptyMap(), null);
-        AkeylessTaskResult result = new AkeylessCommon().execute(params);
+        TaskParams params = TaskParamsImpl.of(cfg, Collections.emptyMap(), Collections.emptyMap());
+        AkeylessTaskResult result = new AkeylessCommon().execute(params, secretExporter);
 
         assertTrue(result.getOk());
         Map<String, String> data = result.getData();

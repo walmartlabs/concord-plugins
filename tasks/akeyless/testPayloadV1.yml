@@ -1,16 +1,33 @@
 configuration:
   runtime: concord-v1
   arguments:
+    secretBasePath: ""
     akeylessParams:
       apiBasePath: 'https://api.akeyless.io'
+      ignoreCache: true
       debug: true
-      auth:
-        apiKey:
-          accessId: { org: 'Default', name: 'dev-akeyless-id' }
-          accessKey: { org: 'Default', name: 'dev-akeyless-key' }
     testData:
-      path1: "/concord_validation/secret1"
-      path2: "/concord_validation/secret2"
+      path1: "${secretBasePath}/concord_validation/secret1"
+      path2: "${secretBasePath}/concord_validation/secret2"
+
+profiles:
+  apikey:
+    configuration:
+      arguments:
+        akeylessParams:
+          auth:
+            apiKey:
+              accessId: { org: 'Default', name: 'dev-akeyless-id' }
+              accessKey: { org: 'Default', name: 'dev-akeyless-key' }
+  ldap:
+    configuration:
+      arguments:
+        akeylessParams:
+          apiBasePath: "${null}"  # override with process payload var
+          auth:
+            ldap:
+              accessId: { org: 'Default', name: 'dev-akeyless-ldap-id' }
+              credentials: { org: 'Default', name: 'dev-akeyless-ldap-auth' }
 
 flows:
   default:
@@ -39,7 +56,7 @@ flows:
         multiline: false
 
 
-    # Update default params with access token
+    # Update default params with access token to use for all subsequent calls
     - "${akeylessParams.put('accessToken', authResult.accessToken)}"
 
 
@@ -107,4 +124,4 @@ flows:
   assertEqual:
     - if: ${expected != actual}
       then:
-        - throw: "Got unexpected data: ${expected} != ${actual}"
+        - throw: "Got unexpected data: expected => '${expected}', got => '${actual}'"

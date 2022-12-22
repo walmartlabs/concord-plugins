@@ -20,6 +20,10 @@ package com.walmartlabs.concord.plugins.akeyless;
  * =====
  */
 
+import com.walmartlabs.concord.plugins.akeyless.model.Secret;
+
 public interface SecretExporter {
-    String exportAsString(String orgName, String secretName, String password) throws Exception;
+    void initCache(String salt, boolean debug);
+    Secret.StringSecret exportAsString(String orgName, String secretName, String password);
+    Secret.CredentialsSecret exportCredentials(String orgName, String secretName, String password);
 }

@@ -82,6 +82,14 @@ Use the included `testPayload.sh` script to execute a test flow with the plugin.
 ```
 $ SERVER_URL=http://localhost:8001 \
   RUNTIME=v1 \
+  ACTIVE_PROFILES=apikey \
+  ./testPayload.sh
+
+$ SERVER_URL=http://localhost:8001 \
+  RUNTIME=v2 \
+  ACTIVE_PROFILES=ldap \
+  SECRET_BASE_PATH=/custom/base/path \
+  API_BASE_PATH=https://my-akeyless-instance:1234/v2 \
   ./testPayload.sh
 ```
 
@@ -97,7 +105,19 @@ ensure the version matches the local snapshot version, then run:
 
 ```
 $ mvn clean install
-$ concord run testV2.yml
+
+# apikey profile with default api endpoint is api.akeyless.io
+$ concord run --profile apikey testV2.yml
+
+Running a single Concord file: .../concord-plugins/tasks/akeyless/testV2.yml
+Starting...
+16:31:34.943 [main] DEBUG: Action: CREATESECRET
+
+# customize api endpoint and use ldap auth profile
+$ concord run --profile ldap \
+    -e "secretBasePath=/custom/base/path" \
+    -e "akeylessParams.apiBasePath=https://..." \
+    testV2.yml
 
 Running a single Concord file: .../concord-plugins/tasks/akeyless/testV2.yml
 Starting...

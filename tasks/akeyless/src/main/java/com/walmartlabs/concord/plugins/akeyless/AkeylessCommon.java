@@ -22,24 +22,44 @@ package com.walmartlabs.concord.plugins.akeyless;
 
 import com.walmartlabs.concord.plugins.akeyless.api.V2Api;
 import com.walmartlabs.concord.plugins.akeyless.model.*;
+import com.walmartlabs.concord.plugins.akeyless.model.auth.ApiKeyAuth;
+import com.walmartlabs.concord.plugins.akeyless.model.auth.LdapAuth;
+import com.walmartlabs.concord.runtime.v2.sdk.MapBackedVariables;
+import com.walmartlabs.concord.runtime.v2.sdk.Variables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 
 public class AkeylessCommon {
     private static final Logger log = LoggerFactory.getLogger(AkeylessCommon.class);
     private TaskParams params;
     private ApiClient apiClient;
+    private SecretExporter secretExporter;
+    private static final Map<String, BiFunction<Variables, SecretExporter, Auth>> authBuilders = createAuthBuilders();
 
     public AkeylessCommon() {
         // empty default constructor
     }
 
-    public AkeylessTaskResult execute(TaskParams params) {
+    private static Map<String, BiFunction<Variables, SecretExporter, Auth>> createAuthBuilders() {
+        Map<String, BiFunction<Variables, SecretExporter, Auth>> result = new HashMap<>();
+        result.put("apiKey", ApiKeyAuth::of);
+        result.put("ldap", LdapAuth::of);
+        return result;
+    }
+
+    public AkeylessTaskResult execute(TaskParams params, SecretExporter secretExporter) {
         this.params = params;
+        this.secretExporter = secretExporter;
+
+        if (params.enableConcordSecretCache()) {
+            secretExporter.initCache(params.sessionId(), params.debug());
+        }
 
         Util.debug(params.debug(), log, String.format("Action: %s", params.action()));
 
@@ -96,13 +116,14 @@ public class AkeylessCommon {
         try {
             String accessToken = getAccessToken(api);
             GetSecretValue body = new GetSecretValue()
+                    .ignoreCache(params.ignoreCache() ? "true" : "false")
                     .token(accessToken);
 
             for (String path : paths) {
                 body.addNamesItem(path);
             }
-            return api.getSecretValue(body);
 
+            return api.getSecretValue(body);
         } catch (Exception e) {
             log.error("Error fetching akeyless secret data", e);
             throw new RuntimeException(e);
@@ -205,7 +226,7 @@ public class AkeylessCommon {
     }
 
     private String getAccessToken(V2Api api) throws ApiException {
-        String accessToken = params.accessToken();
+        String accessToken = Util.stringOrSecret(params.accessToken(), secretExporter);
 
         if (accessToken != null) {
             Util.debug(params.debug(), log, "Using provided accessToken: ****");
@@ -218,6 +239,26 @@ public class AkeylessCommon {
     }
 
     private AuthOutput authenticate(V2Api api) throws ApiException {
-        return api.auth(params.auth());
+        Map<String, Object> authParams = params.auth();
+
+        if (authParams.isEmpty()) {
+            throw new IllegalArgumentException("Empty auth");
+        }
+
+        if (authParams.size() != 1) {
+            throw new IllegalArgumentException("Multiple auth types defined. Only one auth definition is allowed.");
+        }
+
+        String authType = authParams.keySet().iterator().next();
+
+        BiFunction<Variables, SecretExporter, Auth> builder = authBuilders.get(authType);
+        if (builder == null) {
+            throw new IllegalArgumentException("Unknown auth type '" + authType + "'. Available: " + authBuilders.keySet());
+        }
+
+        Map<String, Object> authTypeParams = new MapBackedVariables(authParams).assertMap(authType);
+        Auth auth = builder.apply(new MapBackedVariables(authTypeParams), secretExporter);
+
+        return api.auth(auth);
     }
 }

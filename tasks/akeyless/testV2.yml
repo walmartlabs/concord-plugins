@@ -1,18 +1,34 @@
 configuration:
   runtime: concord-v2
   dependencies:
-    - mvn://com.walmartlabs.concord.plugins:akeyless-task:1.42.1-SNAPSHOT
+    - mvn://com.walmartlabs.concord.plugins:akeyless-task:1.44.1-SNAPSHOT
   arguments:
+    secretBasePath: ""
     akeylessParams:
       apiBasePath: 'https://api.akeyless.io'
       debug: true
-      auth:
-        apiKey:
-          accessId: { org: 'Default', name: 'dev-akeyless-id' }
-          accessKey: { org: 'Default', name: 'dev-akeyless-key' }
     testData:
-      path1: "/concord_validation/secret1"
-      path2: "/concord_validation/secret2"
+      path1: "${secretBasePath}/concord_validation/secret1"
+      path2: "${secretBasePath}/concord_validation/secret2"
+
+profiles:
+  apikey:
+    configuration:
+      arguments:
+        akeylessParams:
+          auth:
+            apiKey:
+              accessId: { org: 'Default', name: 'dev-akeyless-id' }
+              accessKey: { org: 'Default', name: 'dev-akeyless-key' }
+  ldap:
+    configuration:
+      arguments:
+        akeylessParams:
+          apiBasePath: "${null}"  # override with CLI var
+          auth:
+            ldap:
+              accessId: { org: 'Default', name: 'dev-akeyless-ldap-id' }
+              credentials: { org: 'Default', name: 'dev-akeyless-ldap-auth' }
 
 flows:
   testParallel:
@@ -33,7 +49,6 @@ flows:
     - if: "${!authResult.ok}"
       then:
         - throw: "Failed to get access token: ${authResult.error}"
-    - "${akeylessParams.put('accessToken', authResult.data.accessToken)}"
 
 
     # Create two secrets
@@ -53,6 +68,10 @@ flows:
         value: "value2"
         description: "Description for secret 2"
         multiline: false
+
+
+    # Update default params with access token to use for all subsequent calls
+    - "${akeylessParams.put('accessToken', authResult.data.accessToken)}"
 
 
     # Get and validate one secret

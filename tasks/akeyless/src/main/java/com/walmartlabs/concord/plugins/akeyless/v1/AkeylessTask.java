@@ -22,6 +22,7 @@ package com.walmartlabs.concord.plugins.akeyless.v1;
 
 import com.walmartlabs.concord.plugins.akeyless.AkeylessCommon;
 import com.walmartlabs.concord.plugins.akeyless.AkeylessTaskResult;
+import com.walmartlabs.concord.plugins.akeyless.SecretExporter;
 import com.walmartlabs.concord.plugins.akeyless.model.TaskParams;
 import com.walmartlabs.concord.plugins.akeyless.model.TaskParamsImpl;
 import com.walmartlabs.concord.sdk.*;
@@ -48,7 +49,9 @@ public class AkeylessTask implements Task {
     @Override
     public void execute(Context ctx) {
         final TaskParams params = createParams(ctx, ctx.toMap());
-        final AkeylessTaskResult result = delegate.execute(params);
+        final SecretExporter secretExporter = new SecretExporterV1(
+                ctx, ContextUtils.getTxId(ctx), ContextUtils.getWorkDir(ctx), secretService);
+        final AkeylessTaskResult result = delegate.execute(params, secretExporter);
 
         ctx.setVariable("result", result.getData());
     }
@@ -62,15 +65,16 @@ public class AkeylessTask implements Task {
         vars.put("action", TaskParams.Action.GETSECRET.toString());
         vars.put("path", path);
         TaskParams params = createParams(ctx, vars);
+        SecretExporter secretExporter = new SecretExporterV1(
+                ctx, ContextUtils.getTxId(ctx), ContextUtils.getWorkDir(ctx), secretService);
 
-        return delegate.execute(params).getData().get(path);
+        return delegate.execute(params, secretExporter).getData().get(path);
     }
 
     private TaskParams createParams(Context ctx, Map<String, Object> input) {
         input.put("txId", ContextUtils.getTxId(ctx).toString());
         input.put("sessionToken", ContextUtils.getSessionToken(ctx));
 
-        return TaskParamsImpl.of(input, defaults, null,
-                (o, n, p) -> secretService.exportAsString(ctx, o, n, p));
+        return TaskParamsImpl.of(input, defaults, null);
     }
 }

@@ -57,6 +57,18 @@ public abstract class AbstractIT {
         return Collections.singletonMap("apiKey", cfg);
     }
 
+    protected Map<String, Object> createLdapAuth() {
+        Map<String, Object> cfg = new HashMap<>();
+        cfg.put("accessId", getITsProp("accessId"));
+
+        Map<String, Object> credentials = new HashMap<>();
+        credentials.put("username", getITsProp("ldapUsername"));
+        credentials.put("password", getITsProp("ldapPassword"));
+        cfg.put("credentials", credentials);
+
+        return Collections.singletonMap("ldap", cfg);
+    }
+
     @SuppressWarnings("unchecked")
     protected <T> T getITsProp(String k) {
         if (!itsProps.containsKey(k)) {

@@ -22,21 +22,26 @@ package com.walmartlabs.concord.plugins.akeyless.model;
 
 import java.util.function.Supplier;
 
-public class SecretCacheNoop implements SecretCache {
+public class SecretCacheNoop<T extends Secret> implements SecretCache<T> {
 
-    private final static SecretCache instance = new SecretCacheNoop();
+    private static final SecretCacheNoop<Secret.StringSecret> stringCache = new SecretCacheNoop<>();
+    private static final SecretCacheNoop<Secret.CredentialsSecret> credentialCache = new SecretCacheNoop<>();
 
-    public static SecretCache getInstance() {
-        return instance;
+    public static SecretCache<Secret.StringSecret> getStringCache() {
+        return stringCache;
+    }
+
+    public static SecretCache<Secret.CredentialsSecret> getCredentialCache() {
+        return credentialCache;
     }
 
     @Override
-    public String get(String org, String name, Supplier<String> lookup) {
+    public T get(String org, String name, Supplier<T> lookup) {
         return lookup.get();
     }
 
     @Override
-    public void put(String org, String name, String value) {
+    public void put(String org, String name, Secret value) {
         // no cache in noop
     }
 }

@@ -24,6 +24,7 @@ import org.immutables.value.Value;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public interface TaskParams {
 
@@ -70,6 +71,11 @@ public interface TaskParams {
         return DEFAULT_BASE_API;
     }
 
+    @Value.Default
+    default boolean ignoreCache() {
+        return false;
+    }
+
     /**
      * @return unique identifier for the current session. Must change each time
      * a process runs. For example, the value must change between execution before
@@ -77,8 +83,8 @@ public interface TaskParams {
      */
     String sessionId();
     String txId();
-    Auth auth();
-    String accessToken();
+    Map<String, Object> auth();
+    Object accessToken();
 
     interface GetSecretParams extends TaskParams {
         String path();
@@ -128,5 +134,4 @@ public interface TaskParams {
         GETSECRETS,
         UPDATESECRET
     }
-
 }
