@@ -223,10 +223,9 @@ public class LdapTaskCommon {
             int index = 0;
             while (index < servers.size()) {
                 try {
-                    log.info("Connecting to... : {}", servers.get(index));
                     return establishConnection(cfg, servers.get(index));
                 } catch (CommunicationException ce) {
-                    log.warn("Error while establishing connection with ldap AD server: {}", ce.getMessage());
+                    log.warn("Error while establishing connection with ldap AD server: {}, Exception: {}", servers.get(index), ce.getMessage());
                 } catch (Exception e) {
                     throw new IllegalArgumentException("Error while establishing connection " + e);
                 }
