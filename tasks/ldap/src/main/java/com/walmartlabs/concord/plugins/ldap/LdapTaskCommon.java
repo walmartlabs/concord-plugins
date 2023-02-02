@@ -50,7 +50,7 @@ public class LdapTaskCommon {
             case SEARCHBYDN: {
                 log.info("Starting 'SearchByDn' Action");
 
-                SearchByDnParams p = (SearchByDnParams)in;
+                SearchByDnParams p = (SearchByDnParams) in;
                 SearchResult searchResult = searchByDn(p, p.searchBase(), p.dn());
                 return toResult(searchResult);
             }
@@ -70,7 +70,7 @@ public class LdapTaskCommon {
             }
             case ISMEMBEROF: {
                 log.info("Starting 'IsMemberOf' Action");
-                boolean member = isMemberOf((MemberOfParams)in);
+                boolean member = isMemberOf((MemberOfParams) in);
                 Map<String, Object> result = new HashMap<>();
                 result.put("success", true);
                 result.put("result", member);
@@ -197,7 +197,7 @@ public class LdapTaskCommon {
             searchControls.setSearchScope(SearchControls.SUBTREE_SCOPE);
 
             // create SearchRequest
-            return withRetry(MAX_RETRIES, RETRY_DELAY, () -> establishConnection(cfg).search(searchBase, searchFilter, searchControls));
+            return connection.search(searchBase, searchFilter, searchControls);
         } catch (Exception e) {
             throw new IllegalArgumentException("Error occurred while searching " + e);
         } finally {
@@ -219,29 +219,27 @@ public class LdapTaskCommon {
             String port = assertString(dnsSrvRr, "port");
 
             List<String> servers = getLdapServers(dnsSrvName, protocol, port);
-            
+
             int index = 0;
             while (index < servers.size()) {
                 try {
                     log.info("Connecting to... : {}", servers.get(index));
                     return establishConnection(cfg, servers.get(index));
-                }
-                catch (CommunicationException ce) {
+                } catch (CommunicationException ce) {
                     log.warn("Error while establishing connection with ldap AD server: {}", ce.getMessage());
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     throw new IllegalArgumentException("Error while establishing connection " + e);
                 }
             }
         }
-        
+
         if (cfg.ldapAdServer() != null) {
             return establishConnection(cfg, cfg.ldapAdServer());
         }
 
-        throw new IllegalArgumentException("Mandatory variable either'" + LDAP_DNS_SRV_RR + "' or '" + LDAP_AD_SERVER + "' is required");
+        throw new IllegalArgumentException("Mandatory variable either '" + LDAP_DNS_SRV_RR + "' or '" + LDAP_AD_SERVER + "' is required");
     }
-    
+
 
     private LdapContext establishConnection(LdapConnectionCfg cfg, String ldapServer) throws NamingException {
         Hashtable<String, Object> env = new Hashtable<>();
@@ -251,10 +249,10 @@ public class LdapTaskCommon {
         env.put(javax.naming.Context.SECURITY_PRINCIPAL, cfg.bindUserDn());
         env.put(javax.naming.Context.SECURITY_CREDENTIALS, cfg.bindPassword());
         env.put("java.naming.ldap.version", "3");
-        
+
         return new InitialLdapContext(env, null);
     }
-    
+
     private List<String> getLdapServers(String dnsSrvName, String protocol, String port) throws NamingException {
         CopyOnWriteArrayList<String> servers = new CopyOnWriteArrayList<>();
         Hashtable<String, String> env = new Hashtable<>();

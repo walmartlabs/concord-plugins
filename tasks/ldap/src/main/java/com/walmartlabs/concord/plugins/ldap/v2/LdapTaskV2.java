@@ -29,6 +29,7 @@ import com.walmartlabs.concord.sdk.MapUtils;
 import javax.inject.Inject;
 import javax.inject.Named;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 @Named("ldap")
@@ -39,20 +40,23 @@ public class LdapTaskV2 implements Task {
 
     private final LdapTaskCommon delegate = new LdapTaskCommon();
 
+    private final Map<String, Object> defaults;
+
     @Inject
     public LdapTaskV2(Context context) {
         this.context = context;
+        this.defaults = new HashMap<>(context.variables().getMap(TaskParams.DEFAULT_PARAMS_KEY, Collections.emptyMap()));
     }
 
     @Override
     public TaskResult execute(Variables input) {
-        Map<String, Object> result = delegate.execute(TaskParams.of(input, context.defaultVariables().toMap()));
+        Map<String, Object> result = delegate.execute(TaskParams.of(input, defaults, context.defaultVariables().toMap()));
         return TaskResult.of(MapUtils.getBoolean(result, "success", false))
                 .values(result);
     }
 
     public boolean isMemberOf(String userDn, String groupDn) {
-        LdapSearchParams searchParams = TaskParams.searchParams(new MapBackedVariables(Collections.emptyMap()), context.defaultVariables().toMap());
+        LdapSearchParams searchParams = TaskParams.searchParams(new MapBackedVariables(Collections.emptyMap()), defaults, context.defaultVariables().toMap());
         return new LdapTaskCommon().isMemberOf(searchParams, userDn, groupDn);
     }
 }

@@ -29,6 +29,6 @@ public interface LdapConnectionCfg {
     String bindUserDn();
 
     String bindPassword();
-    
+
     Map<String, Object> dnsSrvRr();
 }
