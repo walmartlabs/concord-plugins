@@ -56,10 +56,11 @@ public class TaskParams implements LdapSearchParams {
 
     private static final String ACTION_KEY = "action";
 
-    private static final String LDAP_AD_SERVER = "ldapAdServer";
+    public static final String LDAP_AD_SERVER = "ldapAdServer";
     private static final String LDAP_BIND_USER_DN = "bindUserDn";
     private static final String LDAP_BIND_PASSWORD = "bindPassword";
     private static final String LDAP_SEARCH_BASE = "searchBase";
+    public static final String LDAP_DNS_SRV_RR = "dnsSrvRr";
 
     protected final Variables variables;
 
@@ -78,7 +79,12 @@ public class TaskParams implements LdapSearchParams {
 
     @Override
     public String ldapAdServer() {
-        return variables.assertString(LDAP_AD_SERVER);
+        return variables.getString(LDAP_AD_SERVER);
+    }
+    
+    @Override
+    public Map<String, Object> dnsSrvRr() {
+        return variables.getMap(LDAP_DNS_SRV_RR, null);
     }
 
     @Override
@@ -90,7 +96,7 @@ public class TaskParams implements LdapSearchParams {
     public String bindPassword() {
         return variables.getString(LDAP_BIND_PASSWORD);
     }
-
+    
     @Override
     public String searchBase() {
         return variables.assertString(LDAP_SEARCH_BASE);
