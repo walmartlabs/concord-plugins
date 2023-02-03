@@ -233,7 +233,11 @@ public class LdapTaskCommon {
         }
 
         if (cfg.ldapAdServer() != null) {
-            return establishConnection(cfg, cfg.ldapAdServer());
+            try {
+                return establishConnection(cfg, cfg.ldapAdServer());
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Error while establishing connection " + e);
+            }
         }
 
         throw new IllegalArgumentException("Mandatory variable either '" + LDAP_DNS_SRV_RR + "' or '" + LDAP_AD_SERVER + "' is required");
