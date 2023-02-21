@@ -27,6 +27,7 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public interface TaskParams {
 
@@ -46,6 +47,20 @@ public interface TaskParams {
         default String connectorId() {
             return "ldap";
         }
+
+        String username();
+
+        String password();
+    }
+
+    interface AzureAuth extends AuthParams {
+
+        String clientId();
+
+        String authority();
+
+        @Value.Default
+        default Set<String> scope() { return Collections.singleton("user.read"); }
 
         String username();
 

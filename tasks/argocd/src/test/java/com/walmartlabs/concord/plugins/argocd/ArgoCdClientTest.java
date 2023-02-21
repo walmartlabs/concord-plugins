@@ -28,8 +28,13 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @Disabled("Required url, credentials, app")
 public class ArgoCdClientTest {
@@ -178,6 +183,50 @@ public class ArgoCdClientTest {
         System.out.println(result);
     }
 
+    private static TaskParams.AzureAuth azure() {
+        return ImmutableTestAzureAuth.builder()
+                .clientId(System.getProperty("ARGO_CD_CLIENT_ID"))
+                .authority(System.getProperty("ARGO_CD_AUTHORITY"))
+                .username(System.getProperty("ARGO_CD_USER"))
+                .password(System.getProperty("ARGO_CD_PASSWORD"))
+                .scope(Collections.singletonList("user.read"))
+                .build();
+    }
+
+    @Test
+    public void testGetWithAzureToken() throws Exception {
+        TaskParams.GetParams in = ImmutableTestGetParams.builder()
+                .baseUrl(System.getProperty("ARGO_CD_BASE_URL"))
+                .auth(azure())
+                .debug(true)
+                .app(System.getProperty("ARGO_CD_APP"))
+                .build();
+
+        ArgoCdClient client = new ArgoCdClient(in);
+        String token = client.auth(in.auth());
+        Application app = client.getApp(token, in.app(), in.refresh());
+        assertEquals(System.getProperty("ARGO_CD_APP"), app.metadata().get("name"));
+    }
+
+    @Test
+    public void testSyncWithAzureToken() throws Exception {
+        TaskParams.SyncParams in = ImmutableTestSyncParams.builder()
+                .baseUrl(System.getProperty("ARGO_CD_BASE_URL"))
+                .auth(azure())
+                .debug(true)
+                .app(System.getProperty("ARGO_CD_APP"))
+                .syncTimeout(Duration.ofMinutes(1))
+                .build();
+
+        ArgoCdClient client = new ArgoCdClient(in);
+        String token = client.auth(in.auth());
+        Application app = client.syncApp(token, in);
+        System.out.println("app: " + app);
+
+        app = client.waitForSync(token, in.app(), app.resourceVersion(), in.syncTimeout(), WaitWatchParams.builder().build());
+        System.out.println("app2: " + app);
+    }
+
     private static TaskParams.BasicAuth basic() {
         return ImmutableTestBasicAuth.builder()
                 .username(System.getProperty("ARGO_CD_USER"))
@@ -197,6 +246,36 @@ public class ArgoCdClientTest {
         return ImmutableTestTokenAuth.builder()
                 .token("tes-jwt-token")
                 .build();
+    }
+
+    @Test
+    public void testCreateWithAzureToken() throws Exception {
+        String values = "{replicaCount: 1, image: {repository: nginx, pullPolicy: IfNotPresent, tag: latest }, imagePullSecrets: [], nameOverride: , fullnameOverride: , serviceAccount: {create: true, annotations: {}, name: }, podAnnotations: {}, podSecurityContext: {}, securityContext: {}, service: {type: ClusterIP, port: 80}, ingress: {enabled: false, className: , annotations: {}, hosts: [{host: chart-example.local, paths: [{path: /, pathType: ImplementationSpecific}]}], tls: []}, resources: {}, autoscaling: {enabled: false, minReplicas: 1, maxReplicas: 100, targetCPUUtilizationPercentage: 80}, nodeSelector: {}, tolerations: [], affinity: {}}";
+        TaskParams.CreateUpdateParams.GitRepo gitRepo = ImmutableTestGitRepo.builder()
+                .repoUrl(System.getProperty("REPO_URL"))
+                .path(System.getProperty("REPO_PATH"))
+                .targetRevision(System.getProperty("REPO_BRANCH")).build();
+        TaskParams.CreateUpdateParams in = ImmutableTestCreateParams.builder()
+                .baseUrl(System.getProperty("ARGO_CD_BASE_URL"))
+                .auth(azure())
+                .debug(true)
+                .app(System.getProperty("ARGO_CD_APP"))
+                .project(System.getProperty("ARGO_CD_PROJECT"))
+                .recordEvents(false)
+                .cluster(System.getProperty("ARGO_CD_CLUSTER"))
+                .namespace(System.getProperty("ARGO_CD_NAMESPACE"))
+                .gitRepo(gitRepo)
+                .helm(TestCreateParams.TestHelm.of(null, values))
+                .syncTimeout(Duration.ofMinutes(1))
+                .build();
+
+        ArgoCdClient client = new ArgoCdClient(in);
+        String token = client.auth(in.auth());
+        Application app = client.createApp(token, in);
+        System.out.println("app: " + app);
+
+        app = client.waitForSync(token, in.app(), app.resourceVersion(), in.syncTimeout(), WaitWatchParams.builder().build());
+        System.out.println("app2: " + app);
     }
 
     @Value.Immutable
@@ -331,13 +410,19 @@ public class ArgoCdClientTest {
 
     @Value.Immutable
     @Value.Style(jdkOnly = true)
-    public interface TestTokenAuth extends  TaskParams.TokenAuth {
+    public interface TestTokenAuth extends TaskParams.TokenAuth {
 
     }
 
     @Value.Immutable
     @Value.Style(jdkOnly = true)
     public interface TestBasicAuth extends TaskParams.BasicAuth {
+
+    }
+
+    @Value.Immutable
+    @Value.Style(jdkOnly = true)
+    public interface TestAzureAuth extends TaskParams.AzureAuth {
 
     }
 }

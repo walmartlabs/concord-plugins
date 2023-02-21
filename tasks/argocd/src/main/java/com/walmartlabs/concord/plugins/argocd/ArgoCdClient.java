@@ -54,13 +54,15 @@ public class ArgoCdClient {
         this.baseUrl = in.baseUrl();
     }
 
-    public String auth(TaskParams.AuthParams in) throws IOException {
+    public String auth(TaskParams.AuthParams in) throws Exception {
         if (in instanceof TaskParams.BasicAuth) {
             return authValue(BasicAuthHandler.auth(this, (TaskParams.BasicAuth) in));
         } else if(in instanceof TaskParams.LdapAuth) {
             TokenCookieJar tokenCookieJar = LdapAuthHandler.auth(this, (TaskParams.LdapAuth) in);
             this.client = client.newBuilder().cookieJar(tokenCookieJar).build();
             return authValue(tokenCookieJar.token);
+        } else if (in instanceof TaskParams.AzureAuth) {
+            return authValue(AzureAuthHandler.auth((TaskParams.AzureAuth) in));
         } else if (in instanceof TaskParams.TokenAuth) {
             return authValue(TokenAuthHandler.auth((TaskParams.TokenAuth)in));
         }
