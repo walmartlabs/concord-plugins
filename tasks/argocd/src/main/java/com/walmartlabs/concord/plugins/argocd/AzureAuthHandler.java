@@ -36,7 +36,7 @@ public class AzureAuthHandler {
 
         IAccount account = getAccountByUsername(AzureAuthCache.getInstance().getIAccounts(), auth.username());
 
-        //Attempt to acquire token when user's account is not in the application's token cache/not
+        /*Attempt to acquire token*/
         IAuthenticationResult result = acquireTokenUsernamePassword(pca, auth.scope(), account, auth.username(), auth.password());
 
         Set<IAccount> accounts = pca.getAccounts().join();
@@ -58,24 +58,22 @@ public class AzureAuthHandler {
                             .builder(scope)
                             .account(account)
                             .build();
-            // Try to acquire token silently. This will fail on the first acquireTokenUsernamePassword() call
-            // because the token cache does not have any data for the user you are trying to acquire a token for
+
+        /*  Try to acquire token silently. This will fail on the first acquireTokenUsernamePassword() call
+            because the token cache does not have any data for the user */
             result = pca.acquireTokenSilently(silentParameters).join();
-            log.info("==acquireTokenSilently call succeeded");
+            log.info("==acquireTokenSilently call succeeded:- username: {}", result.account().username());
         } catch (Exception ex) {
             if (ex.getCause() instanceof MsalException) {
-                log.info("==acquireTokenSilently call failed: " + ex.getMessage());
                 UserNamePasswordParameters parameters =
                         UserNamePasswordParameters
                                 .builder(scope, username, password.toCharArray())
                                 .build();
-                // Try to acquire a token via username/password. If successful, you should see
-                // the token and account information
+
+            /*  Try to acquire a token via username/password */
                 result = pca.acquireToken(parameters).join();
-                log.info("==username/password flow succeeded");
-                log.info("Account username: " + result.account().username());
+                log.info("==username/password flow succeeded:- username: {}", result.account().username());
             } else {
-                // Handle other exceptions accordingly
                 throw ex;
             }
         }
@@ -88,21 +86,21 @@ public class AzureAuthHandler {
      */
     private static IAccount getAccountByUsername(Set<IAccount> accounts, String username) {
         if (accounts == null || accounts.isEmpty()) {
-            System.out.println("==No accounts in cache");
-        } else {
-            System.out.println("==Accounts in cache: " + accounts.size());
-            for (IAccount account : accounts) {
-                if (account.username().equalsIgnoreCase(username)) {
-                    return account;
-                }
+            return null;
+        }
+
+        for (IAccount account : accounts) {
+            if (account.username().equalsIgnoreCase(username)) {
+                return account;
             }
         }
+
         return null;
     }
 
     /**
      * Helper function to return pca from cache,
-     * or return fresh pca if no pca in the set match the clientId
+     * or return fresh pca if no pca in the set match the clientId & authority
      */
     private static PublicClientApplication getPca(PublicClientApplication pca, String clientId, String authority) throws MalformedURLException {
         if (pca != null && pca.clientId().equalsIgnoreCase(clientId) && removeLastCharIfSlash(pca.authority()).equalsIgnoreCase(removeLastCharIfSlash(authority))) {
