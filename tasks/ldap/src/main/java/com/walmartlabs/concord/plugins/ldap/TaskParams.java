@@ -27,8 +27,9 @@ import java.util.*;
 
 public class TaskParams implements LdapSearchParams {
 
-    public static TaskParams of(Variables input, Map<String, Object> defaults) {
-        Variables variables = merge(input, defaults);
+    public static TaskParams of(Variables input, Map<String, Object> defaults, Map<String, Object> policyDefaults) {
+
+        Variables variables = merge(input, defaults, policyDefaults);
 
         Action action = new TaskParams(variables).action();
         switch (action) {
@@ -49,17 +50,19 @@ public class TaskParams implements LdapSearchParams {
         }
     }
 
-    public static LdapSearchParams searchParams(Variables input, Map<String, Object> defaults) {
-        Variables variables = merge(input, defaults);
+    public static LdapSearchParams searchParams(Variables input, Map<String, Object> defaults, Map<String, Object> policyDefaults) {
+        Variables variables = merge(input, defaults, policyDefaults);
         return new TaskParams(variables);
     }
 
     private static final String ACTION_KEY = "action";
 
-    private static final String LDAP_AD_SERVER = "ldapAdServer";
+    public static final String DEFAULT_PARAMS_KEY = "ldapParams";
+    public static final String LDAP_AD_SERVER = "ldapAdServer";
     private static final String LDAP_BIND_USER_DN = "bindUserDn";
     private static final String LDAP_BIND_PASSWORD = "bindPassword";
     private static final String LDAP_SEARCH_BASE = "searchBase";
+    public static final String LDAP_DNS_SRV_RR = "dnsSrvRr";
 
     protected final Variables variables;
 
@@ -78,7 +81,12 @@ public class TaskParams implements LdapSearchParams {
 
     @Override
     public String ldapAdServer() {
-        return variables.assertString(LDAP_AD_SERVER);
+        return variables.getString(LDAP_AD_SERVER);
+    }
+
+    @Override
+    public Map<String, Object> dnsSrvRr() {
+        return variables.getMap(LDAP_DNS_SRV_RR, null);
     }
 
     @Override
@@ -180,9 +188,10 @@ public class TaskParams implements LdapSearchParams {
         ISMEMBEROF
     }
 
-    private static Variables merge(Variables variables, Map<String, Object> defaults) {
-        Map<String, Object> variablesMap = new HashMap<>(defaults != null ? defaults : Collections.emptyMap());
-        variablesMap.putAll(variables.toMap());
-        return new MapBackedVariables(variablesMap);
+    private static Variables merge(Variables variables, Map<String, Object> defaults, Map<String, Object> policyDefaults) {
+        Map<String, Object> mergedVars = new HashMap<>(policyDefaults != null ? policyDefaults : Collections.emptyMap());
+        mergedVars.putAll(defaults);
+        mergedVars.putAll(variables.toMap());
+        return new MapBackedVariables(mergedVars);
     }
 }

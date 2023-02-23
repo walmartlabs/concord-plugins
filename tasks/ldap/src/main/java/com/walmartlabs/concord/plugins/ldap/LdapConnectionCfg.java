@@ -20,6 +20,8 @@ package com.walmartlabs.concord.plugins.ldap;
  * =====
  */
 
+import java.util.Map;
+
 public interface LdapConnectionCfg {
 
     String ldapAdServer();
@@ -27,4 +29,6 @@ public interface LdapConnectionCfg {
     String bindUserDn();
 
     String bindPassword();
+
+    Map<String, Object> dnsSrvRr();
 }

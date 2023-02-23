@@ -36,13 +36,13 @@ public class LdapTask implements Task {
     private static final String LDAP_OUT = "out";
     private static final String LDAP_DEFAULT_OUT = "ldapResult";
 
-    @InjectVariable("ldapParams")
+    @InjectVariable(TaskParams.DEFAULT_PARAMS_KEY)
     private Map<String, Object> defaults;
 
     @Override
     public void execute(Context ctx) {
         Map<String, Object> result = new LdapTaskCommon()
-                .execute(TaskParams.of(new ContextVariables(ctx), defaults));
+                .execute(TaskParams.of(new ContextVariables(ctx), defaults, null));
 
         String key = getString(null, ctx, LDAP_OUT, LDAP_DEFAULT_OUT);
 
@@ -50,7 +50,7 @@ public class LdapTask implements Task {
     }
 
     public boolean isMemberOf(@InjectVariable("context") Context ctx, String userDn, String groupDn) {
-        return new LdapTaskCommon().isMemberOf(TaskParams.searchParams(new ContextVariables(ctx), defaults), userDn, groupDn);
+        return new LdapTaskCommon().isMemberOf(TaskParams.searchParams(new ContextVariables(ctx), defaults, null), userDn, groupDn);
     }
 
     private static class ContextVariables implements Variables {
