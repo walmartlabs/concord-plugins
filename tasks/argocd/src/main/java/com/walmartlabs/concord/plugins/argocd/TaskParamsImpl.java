@@ -82,6 +82,7 @@ public class TaskParamsImpl implements TaskParams {
         result.put("basic", BasicAuthImpl::new);
         result.put("ldap", LdapAuthImpl::new);
         result.put("token", TokenAuthImpl::new);
+        result.put("azure", AzureAuthImpl::new);
         return result;
     }
 
@@ -195,6 +196,45 @@ public class TaskParamsImpl implements TaskParams {
         @Override
         public String connectorId() {
             return variables.getString(CONNECTOR_ID_KEY, LdapAuth.super.connectorId());
+        }
+
+        @Override
+        public String username() {
+            return variables.assertString(USERNAME_KEY);
+        }
+
+        @Override
+        public String password() {
+            return variables.assertString(PASSWORD_KEY);
+        }
+    }
+
+    private static class AzureAuthImpl implements AzureAuth {
+
+        private static final String USERNAME_KEY = "username";
+        private static final String PASSWORD_KEY = "password";
+        private static final String CLIENT_ID_KEY = "clientId";
+        private static final String AUTHORITY_KEY = "authority";
+        private static final String SCOPE_KEY = "scope";
+
+
+        private final Variables variables;
+
+        private AzureAuthImpl(Variables variables) {
+            this.variables = variables;
+        }
+
+        @Override
+        public String clientId() {
+            return variables.assertString(CLIENT_ID_KEY);
+        }
+
+        @Override
+        public String authority() { return variables.assertString(AUTHORITY_KEY); }
+
+        @Override
+        public Set<String> scope() {
+            return new HashSet<>(variables.getCollection(SCOPE_KEY, AzureAuth.super.scope()));
         }
 
         @Override

@@ -23,19 +23,20 @@ package com.walmartlabs.concord.plugins.ldap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.naming.CommunicationException;
+import javax.naming.Context;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
-import javax.naming.directory.Attribute;
-import javax.naming.directory.Attributes;
-import javax.naming.directory.SearchControls;
-import javax.naming.directory.SearchResult;
+import javax.naming.directory.*;
 import javax.naming.ldap.InitialLdapContext;
 import javax.naming.ldap.LdapContext;
 import javax.net.ssl.SSLHandshakeException;
 import java.util.*;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import static com.walmartlabs.concord.plugins.ldap.TaskParams.*;
+import static com.walmartlabs.concord.sdk.MapUtils.assertString;
 
 public class LdapTaskCommon {
 
@@ -49,7 +50,7 @@ public class LdapTaskCommon {
             case SEARCHBYDN: {
                 log.info("Starting 'SearchByDn' Action");
 
-                SearchByDnParams p = (SearchByDnParams)in;
+                SearchByDnParams p = (SearchByDnParams) in;
                 SearchResult searchResult = searchByDn(p, p.searchBase(), p.dn());
                 return toResult(searchResult);
             }
@@ -69,7 +70,7 @@ public class LdapTaskCommon {
             }
             case ISMEMBEROF: {
                 log.info("Starting 'IsMemberOf' Action");
-                boolean member = isMemberOf((MemberOfParams)in);
+                boolean member = isMemberOf((MemberOfParams) in);
                 Map<String, Object> result = new HashMap<>();
                 result.put("success", true);
                 result.put("result", member);
@@ -196,7 +197,7 @@ public class LdapTaskCommon {
             searchControls.setSearchScope(SearchControls.SUBTREE_SCOPE);
 
             // create SearchRequest
-            return withRetry(MAX_RETRIES, RETRY_DELAY, () -> establishConnection(cfg).search(searchBase, searchFilter, searchControls));
+            return connection.search(searchBase, searchFilter, searchControls);
         } catch (Exception e) {
             throw new IllegalArgumentException("Error occurred while searching " + e);
         } finally {
@@ -210,20 +211,75 @@ public class LdapTaskCommon {
         }
     }
 
-    private LdapContext establishConnection(LdapConnectionCfg cfg) {
+    private LdapContext establishConnection(LdapConnectionCfg cfg) throws NamingException {
+        if (cfg.dnsSrvRr() != null) {
+            Map<String, Object> dnsSrvRr = cfg.dnsSrvRr();
+            String dnsSrvName = assertString(dnsSrvRr, "name");
+            String protocol = assertString(dnsSrvRr, "protocol");
+            String port = assertString(dnsSrvRr, "port");
+
+            List<String> servers = getLdapServers(dnsSrvName, protocol, port);
+
+            int index = 0;
+            while (index < servers.size()) {
+                try {
+                    return establishConnection(cfg, servers.get(index));
+                } catch (CommunicationException ce) {
+                    log.warn("Error while establishing connection with ldap AD server: {}, Exception: {}", servers.get(index), ce.getMessage());
+                } catch (Exception e) {
+                    throw new IllegalArgumentException("Error while establishing connection " + e);
+                }
+            }
+        }
+
+        if (cfg.ldapAdServer() != null) {
+            try {
+                return establishConnection(cfg, cfg.ldapAdServer());
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Error while establishing connection " + e);
+            }
+        }
+
+        throw new IllegalArgumentException("Mandatory variable either '" + LDAP_DNS_SRV_RR + "' or '" + LDAP_AD_SERVER + "' is required");
+    }
+
+
+    private LdapContext establishConnection(LdapConnectionCfg cfg, String ldapServer) throws NamingException {
         Hashtable<String, Object> env = new Hashtable<>();
         env.put(javax.naming.Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
-        env.put(javax.naming.Context.PROVIDER_URL, cfg.ldapAdServer());
+        env.put(javax.naming.Context.PROVIDER_URL, ldapServer);
         env.put(javax.naming.Context.SECURITY_AUTHENTICATION, "simple");
         env.put(javax.naming.Context.SECURITY_PRINCIPAL, cfg.bindUserDn());
         env.put(javax.naming.Context.SECURITY_CREDENTIALS, cfg.bindPassword());
         env.put("java.naming.ldap.version", "3");
 
-        try {
-            return new InitialLdapContext(env, null);
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Error while establishing connection " + e);
+        return new InitialLdapContext(env, null);
+    }
+
+    private List<String> getLdapServers(String dnsSrvName, String protocol, String port) throws NamingException {
+        CopyOnWriteArrayList<String> servers = new CopyOnWriteArrayList<>();
+        Hashtable<String, String> env = new Hashtable<>();
+        env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.dns.DnsContextFactory");
+        env.put(Context.PROVIDER_URL, "dns:");
+        DirContext ctx = new InitialDirContext(env);
+        Attributes srvs = ctx.getAttributes(dnsSrvName, new String[]{"SRV"});
+        NamingEnumeration<? extends Attribute> srv = srvs.getAll();
+        while (srv.hasMore()) {
+            Attribute srvRecords = (Attribute) srv.next();
+            NamingEnumeration<?> srvRecord = srvRecords.getAll();
+            while (srvRecord.hasMore()) {
+                String attr = (String) srvRecord.next();
+                servers.add(protocol + "://" + removeLastCharIfDot(attr.split(" ")[3]) + ":" + port);
+            }
         }
+        return servers;
+    }
+
+    private static String removeLastCharIfDot(String s) {
+        if (s == null || s.length() == 0 || s.charAt(s.length() - 1) != '.') {
+            return s;
+        }
+        return s.substring(0, s.length() - 1);
     }
 
     private static String getAttrValue(SearchResult result, String id) {
