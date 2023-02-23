@@ -1,6 +1,24 @@
 # Change log
 
-## [1.45.0] - 
+## [1.46.0] - 2022-02-23
+
+### Added
+
+- akeyless: add ldap auth support. fix custom apiBaseUrl parameter
+([#113](https://github.com/walmartlabs/concord-plugins/pull/113));
+- github: create web hook action
+([#99](https://github.com/walmartlabs/concord-plugins/pull/99));
+- argocd: add support for azure ad auth
+([#116](https://github.com/walmartlabs/concord-plugins/pull/116));
+- ldap-task: support for dns SRV resource record
+([#115](https://github.com/walmartlabs/concord-plugins/pull/115)).
+
+### Changed
+
+- git-task: hide sensitive data for commit errors
+([#111](https://github.com/walmartlabs/concord-plugins/pull/111)).
+
+## [1.45.0] - 2022-11-01
 
 ### Added
 
@@ -14,7 +32,7 @@
 - argocd: make helm parameters as a list, instead of a class
 ([#108](https://github.com/walmartlabs/concord-plugins/pull/108)).
 
-## [1.44.0] - 22-10-10
+## [1.44.0] - 2022-10-10
 
 ### Added
 
@@ -26,7 +44,7 @@
 - akeyless: testcontainers task integration tests
 ([#96](https://github.com/walmartlabs/concord-plugins/pull/96)).
 
-## [1.43.0] - 22-08-31
+## [1.43.0] - 2022-08-31
 
 ### Changed
 
