@@ -1,13 +1,17 @@
 # Change log
 
-## [1.46.0] - TBD
+## [1.46.0] - 2022-02-23
 
 ### Added
 
 - akeyless: add ldap auth support. fix custom apiBaseUrl parameter
-([#113](https://github.com/walmartlabs/concord-plugins/pull/113)).
+([#113](https://github.com/walmartlabs/concord-plugins/pull/113));
 - github: create web hook action
-([#99](https://github.com/walmartlabs/concord-plugins/pull/99)).
+([#99](https://github.com/walmartlabs/concord-plugins/pull/99));
+- argocd: add support for azure ad auth
+([#116](https://github.com/walmartlabs/concord-plugins/pull/116));
+- ldap-task: support for dns SRV resource record
+([#115](https://github.com/walmartlabs/concord-plugins/pull/115)).
 
 ### Changed
 
