@@ -4,8 +4,15 @@
 
 ### Added
 
-- akeyless: add ldap auth support. fix custom apiBaseUrl parameter.
+- akeyless: add ldap auth support. fix custom apiBaseUrl parameter
 ([#113](https://github.com/walmartlabs/concord-plugins/pull/113)).
+- github: create web hook action
+([#99](https://github.com/walmartlabs/concord-plugins/pull/99)).
+
+### Changed
+
+- git-task: hide sensitive data for commit errors
+([#111](https://github.com/walmartlabs/concord-plugins/pull/111)).
 
 ## [1.45.0] - 2022-11-01
 
