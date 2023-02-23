@@ -23,9 +23,7 @@ package com.walmartlabs.concord.plugins.argocd;
 import com.walmartlabs.concord.runtime.v2.sdk.MapBackedVariables;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -68,5 +66,27 @@ public class TaskParamsImplTest {
         assertTrue(in.auth() instanceof TaskParams.BasicAuth);
         assertEquals("duke", ((TaskParams.BasicAuth)in.auth()).username());
         assertEquals("nukem", ((TaskParams.BasicAuth)in.auth()).password());
+    }
+
+    @Test
+    public void testAzureAuth() {
+        Map<String, Object> authParams = new HashMap<>();
+        authParams.put("username", "duke");
+        authParams.put("password", "nukem");
+        authParams.put("clientId", "client-1");
+        authParams.put("authority", "https://login.azure.com/cleint-1");
+        authParams.put("scope", Collections.unmodifiableSet(new HashSet<>(Arrays.asList("user.read", "user.write"))));
+
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("action", TaskParams.Action.GET.name());
+        vars.put("auth", Collections.singletonMap("azure", authParams));
+
+        TaskParams.GetParams in = (TaskParams.GetParams) TaskParamsImpl.of(new MapBackedVariables(vars), Collections.emptyMap());
+        assertTrue(in.auth() instanceof TaskParams.AzureAuth);
+        assertEquals("duke", ((TaskParams.AzureAuth)in.auth()).username());
+        assertEquals("nukem", ((TaskParams.AzureAuth)in.auth()).password());
+        assertEquals("client-1", ((TaskParams.AzureAuth)in.auth()).clientId());
+        assertEquals("https://login.azure.com/cleint-1", ((TaskParams.AzureAuth)in.auth()).authority());
+        assertTrue(((TaskParams.AzureAuth)in.auth()).scope().contains("user.read"));
     }
 }

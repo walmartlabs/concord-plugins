@@ -23,6 +23,7 @@ flows:
         auth: ${defaults.auth}
         validateCerts: ${defaults.validateCerts}
         syncTimeout: ${defaults.syncTimeout}
+        resources: []
       out: syncResult
 
     - log: ${syncResult}
