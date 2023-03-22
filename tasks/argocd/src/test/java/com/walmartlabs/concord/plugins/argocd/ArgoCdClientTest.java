@@ -22,16 +22,15 @@ package com.walmartlabs.concord.plugins.argocd;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.walmartlabs.concord.plugins.argocd.model.Application;
+import com.walmartlabs.concord.plugins.argocd.openapi.model.V1alpha1Application;
+import com.walmartlabs.concord.plugins.argocd.openapi.model.V1alpha1ApplicationSpec;
+import com.walmartlabs.concord.plugins.argocd.openapi.model.V1alpha1HelmParameter;
 import org.immutables.value.Value;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -50,11 +49,10 @@ public class ArgoCdClientTest {
                 .build();
 
         ArgoCdClient client = new ArgoCdClient(in);
-        String token = client.auth(in.auth());
-        Application app = client.syncApp(token, in);
+        V1alpha1Application app = client.syncApp(in);
         System.out.println("app: " + app);
 
-        app = client.waitForSync(token, in.app(), app.resourceVersion(), in.syncTimeout(), WaitWatchParams.builder().build());
+        app = client.waitForSync(in.app(), app.getMetadata().getResourceVersion(), in.syncTimeout(), WaitWatchParams.builder().build());
         System.out.println("app2: " + app);
     }
 
@@ -80,11 +78,10 @@ public class ArgoCdClientTest {
                 .build();
 
         ArgoCdClient client = new ArgoCdClient(in);
-        String token = client.auth(in.auth());
-        Application app = client.createApp(token, in);
+        V1alpha1Application app = client.createApp(in);
         System.out.println("app: " + app);
 
-        app = client.waitForSync(token, in.app(), app.resourceVersion(), in.syncTimeout(), WaitWatchParams.builder().build());
+        app = client.waitForSync(in.app(), app.getMetadata().getResourceVersion(), in.syncTimeout(), WaitWatchParams.builder().build());
         System.out.println("app2: " + app);
     }
 
@@ -98,8 +95,7 @@ public class ArgoCdClientTest {
                 .build();
 
         ArgoCdClient client = new ArgoCdClient(in);
-        String token = client.auth(in.auth());
-        client.deleteApp(token, in.app(), in.cascade(), in.propagationPolicy());
+        client.deleteApp(in.app(), in.cascade(), in.propagationPolicy());
     }
 
     @Test
@@ -112,8 +108,7 @@ public class ArgoCdClientTest {
                 .build();
 
         ArgoCdClient client = new ArgoCdClient(in);
-        String token = client.auth(in.auth());
-        Application app = client.getApp(token, in.app(), in.refresh());
+        V1alpha1Application app = client.getApp(in.app(), in.refresh());
         System.out.println("app: " + app);
     }
 
@@ -129,8 +124,7 @@ public class ArgoCdClientTest {
                 .build();
 
         ArgoCdClient client = new ArgoCdClient(in);
-        String token = client.auth(in.auth());
-        Application app = client.getApp(token, in.app(), in.refresh());
+        V1alpha1Application app = client.getApp(in.app(), in.refresh());
         System.out.println("app: " + app);
     }
 
@@ -150,8 +144,7 @@ public class ArgoCdClientTest {
                 .build();
 
         ArgoCdClient client = new ArgoCdClient(in);
-        String token = client.auth(in.auth());
-        client.patchApp(token, in.app(), in.patches());
+        client.patchApp(in.app(), in.patches());
     }
 
     @Test
@@ -165,21 +158,20 @@ public class ArgoCdClientTest {
                 .build();
 
         ArgoCdClient client = new ArgoCdClient(in);
-        String token = client.auth(in.auth());
-        Application app = client.getApp(token, in.app(), false);
-        Map<String, Object> appSpec = app.spec();
+        V1alpha1Application app = client.getApp(in.app(), false);
+        V1alpha1ApplicationSpec appSpec = app.getSpec();
 
-        List<Map<String, Object>> appHelmParams = in.helm().stream()
-                .map(p -> {
-                    Map<String, Object> result = new HashMap<>();
-                    result.put("name", p.name());
-                    result.put("value", p.value());
-                    return result;
-                })
-                .collect(Collectors.toList());
-        appSpec = MapUtils.set(appSpec, "source.helm.parameters", appHelmParams);
+        List<V1alpha1HelmParameter> params = new ArrayList<>();
+        in.helm().stream()
+                .forEach(p -> {
+                    V1alpha1HelmParameter param = new V1alpha1HelmParameter();
+                    param.setValue(p.value().toString());
+                    param.setName(p.name());
+                    params.add(param);
+                });
+        appSpec.getSource().getHelm().setParameters(params);
 
-        Map<String, Object> result = client.updateAppSpec(token, in.app(), appSpec);
+        V1alpha1ApplicationSpec result = client.updateAppSpec(in.app(), appSpec);
         System.out.println(result);
     }
 
@@ -203,9 +195,8 @@ public class ArgoCdClientTest {
                 .build();
 
         ArgoCdClient client = new ArgoCdClient(in);
-        String token = client.auth(in.auth());
-        Application app = client.getApp(token, in.app(), in.refresh());
-        assertEquals(System.getProperty("ARGO_CD_APP"), app.metadata().get("name"));
+        V1alpha1Application app = client.getApp(in.app(), in.refresh());
+        assertEquals(System.getProperty("ARGO_CD_APP"), app.getMetadata().getName());
     }
 
     @Test
@@ -219,11 +210,10 @@ public class ArgoCdClientTest {
                 .build();
 
         ArgoCdClient client = new ArgoCdClient(in);
-        String token = client.auth(in.auth());
-        Application app = client.syncApp(token, in);
+        V1alpha1Application app = client.syncApp(in);
         System.out.println("app: " + app);
 
-        app = client.waitForSync(token, in.app(), app.resourceVersion(), in.syncTimeout(), WaitWatchParams.builder().build());
+        app = client.waitForSync(in.app(), app.getMetadata().getResourceVersion(), in.syncTimeout(), WaitWatchParams.builder().build());
         System.out.println("app2: " + app);
     }
 
@@ -270,11 +260,10 @@ public class ArgoCdClientTest {
                 .build();
 
         ArgoCdClient client = new ArgoCdClient(in);
-        String token = client.auth(in.auth());
-        Application app = client.createApp(token, in);
+        V1alpha1Application app = client.createApp(in);
         System.out.println("app: " + app);
 
-        app = client.waitForSync(token, in.app(), app.resourceVersion(), in.syncTimeout(), WaitWatchParams.builder().build());
+        app = client.waitForSync(in.app(), app.getMetadata().getResourceVersion(), in.syncTimeout(), WaitWatchParams.builder().build());
         System.out.println("app2: " + app);
     }
 

@@ -4,7 +4,7 @@ package com.walmartlabs.concord.plugins.argocd.model;
  * *****
  * Concord
  * -----
- * Copyright (C) 2017 - 2022 Walmart Inc., Concord Authors
+ * Copyright (C) 2017 - 2023 Walmart Inc., Concord Authors
  * -----
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,46 +20,35 @@ package com.walmartlabs.concord.plugins.argocd.model;
  * =====
  */
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.walmartlabs.concord.plugins.argocd.openapi.model.V1alpha1Application;
 import org.immutables.value.Value;
 
-import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Map;
 
 @Value.Immutable
 @Value.Style(jdkOnly = true)
-@JsonSerialize(as = ImmutableWatchAppResult.class)
-@JsonDeserialize(as = ImmutableWatchAppResult.class)
-public interface WatchAppResult {
+@JsonSerialize(as = ImmutableProject.class)
+@JsonDeserialize(as = ImmutableProject.class)
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public interface Project {
 
     @Value.Default
-    default Map<String, Object> error() {
+    default Map<String, Object> metadata() {
         return Collections.emptyMap();
     }
 
-    @JsonIgnore
-    default V1alpha1Application application() {
-        Result result = result();
-        if (result == null) {
-            return null;
-        }
-        return result.application();
+    @Value.Default
+    default  Map<String, Object> spec() {
+        return Collections.emptyMap();
     }
 
-    @Nullable
-    Result result();
-
-    @Value.Immutable
-    @Value.Style(jdkOnly = true)
-    @JsonSerialize(as = ImmutableResult.class)
-    @JsonDeserialize(as = ImmutableResult.class)
-    interface Result {
-
-        @Nullable
-        V1alpha1Application application();
+    @Value.Default
+    default Map<String, Object> status() {
+        return Collections.emptyMap();
     }
+
+
 }

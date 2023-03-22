@@ -191,6 +191,7 @@ public interface Application {
         return Collections.emptyMap();
     }
 
+    @Nullable
     Status status();
 
     @Nullable
