@@ -756,6 +756,7 @@ public class TaskParamsImpl implements TaskParams {
         private static final String DRY_RUN_KEY = "dryRun";
         private static final String SYNC_TIMEOUT_KEY = "syncTimeout";
         private static final String RESOURCES_KEY = "resources";
+        private static final String WATCH_HEALTH_KEY = "watchHealth";
 
         protected SyncParamsImpl(Variables variables) {
             super(variables);
@@ -789,6 +790,11 @@ public class TaskParamsImpl implements TaskParams {
         @Override
         public Map<String, Object> strategy() {
             return variables.getMap(STRATEGY_KEY, SyncParams.super.strategy());
+        }
+
+        @Override
+        public boolean watchHealth() {
+            return variables.getBoolean(WATCH_HEALTH_KEY, SyncParams.super.watchHealth());
         }
 
         @Nullable

@@ -117,8 +117,8 @@ public class ArgoCdClient {
         }
         ApplicationApplicationSyncRequest syncRequest = new ApplicationApplicationSyncRequest();
         syncRequest.dryRun(in.dryRun())
-                .prune(in.prune()).
-                retryStrategy(objectMapper.mapToModel(in.retryStrategy(), V1alpha1RetryStrategy.class))
+                .prune(in.prune())
+                .retryStrategy(objectMapper.mapToModel(in.retryStrategy(), V1alpha1RetryStrategy.class))
                 .resources(resources)
                 .strategy(objectMapper.mapToModel(in.strategy(), V1alpha1SyncStrategy.class));
         return api.applicationServiceSync(in.app(), syncRequest);
@@ -126,12 +126,15 @@ public class ArgoCdClient {
 
     public V1alpha1Application waitForSync(String app, String resourceVersion, Duration waitTimeout, WaitWatchParams p) throws IOException, ApiException, URISyntaxException {
         boolean refresh = false;
-
+        log.info("Waiting for application to sync.");
         URI uri = new URIBuilder(URI.create(client.getBasePath()))
                 .setPath("api/v1/stream/applications").addParameter("name", app)
                 .addParameter("resourceVersion", resourceVersion).build();
-
-        HttpUriRequest request = RequestBuilder.get(uri).setConfig(RequestConfig.custom().setSocketTimeout((int) waitTimeout.toMillis()).build()).build();
+        waitTimeout = (waitTimeout == null) ? Duration.ZERO : waitTimeout;
+        HttpUriRequest request = RequestBuilder.get(uri)
+                .setConfig(RequestConfig.custom().
+                        setSocketTimeout((int) waitTimeout.toMillis()).build())
+                .build();
         CloseableHttpResponse response = client.getHttpClient().execute(request);
 
         BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
@@ -175,7 +178,7 @@ public class ArgoCdClient {
                 // Wait on the application as a whole
                 // TODO: support for defined resources
                 boolean selectedResourcesAreReady = checkResourceStatus(p, a.getStatus().getHealth().getStatus(), a.getStatus().getSync().getStatus(), a.getOperation());
-
+                log.info("Selected resources are ready ? {}", selectedResourcesAreReady);
                 if (selectedResourcesAreReady && (!operationInProgress || !p.watchOperation())) {
                     if (refresh) {
                         return getApp(app, true);
@@ -268,7 +271,6 @@ public class ArgoCdClient {
         Map<String, Object> metadata = new HashMap<>();
         Map<String, Object> spec = new HashMap<>();
         Map<String, Object> project = new HashMap<>();
-        Map<String, Object> body = new HashMap<>();
 
         metadata.put("name", in.project());
         metadata.put("namespace", in.namespace());
