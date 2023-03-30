@@ -265,6 +265,11 @@ public class ArgoCdClient {
         return api.projectServiceGet(project);
     }
 
+    public void deleteProject(String project) throws ApiException {
+        ProjectServiceApi api = new ProjectServiceApi(client);
+        api.projectServiceDelete(project);
+    }
+
     public V1alpha1AppProject createProject(TaskParams.CreateProjectParams in) throws IOException, ApiException {
         ProjectServiceApi api = new ProjectServiceApi(client);
 
@@ -362,4 +367,5 @@ public class ArgoCdClient {
         apiClient.setConnectTimeout((int) in.connectTimeout() * 1000);
         return apiClient;
     }
+
 }

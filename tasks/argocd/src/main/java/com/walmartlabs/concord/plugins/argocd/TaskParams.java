@@ -120,6 +120,11 @@ public interface TaskParams {
         String project();
     }
 
+    interface DeleteProjectParams extends TaskParams {
+
+        String project();
+    }
+
     interface CreateProjectParams extends TaskParams {
 
         String project();
@@ -160,6 +165,7 @@ public interface TaskParams {
             String server();
         }
     }
+
 
     interface GetParams extends TaskParams {
 
@@ -327,6 +333,7 @@ public interface TaskParams {
         SETPARAMS,
         CREATE,
         GETPROJECT,
-        CREATEPROJECT
+        CREATEPROJECT,
+        DELETEPROJECT
     }
 }

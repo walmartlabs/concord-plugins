@@ -23,6 +23,7 @@ package com.walmartlabs.concord.plugins.argocd;
 import com.walmartlabs.concord.ApiClient;
 import com.walmartlabs.concord.client.ProcessEventsApi;
 import com.walmartlabs.concord.common.ConfigurationUtils;
+import com.walmartlabs.concord.plugins.argocd.openapi.ApiException;
 import com.walmartlabs.concord.plugins.argocd.openapi.model.V1alpha1AppProject;
 import com.walmartlabs.concord.plugins.argocd.openapi.model.V1alpha1Application;
 import com.walmartlabs.concord.plugins.argocd.openapi.model.V1alpha1ApplicationSpec;
@@ -84,6 +85,9 @@ public class ArgoCdTask implements Task {
             }
             case CREATEPROJECT: {
                 return processProjectCreateAction((TaskParams.CreateProjectParams) params);
+            }
+            case DELETEPROJECT: {
+                return processProjectDeleteAction((TaskParams.DeleteProjectParams) params);
             }
             default: {
                 throw new IllegalArgumentException("Unsupported action type: " + params.action());
@@ -157,6 +161,15 @@ public class ArgoCdTask implements Task {
         V1alpha1AppProject project = client.getProject(in.project());
         return TaskResult.success()
                 .value("project", objectMapper.toMap(project));
+    }
+
+    private TaskResult processProjectDeleteAction(TaskParams.DeleteProjectParams in) throws Exception {
+        ArgoCdClient client = new ArgoCdClient(in);
+        log.info("Deleting '{}' project ", in.project());
+        record(in.recordEvents(), in.project(), in.baseUrl(), in.action().toString());
+
+        client.deleteProject(in.project());
+        return TaskResult.success();
     }
 
     private TaskResult processSyncAction(TaskParams.SyncParams in) throws Exception {
