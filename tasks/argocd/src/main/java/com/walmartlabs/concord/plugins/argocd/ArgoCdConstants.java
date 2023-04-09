@@ -39,10 +39,13 @@ public class ArgoCdConstants {
 
     static final List<String> DEFAULT_SOURCE_REPOS = Collections.singletonList("*");
 
-    static final List<Map<String, String>> DEFAULT_DESTINATIONS = Collections.singletonList(new HashMap<String, String>()
-    {{
-        put("name", "all");
-        put("server", "*");
-        put("namespace", "*");
-    }});
+    static final List<Map<String, String>> DEFAULT_DESTINATIONS;
+
+    static {
+        Map<String, String> m = new HashMap<>();
+        m.put("name", "all");
+        m.put("server", "*");
+        m.put("namespace", "*");
+        DEFAULT_DESTINATIONS = Collections.singletonList(m);
+    }
 }
