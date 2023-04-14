@@ -43,7 +43,7 @@ public class ArgoCdConstants {
 
     static {
         Map<String, String> m = new HashMap<>();
-        m.put("name", "all");
+        m.put("name", "*");
         m.put("server", "*");
         m.put("namespace", "*");
         DEFAULT_DESTINATIONS = Collections.singletonList(m);

@@ -58,7 +58,7 @@ import java.util.*;
 
 public class ArgoCdClient {
 
-    private ApiClient client;
+    private final ApiClient client;
 
     private final static Logger log = LoggerFactory.getLogger(ArgoCdClient.class);
 
