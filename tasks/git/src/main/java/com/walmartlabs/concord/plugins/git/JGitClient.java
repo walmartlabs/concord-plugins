@@ -29,6 +29,8 @@ import com.walmartlabs.concord.sdk.Secret;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.TransportConfigCallback;
 import org.eclipse.jgit.transport.*;
+import org.eclipse.jgit.transport.ssh.jsch.JschConfigSessionFactory;
+import org.eclipse.jgit.transport.ssh.jsch.OpenSshConfig;
 import org.eclipse.jgit.util.FS;
 
 import java.nio.file.Path;
@@ -38,18 +40,19 @@ public class JGitClient implements GitClient {
 
     @Override
     public void cloneRepo(String uri, String branchName, Secret secret, Path dst) throws Exception {
-        Git repo = Git.cloneRepository()
+        try (Git repo = Git.cloneRepository()
                 .setURI(uri)
                 .setBranch(branchName)
                 .setDirectory(dst.toFile())
                 .setTransportConfigCallback(createTransportConfigCallback(secret))
-                .call();
+                .call()) {
 
-        // check if the branch actually exists
-        if (branchName != null) {
-            repo.checkout()
-                    .setName(branchName)
-                    .call();
+            // check if the branch actually exists
+            if (branchName != null) {
+                repo.checkout()
+                        .setName(branchName)
+                        .call();
+            }
         }
     }
 
