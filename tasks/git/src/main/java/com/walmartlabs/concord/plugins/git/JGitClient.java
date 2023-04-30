@@ -29,8 +29,6 @@ import com.walmartlabs.concord.sdk.Secret;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.TransportConfigCallback;
 import org.eclipse.jgit.transport.*;
-import org.eclipse.jgit.transport.ssh.jsch.JschConfigSessionFactory;
-import org.eclipse.jgit.transport.ssh.jsch.OpenSshConfig;
 import org.eclipse.jgit.util.FS;
 
 import java.nio.file.Path;
