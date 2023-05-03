@@ -36,4 +36,16 @@ public class ArgoCdConstants {
     }});
 
     static final String ARGOCD_NAMESPACE = "argocd";
+
+    static final List<String> DEFAULT_SOURCE_REPOS = Collections.singletonList("*");
+
+    static final List<Map<String, String>> DEFAULT_DESTINATIONS;
+
+    static {
+        Map<String, String> m = new HashMap<>();
+        m.put("name", "*");
+        m.put("server", "*");
+        m.put("namespace", "*");
+        DEFAULT_DESTINATIONS = Collections.singletonList(m);
+    }
 }

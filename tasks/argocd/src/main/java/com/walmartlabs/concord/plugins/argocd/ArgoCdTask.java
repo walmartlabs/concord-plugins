@@ -23,14 +23,19 @@ package com.walmartlabs.concord.plugins.argocd;
 import com.walmartlabs.concord.ApiClient;
 import com.walmartlabs.concord.client.ProcessEventsApi;
 import com.walmartlabs.concord.common.ConfigurationUtils;
-import com.walmartlabs.concord.plugins.argocd.model.Application;
+import com.walmartlabs.concord.plugins.argocd.openapi.ApiException;
+import com.walmartlabs.concord.plugins.argocd.openapi.model.V1alpha1AppProject;
+import com.walmartlabs.concord.plugins.argocd.openapi.model.V1alpha1Application;
+import com.walmartlabs.concord.plugins.argocd.openapi.model.V1alpha1ApplicationSpec;
+import com.walmartlabs.concord.plugins.argocd.openapi.model.V1alpha1HelmParameter;
 import com.walmartlabs.concord.runtime.v2.sdk.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Named;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 
 @Named("argocd")
 public class ArgoCdTask implements Task {
@@ -75,6 +80,15 @@ public class ArgoCdTask implements Task {
             case CREATE: {
                 return processCreateAction((TaskParams.CreateUpdateParams) params);
             }
+            case GETPROJECT: {
+                return processGetProjectAction((TaskParams.GetProjectParams) params);
+            }
+            case CREATEPROJECT: {
+                return processProjectCreateAction((TaskParams.CreateProjectParams) params);
+            }
+            case DELETEPROJECT: {
+                return processProjectDeleteAction((TaskParams.DeleteProjectParams) params);
+            }
             default: {
                 throw new IllegalArgumentException("Unsupported action type: " + params.action());
             }
@@ -90,14 +104,13 @@ public class ArgoCdTask implements Task {
 
         try {
             ArgoCdClient client = new ArgoCdClient(in);
-            String token = client.auth(in.auth());
 
-            Application app = client.getApp(token, in.app(), false);
-            Map<String, Object> appSpec = app.spec();
+            V1alpha1Application app = client.getApp(in.app(), false);
+            Map<String, Object> appSpec = toMap(app.getSpec());
 
             appSpec = ConfigurationUtils.deepMerge(appSpec, in.spec());
-
-            Map<String, Object> result = client.updateAppSpec(token, in.app(), appSpec);
+            V1alpha1ApplicationSpec specObject = objectMapper.mapToModel(appSpec, V1alpha1ApplicationSpec.class);
+            V1alpha1ApplicationSpec result  = client.updateAppSpec(in.app(),specObject);
 
             return TaskResult.success()
                     .value("spec", result);
@@ -115,21 +128,18 @@ public class ArgoCdTask implements Task {
 
         try {
             ArgoCdClient client = new ArgoCdClient(in);
-            String token = client.auth(in.auth());
 
-            Application app = client.getApp(token, in.app(), false);
-            Map<String, Object> appSpec = app.spec();
+            V1alpha1Application app = client.getApp(in.app(), false);
+            List<V1alpha1HelmParameter> appHelmParams = app.getSpec().getSource().getHelm().getParameters();
 
-            List<Map<String, Object>> appHelmParams = new ArrayList<>(MapUtils.get(appSpec, "source.helm.parameters", Collections.emptyList()));
             for (TaskParams.SetAppParams.HelmParam p : in.helm()) {
                 addOrReplaceParam(appHelmParams, p);
             }
-            appSpec = MapUtils.set(appSpec, "source.helm.parameters", appHelmParams);
 
-            Map<String, Object> result = client.updateAppSpec(token, in.app(), appSpec);
+            V1alpha1ApplicationSpec appSpec = client.updateAppSpec(in.app(), app.getSpec());
 
             return TaskResult.success()
-                    .value("spec", result);
+                    .value("spec", appSpec);
         } finally {
             lockService.projectUnlock(in.app());
         }
@@ -137,14 +147,29 @@ public class ArgoCdTask implements Task {
 
     private TaskResult processGetAction(TaskParams.GetParams in) throws Exception {
         ArgoCdClient client = new ArgoCdClient(in);
-        log.info("Getting '{}' app info", in.app());
-        String token = client.auth(in.auth());
-
-        record(in.recordEvents(), in.app(), in.baseUrl(), in.action().toString());
-
-        Application app = client.getApp(token, in.app(), in.refresh());
+        V1alpha1Application app = client.getApp(in.app(), in.refresh());
         return TaskResult.success()
                 .value("app", toMap(app));
+    }
+
+    private TaskResult processGetProjectAction(TaskParams.GetProjectParams in) throws Exception {
+        ArgoCdClient client = new ArgoCdClient(in);
+        log.info("Getting '{}' project info", in.project());
+
+        record(in.recordEvents(), in.project(), in.baseUrl(), in.action().toString());
+
+        V1alpha1AppProject project = client.getProject(in.project());
+        return TaskResult.success()
+                .value("project", objectMapper.toMap(project));
+    }
+
+    private TaskResult processProjectDeleteAction(TaskParams.DeleteProjectParams in) throws Exception {
+        ArgoCdClient client = new ArgoCdClient(in);
+        log.info("Deleting '{}' project ", in.project());
+        record(in.recordEvents(), in.project(), in.baseUrl(), in.action().toString());
+
+        client.deleteProject(in.project());
+        return TaskResult.success();
     }
 
     private TaskResult processSyncAction(TaskParams.SyncParams in) throws Exception {
@@ -156,9 +181,8 @@ public class ArgoCdTask implements Task {
 
         try {
             ArgoCdClient client = new ArgoCdClient(in);
-            String token = client.auth(in.auth());
-            Application app = client.syncApp(token, in);
-            app = client.waitForSync(token, in.app(), app.resourceVersion(), in.syncTimeout(), toWatchParams(in.watchHealth()));
+            V1alpha1Application app = client.syncApp(in);
+            app = client.waitForSync(in.app(), app.getMetadata().getResourceVersion(), in.syncTimeout(), toWatchParams(in.watchHealth()));
             return TaskResult.success()
                     .value("app", toMap(app));
         } finally {
@@ -175,14 +199,30 @@ public class ArgoCdTask implements Task {
 
         try {
             ArgoCdClient client = new ArgoCdClient(in);
-            String token = client.auth(in.auth());
-            Application app = client.createApp(token, in);
-            app = client.waitForSync(token, in.app(), app.resourceVersion(), in.syncTimeout(),
+            V1alpha1Application app = client.createApp(in);
+            app = client.waitForSync(in.app(), app.getMetadata().getResourceVersion(), in.syncTimeout(),
                     toWatchParams(false));
             return TaskResult.success()
                     .value("app", toMap(app));
         } finally {
             lockService.projectUnlock(in.app());
+        }
+    }
+
+    private TaskResult processProjectCreateAction(TaskParams.CreateProjectParams in) throws Exception {
+        assertProjectInfo(context);
+        lockService.projectLock(in.project());
+        log.info("Creating '{}' project", in.project());
+
+        record(in.recordEvents(), in.project(), in.baseUrl(), in.action().toString());
+
+        try {
+            ArgoCdClient client = new ArgoCdClient(in);
+            V1alpha1AppProject project = client.createProject(in);
+            return TaskResult.success()
+                    .value("project", objectMapper.toMap(project));
+        } finally {
+            lockService.projectUnlock(in.project());
         }
     }
 
@@ -195,8 +235,7 @@ public class ArgoCdTask implements Task {
 
         try {
             ArgoCdClient client = new ArgoCdClient(in);
-            String token = client.auth(in.auth());
-            client.deleteApp(token, in.app(), in.cascade(), in.propagationPolicy());
+            client.deleteApp(in.app(), in.cascade(), in.propagationPolicy());
             return TaskResult.success();
         } finally {
             lockService.projectUnlock(in.app());
@@ -212,15 +251,14 @@ public class ArgoCdTask implements Task {
 
         try {
             ArgoCdClient client = new ArgoCdClient(in);
-            String token = client.auth(in.auth());
-            client.patchApp(token, in.app(), in.patches());
+            client.patchApp(in.app(), in.patches());
             return TaskResult.success();
         } finally {
             lockService.projectUnlock(in.app());
         }
     }
 
-    private Map<String, Object> toMap(Application app) {
+    private Map<String, Object> toMap(Object app) {
         return objectMapper.toMap(app);
     }
 
@@ -236,23 +274,16 @@ public class ArgoCdTask implements Task {
         }
     }
 
-    private static void addOrReplaceParam(List<Map<String, Object>> appHelmParams, TaskParams.SetAppParams.HelmParam p) {
-        for (int i = 0; i < appHelmParams.size(); i++) {
-            Map<String, Object> appParam = appHelmParams.get(i);
-            if (p.name().equals(appParam.get("name"))) {
-                appHelmParams.set(i, toMap(p));
-                return;
+    private static void addOrReplaceParam(List<V1alpha1HelmParameter> appHelmParams, TaskParams.SetAppParams.HelmParam p) {
+        for (V1alpha1HelmParameter appParam : appHelmParams) {
+            if (p.name().equals(appParam.getName())) {
+                appParam.setValue(p.value().toString());
             }
         }
-
-        appHelmParams.add(toMap(p));
-    }
-
-    private static Map<String, Object> toMap(TaskParams.SetAppParams.HelmParam p) {
-        Map<String, Object> result = new HashMap<>();
-        result.put("name", p.name());
-        result.put("value", p.value());
-        return result;
+        V1alpha1HelmParameter helmParameter = new V1alpha1HelmParameter();
+        helmParameter.setName(p.name());
+        helmParameter.setValue(p.value().toString());
+        appHelmParams.add(helmParameter);
     }
 
     private static WaitWatchParams toWatchParams(boolean watchHealth) {

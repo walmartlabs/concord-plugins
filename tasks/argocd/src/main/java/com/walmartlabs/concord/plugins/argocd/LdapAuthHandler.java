@@ -20,55 +20,70 @@ package com.walmartlabs.concord.plugins.argocd;
  * =====
  */
 
-import okhttp3.*;
+import com.walmartlabs.concord.ApiException;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.CookieStore;
+import org.apache.http.client.config.CookieSpecs;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.methods.RequestBuilder;
+import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.cookie.Cookie;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.util.EntityUtils;
 
 import java.io.IOException;
-
-import static com.walmartlabs.concord.plugins.argocd.ArgoCdClient.exception;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 
 public class LdapAuthHandler {
 
-    public static TokenCookieJar auth(ArgoCdClient apiClient, TaskParams.LdapAuth in) throws IOException {
-        HttpUrl url = apiClient.urlBuilder("auth/login")
-                .addQueryParameter("connector_id", in.connectorId())
-                .build();
+    public static String auth(HttpClientBuilder builder, String baseUrl, TaskParams.LdapAuth in) throws IOException, ApiException, URISyntaxException {
+        CookieStore httpCookieStore = new BasicCookieStore();
+        CloseableHttpClient httpClient = builder.setDefaultRequestConfig(RequestConfig.custom().setCookieSpec(CookieSpecs.STANDARD).build())
+                .setDefaultCookieStore(httpCookieStore).build();
 
-        Request initRequest = new Request.Builder()
-                .url(url)
-                .get()
-                .build();
+        URI url =  new URIBuilder(URI.create(baseUrl)).setPath("auth/login").addParameter("connector_id", in.connectorId()).build();
+        RequestBuilder requestBuilder = RequestBuilder.get(url);
+        HttpClientContext context = HttpClientContext.create();
+        HttpResponse response = httpClient.execute(requestBuilder.build(), context);
+        if(!isSuccess(response)) {
+            throw new ApiException(response.getStatusLine().getStatusCode(), response.getStatusLine().getReasonPhrase());
+        }
+        EntityUtils.consumeQuietly(response.getEntity());
 
-        TokenCookieJar cookieJar = new TokenCookieJar();
-        OkHttpClient client = apiClient.newBuilder()
-                .cookieJar(cookieJar)
-                .build();
+        String requestUri = context.getRequest().getRequestLine().getUri();
+        requestUri = URLDecoder.decode(requestUri, StandardCharsets.UTF_8.name());
+        URI loginUrl = new URIBuilder(URI.create(baseUrl + requestUri)).build();
+        final MultipartEntityBuilder entityBuilder = MultipartEntityBuilder.create();
+        entityBuilder.addTextBody("login", in.username());
+        entityBuilder.addTextBody("password", in.password());
+        final HttpEntity multipart = entityBuilder.build();
+        HttpUriRequest request = RequestBuilder.post(loginUrl)
+                .setEntity(multipart).build();
+        response = httpClient.execute(request);
 
-        try (Response response = client.newCall(initRequest).execute()) {
-            if (!response.isSuccessful()) {
-                throw exception(initRequest, response.code(), response.message());
-            }
-
-            RequestBody authRequestBody = new FormBody.Builder()
-                    .add("login", in.username())
-                    .add("password", in.password())
-                    .build();
-
-            Request authRequest = new Request.Builder()
-                    .url(response.request().url())
-                    .post(authRequestBody)
-                    .build();
-
-            try (Response authResponse = client.newCall(authRequest).execute()) {
-                if (!authResponse.isSuccessful()) {
-                    throw exception(initRequest, authResponse.code(), authResponse.message());
-                }
+        String token = null;
+        for (Cookie cookie: httpCookieStore.getCookies() ) {
+            if(cookie.getName().equals("argocd.token") ) {
+                 token = cookie.getValue();
             }
         }
 
-        if (cookieJar.token() == null) {
-            throw new RuntimeException("Invalid username or password");
-        }
+        EntityUtils.consumeQuietly(response.getEntity());
 
-        return cookieJar;
+        return token;
+    }
+
+    private static boolean isSuccess(HttpResponse response) {
+        int code = response.getStatusLine().getStatusCode();
+        return code >= 200 && code < 300;
     }
 }

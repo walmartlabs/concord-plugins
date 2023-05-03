@@ -25,7 +25,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.walmartlabs.concord.plugins.argocd.model.Application;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -66,7 +65,11 @@ public class ObjectMapper {
         return delegate.readValue(in, MAP_TYPE);
     }
 
-    public Map<String, Object> toMap(Application app) {
+    public Map<String, Object> toMap(Object app) {
         return delegate.convertValue(app, ObjectMapper.MAP_TYPE);
+    }
+
+    public <T> T mapToModel(Map<String, Object> map, Class<T> model) throws IOException {
+        return (T) readValue(writeValueAsString(map), model);
     }
 }

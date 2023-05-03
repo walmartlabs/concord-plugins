@@ -20,31 +20,33 @@ package com.walmartlabs.concord.plugins.argocd;
  * =====
  */
 
-import okhttp3.Request;
-import okhttp3.RequestBody;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.methods.RequestBuilder;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.HttpClientBuilder;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.walmartlabs.concord.plugins.argocd.ArgoCdClient.APPLICATION_JSON;
-
 public class BasicAuthHandler {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    public static String auth(ArgoCdClient apiClient, TaskParams.BasicAuth auth) throws IOException {
+    public static String auth(String baseUrl, TaskParams.BasicAuth auth) throws IOException {
         Map<String, Object> body = new HashMap<>();
         body.put("username", auth.username());
         body.put("password", auth.password());
 
-        Request.Builder rb = new Request.Builder()
-                .url(apiClient.urlBuilder("api/v1/session").build())
-                .post(RequestBody.create(APPLICATION_JSON, objectMapper.writeValueAsString(body)));
-
-        return apiClient.exec(rb.build(), (response) -> {
-            Map<String, Object> m = objectMapper.readMap(response.byteStream());
-            return (String)m.get("token");
-        });
+        HttpClient httpClient = HttpClientBuilder.create().build();
+        String url = baseUrl + "api/v1/session";
+        HttpUriRequest request = RequestBuilder.post(url)
+                .setEntity(new StringEntity(objectMapper.writeValueAsString(body), ContentType.APPLICATION_JSON)).build();
+        HttpResponse response = httpClient.execute(request);
+        Map<String, Object> m = objectMapper.readMap(response.getEntity().getContent());
+        return (String)m.get("token");
     }
 }
