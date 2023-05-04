@@ -25,10 +25,13 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.walmartlabs.concord.plugins.argocd.openapi.model.V1alpha1Application;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class ObjectMapper {
 
@@ -71,5 +74,64 @@ public class ObjectMapper {
 
     public <T> T mapToModel(Map<String, Object> map, Class<T> model) throws IOException {
         return (T) readValue(writeValueAsString(map), model);
+    }
+
+
+    public V1alpha1Application buildApplicationObject(TaskParams.CreateUpdateParams in) throws IOException {
+        Map<String, Object> metadata = new HashMap<>();
+        Map<String, Object> spec = new HashMap<>();
+        Map<String, Object> source = new HashMap<>();
+        Map<String, Object> helm = new HashMap<>();
+        Map<String, Object> destination = new HashMap<>();
+        Map<String, Object> body = new HashMap<>();
+
+        metadata.put("name", in.app());
+        metadata.put("namespace", ArgoCdConstants.ARGOCD_NAMESPACE);
+        metadata.put("finalizers", ArgoCdConstants.FINALIZERS);
+
+        if (in.annotations() != null) {
+            metadata.put("annotations", in.annotations());
+        }
+
+        destination.put("namespace", in.namespace());
+        destination.put("name", in.cluster());
+
+        if (in.gitRepo() != null) {
+            source.put("repoURL", Objects.requireNonNull(in.gitRepo()).repoUrl());
+            source.put("path", Objects.requireNonNull(in.gitRepo()).path());
+            source.put("targetRevision", Objects.requireNonNull(in.gitRepo()).targetRevision());
+        } else if (in.helmRepo() != null) {
+            source.put("repoUrl", Objects.requireNonNull(in.helmRepo()).repoUrl());
+            source.put("chart", Objects.requireNonNull(in.helmRepo()).chart());
+            source.put("targetRevision", Objects.requireNonNull(in.helmRepo()).targetRevision());
+        } else {
+            throw new RuntimeException("Source information not provided for " + in.app() + "." +
+                    "Provide either `gitRepo` or `helmRepo` details for the application to be created." +
+                    "Cannot proceed further. Refer docs (https://concord.walmartlabs.com/docs/plugins-v2/argocd.html#usage) for usage");
+        }
+
+        if (in.helm() != null) {
+            if (Objects.requireNonNull(in.helm()).parameters() != null)
+                helm.put("parameters", Objects.requireNonNull(in.helm()).parameters());
+
+            helm.put("values", Objects.requireNonNull(in.helm()).values());
+            source.put("helm", helm);
+        }
+        spec.put("project", in.project());
+        spec.put("destination", destination);
+        spec.put("source", source);
+
+        if (in.createNamespace()) {
+            Map<String, Object> syncPolicy = new HashMap<>(ArgoCdConstants.SYNC_POLICY);
+            syncPolicy.put("syncOptions", ArgoCdConstants.CREATE_NAMESPACE_OPTION);
+            spec.put("syncPolicy", syncPolicy);
+        } else {
+            spec.put("syncPolicy", ArgoCdConstants.SYNC_POLICY);
+        }
+
+        body.put("metadata", metadata);
+        body.put("spec", spec);
+
+        return mapToModel(body, V1alpha1Application.class);
     }
 }

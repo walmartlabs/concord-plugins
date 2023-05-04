@@ -25,6 +25,7 @@ import com.walmartlabs.concord.plugins.argocd.model.SyncStatus;
 import com.walmartlabs.concord.plugins.argocd.openapi.ApiClient;
 import com.walmartlabs.concord.plugins.argocd.openapi.ApiException;
 import com.walmartlabs.concord.plugins.argocd.openapi.api.ApplicationServiceApi;
+import com.walmartlabs.concord.plugins.argocd.openapi.api.ApplicationSetServiceApi;
 import com.walmartlabs.concord.plugins.argocd.openapi.api.ProjectServiceApi;
 import com.walmartlabs.concord.plugins.argocd.openapi.model.*;
 import org.apache.http.client.config.RequestConfig;
@@ -70,13 +71,13 @@ public class ArgoCdClient {
 
     public V1alpha1Application getApp(String app, boolean refresh) throws IOException, ApiException {
         ApplicationServiceApi api = new ApplicationServiceApi(this.client);
-        V1alpha1Application application = api.applicationServiceGet(app, Boolean.toString(refresh), null, null, null, null);
+        V1alpha1Application application = api.applicationServiceGet(app, Boolean.toString(refresh), null, null, null, null, null);
         return application;
     }
 
     public void deleteApp(String app, boolean cascade, String propagationPolicy) throws IOException, ApiException {
         ApplicationServiceApi api = new ApplicationServiceApi(this.client);
-        api.applicationServiceDelete(app, cascade, propagationPolicy);
+        api.applicationServiceDelete(app, cascade, propagationPolicy, null);
     }
 
     public V1alpha1Application syncApp(TaskParams.SyncParams in) throws IOException, ApiException {
@@ -169,7 +170,7 @@ public class ArgoCdClient {
                     if (finishedAt == null) {
                         // if it is not finished yet
                         operationInProgress = true;
-                    } else if (operation != null && !Boolean.TRUE.equals(operation.getSync().getDryRun()) && (reconciledAt == null || reconciledAt.isBefore(finishedAt))) {
+                    } else if (operation != null && !operation.getSync().getDryRun() && (reconciledAt == null || reconciledAt.isBefore(finishedAt))) {
                         // if it is just finished and we need to wait for controller to reconcile app once after syncing
                         operationInProgress = true;
                     }
@@ -193,71 +194,14 @@ public class ArgoCdClient {
         return null;
     }
 
-    public V1alpha1Application createApp(TaskParams.CreateUpdateParams in) throws RuntimeException, IOException, ApiException {
-        Map<String, Object> metadata = new HashMap<>();
-        Map<String, Object> spec = new HashMap<>();
-        Map<String, Object> source = new HashMap<>();
-        Map<String, Object> helm = new HashMap<>();
-        Map<String, Object> destination = new HashMap<>();
-        Map<String, Object> body = new HashMap<>();
-
-        metadata.put("name", in.app());
-        metadata.put("namespace", ArgoCdConstants.ARGOCD_NAMESPACE);
-        metadata.put("finalizers", ArgoCdConstants.FINALIZERS);
-
-        if (in.annotations() != null) {
-            metadata.put("annotations", in.annotations());
-        }
-
-        destination.put("namespace", in.namespace());
-        destination.put("name", in.cluster());
-
-        if (in.gitRepo() != null) {
-            source.put("repoURL", Objects.requireNonNull(in.gitRepo()).repoUrl());
-            source.put("path", Objects.requireNonNull(in.gitRepo()).path());
-            source.put("targetRevision", Objects.requireNonNull(in.gitRepo()).targetRevision());
-        } else if (in.helmRepo() != null) {
-            source.put("repoUrl", Objects.requireNonNull(in.helmRepo()).repoUrl());
-            source.put("chart", Objects.requireNonNull(in.helmRepo()).chart());
-            source.put("targetRevision", Objects.requireNonNull(in.helmRepo()).targetRevision());
-        } else {
-            throw new RuntimeException("Source information not provided for " + in.app() + "." +
-                    "Provide either `gitRepo` or `helmRepo` details for the application to be created." +
-                    "Cannot proceed further. Refer docs (https://concord.walmartlabs.com/docs/plugins-v2/argocd.html#usage) for usage");
-        }
-
-        if (in.helm() != null) {
-            if (Objects.requireNonNull(in.helm()).parameters() != null)
-                helm.put("parameters", Objects.requireNonNull(in.helm()).parameters());
-
-            helm.put("values", Objects.requireNonNull(in.helm()).values());
-            source.put("helm", helm);
-        }
-
-        spec.put("project", in.project());
-        spec.put("destination", destination);
-        spec.put("source", source);
-
-        if (in.createNamespace()) {
-            Map<String, Object> syncPolicy = new HashMap<>(ArgoCdConstants.SYNC_POLICY);
-            syncPolicy.put("syncOptions", ArgoCdConstants.CREATE_NAMESPACE_OPTION);
-            spec.put("syncPolicy", syncPolicy);
-        } else {
-            spec.put("syncPolicy", ArgoCdConstants.SYNC_POLICY);
-        }
-
-        body.put("metadata", metadata);
-        body.put("spec", spec);
-
-        V1alpha1Application application = objectMapper.mapToModel(body, V1alpha1Application.class);
-
+    public V1alpha1Application createApp(V1alpha1Application application) throws RuntimeException, IOException, ApiException {
         ApplicationServiceApi api = new ApplicationServiceApi(client);
         return api.applicationServiceCreate(application, null, null);
     }
 
     public V1alpha1ApplicationSpec updateAppSpec(String app, V1alpha1ApplicationSpec spec) throws IOException, ApiException {
         ApplicationServiceApi api = new ApplicationServiceApi(client);
-        return api.applicationServiceUpdateSpec(app, spec, true);
+        return api.applicationServiceUpdateSpec(app, spec, true, null);
     }
 
     public V1alpha1AppProject getProject(String project) throws ApiException {
@@ -268,6 +212,21 @@ public class ArgoCdClient {
     public void deleteProject(String project) throws ApiException {
         ProjectServiceApi api = new ProjectServiceApi(client);
         api.projectServiceDelete(project);
+    }
+
+    public V1alpha1ApplicationSet createApplicationSet(V1alpha1ApplicationSet applicationSet, boolean upsert) throws ApiException {
+        ApplicationSetServiceApi api = new ApplicationSetServiceApi(client);
+        return api.applicationSetServiceCreate(applicationSet, upsert);
+    }
+
+    public void deleteApplicationSet(String name) throws ApiException {
+        ApplicationSetServiceApi api = new ApplicationSetServiceApi(client);
+        api.applicationSetServiceDelete(name);
+    }
+
+    public V1alpha1ApplicationSet getApplicationSet(String name) throws ApiException {
+        ApplicationSetServiceApi api = new ApplicationSetServiceApi(client);
+        return api.applicationSetServiceGet(name);
     }
 
     public V1alpha1AppProject createProject(TaskParams.CreateProjectParams in) throws IOException, ApiException {

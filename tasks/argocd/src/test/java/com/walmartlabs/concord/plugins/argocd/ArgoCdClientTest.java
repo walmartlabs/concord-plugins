@@ -38,6 +38,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @Disabled("Required url, credentials, app")
 public class ArgoCdClientTest {
 
+    ObjectMapper objectMapper = new ObjectMapper();
+
     @Test
     public void testSync() throws Exception {
         TaskParams.SyncParams in = ImmutableTestSyncParams.builder()
@@ -78,7 +80,7 @@ public class ArgoCdClientTest {
                 .build();
 
         ArgoCdClient client = new ArgoCdClient(in);
-        V1alpha1Application app = client.createApp(in);
+        V1alpha1Application app = client.createApp(objectMapper.buildApplicationObject(in));
         System.out.println("app: " + app);
 
         app = client.waitForSync(in.app(), app.getMetadata().getResourceVersion(), in.syncTimeout(), WaitWatchParams.builder().build());
@@ -260,7 +262,7 @@ public class ArgoCdClientTest {
                 .build();
 
         ArgoCdClient client = new ArgoCdClient(in);
-        V1alpha1Application app = client.createApp(in);
+        V1alpha1Application app = client.createApp(objectMapper.buildApplicationObject(in));
         System.out.println("app: " + app);
 
         app = client.waitForSync(in.app(), app.getMetadata().getResourceVersion(), in.syncTimeout(), WaitWatchParams.builder().build());

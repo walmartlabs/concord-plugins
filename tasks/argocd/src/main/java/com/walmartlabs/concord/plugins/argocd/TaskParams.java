@@ -262,6 +262,33 @@ public interface TaskParams {
         }
     }
 
+    interface GetApplicationSetParams extends TaskParams {
+
+        String applicationSet();
+    }
+
+    interface CreateUpdateApplicationSetParams extends TaskParams,CreateUpdateParams {
+
+        String applicationSet();
+
+        String applicationSetNamespace();
+
+        List<Map<String, Object>> generators();
+
+        boolean preserveResourcesOnDeletion();
+
+        Map<String, Object> strategy();
+
+        Map<String, Object> status();
+
+        boolean upsert();
+    }
+
+    interface DeleteApplicationSetParams extends TaskParams {
+
+        String applicationSet();
+    }
+
     interface SyncParams extends TaskParams {
 
         interface Resource {
@@ -334,6 +361,9 @@ public interface TaskParams {
         CREATE,
         GETPROJECT,
         CREATEPROJECT,
-        DELETEPROJECT
+        DELETEPROJECT,
+        GETAPPLICATIONSET,
+        DELETEAPPLICATIONSET,
+        CREATEAPPLICATIONSET
     }
 }
