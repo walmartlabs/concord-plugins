@@ -65,6 +65,15 @@ public class TaskParamsImpl implements TaskParams {
             case CREATEPROJECT: {
                 return new CreateProjectParamsImpl(variables);
             }
+            case CREATEAPPLICATIONSET: {
+                return new CreateUpdateApplicationSetParamsImpl(variables);
+            }
+            case GETAPPLICATIONSET: {
+                return new GetApplicationSetParamsImpl(variables);
+            }
+            case DELETEAPPLICATIONSET: {
+                return new DeleteApplicationSetParamsImpl(variables);
+            }
             default: {
                 throw new IllegalArgumentException("Unsupported action type: " + action(variables));
             }
@@ -301,6 +310,84 @@ public class TaskParamsImpl implements TaskParams {
         @Override
         public String project() {
             return variables.assertString(PROJECT_KEY);
+        }
+    }
+
+    private static class GetApplicationSetParamsImpl extends TaskParamsImpl implements GetApplicationSetParams {
+
+        private static final String APPLICATIONSET_KEY = "applicationSet";
+
+        protected GetApplicationSetParamsImpl(Variables variables) {
+            super(variables);
+        }
+
+        @Override
+        public String applicationSet() {
+            return variables.assertString(APPLICATIONSET_KEY);
+        }
+    }
+
+    private static class CreateUpdateApplicationSetParamsImpl extends CreateParamsImpl implements CreateUpdateApplicationSetParams {
+
+        private static final String APPLICATION_SET_KEY = "applicationSet";
+        private static final String APPLICATION_SET_NAMESPACE_KEY = "applicationSetNamespace";
+        private static final String STATUS_KEY = "status";
+        private static final String UPSERT_KEY = "upsert";
+        private static final String GENERATORS_KEY = "generators";
+        private static final String STRATEGY_KEY = "strategy";
+        private static final String PRESERVE_RESOURCES_ON_DELETEION_KEY = "preserveResourcesOnDeletion";
+        protected CreateUpdateApplicationSetParamsImpl(Variables variables) {
+            super(variables);
+        }
+
+        @Override
+        public String applicationSet() {
+            return variables.assertString(APPLICATION_SET_KEY);
+        }
+
+        @Override
+        public String applicationSetNamespace() {
+            return variables.getString(APPLICATION_SET_NAMESPACE_KEY, "argocd");
+        }
+
+        @Override
+        public List<Map<String, Object>> generators() {
+            return variables.assertList(GENERATORS_KEY);
+        }
+
+        @Override
+        public boolean preserveResourcesOnDeletion() {
+            return variables.getBoolean(PRESERVE_RESOURCES_ON_DELETEION_KEY, true);
+        }
+
+        @Override
+        public Map<String, Object> strategy() {
+            return variables.getMap(STRATEGY_KEY, Collections.emptyMap());
+        }
+
+        @Override
+        public Map<String, Object> status() {
+            return variables.getMap(STATUS_KEY, Collections.emptyMap());
+        }
+
+        @Override
+        public boolean upsert() {
+            return variables.getBoolean(UPSERT_KEY, false);
+        }
+
+    }
+
+    private static class DeleteApplicationSetParamsImpl extends TaskParamsImpl implements DeleteApplicationSetParams {
+
+        private static final String APPLICATIONSET_KEY = "applicationSet";
+
+        protected DeleteApplicationSetParamsImpl(Variables variables) {
+            super(variables);
+        }
+
+        @Override
+        public String applicationSet() {
+            return variables.assertString(APPLICATIONSET_KEY);
         }
     }
 
@@ -817,6 +904,7 @@ public class TaskParamsImpl implements TaskParams {
                     .collect(Collectors.toList());
         }
     }
+
 
     private static Action action(Variables variables) {
         String action = variables.getString(ACTION_KEY, Action.SYNC.name());
