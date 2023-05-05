@@ -313,6 +313,7 @@ public class ArgoCdClientTest {
         V1alpha1ApplicationSet appSet = client.getApplicationSet(in.applicationSet());
         System.out.println("appSet: " + appSet);
     }
+
     @Test
     public void testApplicationSetDeleteWithAzureToken() throws Exception {
         TaskParams.DeleteApplicationSetParams in = ImmutableTestDeleteAppSetParams.builder().

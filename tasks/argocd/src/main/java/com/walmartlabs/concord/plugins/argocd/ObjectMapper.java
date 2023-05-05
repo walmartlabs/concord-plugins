@@ -9,9 +9,9 @@ package com.walmartlabs.concord.plugins.argocd;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -146,9 +146,9 @@ public class ObjectMapper {
         applicationSetMap.put("metadata", metadata);
         Map<String, Object> spec = new HashMap<>();
         spec.put("generators", in.generators());
-        Map<String,Object> syncPolicy = new HashMap<>();
+        Map<String, Object> syncPolicy = new HashMap<>();
         syncPolicy.put("preserveResourcesOnDeletion", in.preserveResourcesOnDeletion());
-        spec.put("syncPolicy",syncPolicy);
+        spec.put("syncPolicy", syncPolicy);
         spec.put("strategy", in.strategy());
         spec.put("template", application);
         applicationSetMap.put("spec", spec);

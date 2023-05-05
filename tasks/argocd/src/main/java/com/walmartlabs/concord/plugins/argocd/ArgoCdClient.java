@@ -237,7 +237,7 @@ public class ArgoCdClient {
         Map<String, Object> project = new HashMap<>();
 
         metadata.put("name", in.project());
-        if(in.namespace() != null && !in.namespace().isEmpty()){
+        if (in.namespace() != null && !in.namespace().isEmpty()) {
             metadata.put("namespace", in.namespace());
         }
         metadata.put("finalizers", ArgoCdConstants.FINALIZERS);

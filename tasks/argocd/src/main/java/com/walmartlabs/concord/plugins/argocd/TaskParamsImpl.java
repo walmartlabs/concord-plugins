@@ -9,9 +9,9 @@ package com.walmartlabs.concord.plugins.argocd;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -245,7 +245,9 @@ public class TaskParamsImpl implements TaskParams {
         }
 
         @Override
-        public String authority() { return variables.assertString(AUTHORITY_KEY); }
+        public String authority() {
+            return variables.assertString(AUTHORITY_KEY);
+        }
 
         @Override
         public Set<String> scope() {
@@ -336,6 +338,7 @@ public class TaskParamsImpl implements TaskParams {
         private static final String GENERATORS_KEY = "generators";
         private static final String STRATEGY_KEY = "strategy";
         private static final String PRESERVE_RESOURCES_ON_DELETEION_KEY = "preserveResourcesOnDeletion";
+
         protected CreateUpdateApplicationSetParamsImpl(Variables variables) {
             super(variables);
         }
