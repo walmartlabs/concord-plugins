@@ -9,9 +9,9 @@ package com.walmartlabs.concord.plugins.argocd;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,6 +23,7 @@ package com.walmartlabs.concord.plugins.argocd;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.walmartlabs.concord.plugins.argocd.openapi.model.V1alpha1Application;
+import com.walmartlabs.concord.plugins.argocd.openapi.model.V1alpha1ApplicationSet;
 import com.walmartlabs.concord.plugins.argocd.openapi.model.V1alpha1ApplicationSpec;
 import com.walmartlabs.concord.plugins.argocd.openapi.model.V1alpha1HelmParameter;
 import org.immutables.value.Value;
@@ -35,7 +36,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@Disabled("Required url, credentials, app")
+//@Disabled("Required url, credentials, app")
 public class ArgoCdClientTest {
 
     ObjectMapper objectMapper = new ObjectMapper();
@@ -87,6 +88,7 @@ public class ArgoCdClientTest {
         System.out.println("app2: " + app);
     }
 
+
     @Test
     public void testDelete() throws Exception {
         TaskParams.DeleteAppParams in = ImmutableTestDeleteAppParams.builder()
@@ -113,7 +115,6 @@ public class ArgoCdClientTest {
         V1alpha1Application app = client.getApp(in.app(), in.refresh());
         System.out.println("app: " + app);
     }
-
 
 
     @Test
@@ -242,7 +243,6 @@ public class ArgoCdClientTest {
 
     @Test
     public void testCreateWithAzureToken() throws Exception {
-        String values = "{replicaCount: 1, image: {repository: nginx, pullPolicy: IfNotPresent, tag: latest }, imagePullSecrets: [], nameOverride: , fullnameOverride: , serviceAccount: {create: true, annotations: {}, name: }, podAnnotations: {}, podSecurityContext: {}, securityContext: {}, service: {type: ClusterIP, port: 80}, ingress: {enabled: false, className: , annotations: {}, hosts: [{host: chart-example.local, paths: [{path: /, pathType: ImplementationSpecific}]}], tls: []}, resources: {}, autoscaling: {enabled: false, minReplicas: 1, maxReplicas: 100, targetCPUUtilizationPercentage: 80}, nodeSelector: {}, tolerations: [], affinity: {}}";
         TaskParams.CreateUpdateParams.GitRepo gitRepo = ImmutableTestGitRepo.builder()
                 .repoUrl(System.getProperty("REPO_URL"))
                 .path(System.getProperty("REPO_PATH"))
@@ -257,7 +257,7 @@ public class ArgoCdClientTest {
                 .cluster(System.getProperty("ARGO_CD_CLUSTER"))
                 .namespace(System.getProperty("ARGO_CD_NAMESPACE"))
                 .gitRepo(gitRepo)
-                .helm(TestCreateParams.TestHelm.of(null, values))
+                .helm(TestCreateParams.TestHelm.of(null, System.getProperty("ARGO_APP_VALUES")))
                 .syncTimeout(Duration.ofMinutes(1))
                 .build();
 
@@ -267,6 +267,87 @@ public class ArgoCdClientTest {
 
         app = client.waitForSync(in.app(), app.getMetadata().getResourceVersion(), in.syncTimeout(), WaitWatchParams.builder().build());
         System.out.println("app2: " + app);
+    }
+
+
+    @Test
+    public void testApplicationSetCreateWithAzureToken() throws Exception {
+        TaskParams.CreateUpdateParams.GitRepo gitRepo = ImmutableTestGitRepo.builder()
+                .repoUrl(System.getProperty("REPO_URL"))
+                .path(System.getProperty("REPO_PATH"))
+                .targetRevision(System.getProperty("REPO_BRANCH")).build();
+        List<Map<String, Object>> generators = objectMapper.readValue(System.getProperty("ARGO_APPSET_GENERATORS"), List.class);
+        TaskParams.CreateUpdateApplicationSetParams in = ImmutableTestCreateAppSetParams.builder()
+                .baseUrl(System.getProperty("ARGO_CD_BASE_URL"))
+                .auth(azure())
+                .debug(true)
+                .app(System.getProperty("ARGO_CD_APP"))
+                .project(System.getProperty("ARGO_CD_PROJECT"))
+                .recordEvents(false)
+                .cluster(System.getProperty("ARGO_CD_CLUSTER"))
+                .namespace(System.getProperty("ARGO_CD_NAMESPACE"))
+                .gitRepo(gitRepo)
+                .helm(TestCreateParams.TestHelm.of(null, System.getProperty("ARGO_APP_VALUES")))
+                .syncTimeout(Duration.ofMinutes(1))
+                .generators(generators)
+                .createNamespace(true)
+                .preserveResourcesOnDeletion(false)
+                .applicationSet(System.getProperty("ARGO_APPSET"))
+                .applicationSetNamespace("argocd")
+                .upsert(true)
+                .build();
+
+        ArgoCdClient client = new ArgoCdClient(in);
+        V1alpha1ApplicationSet appSet = client.createApplicationSet(objectMapper.buildApplicationSetObject(in), true);
+        System.out.println("appSet: " + appSet);
+    }
+
+    @Test
+    public void testApplicationSetGetWithAzureToken() throws Exception {
+        TaskParams.GetApplicationSetParams in = ImmutableTestGetAppSetParams.builder().
+                baseUrl(System.getProperty("ARGO_CD_BASE_URL"))
+                .auth(azure()).
+                applicationSet(System.getProperty("ARGO_APPSET")).build();
+
+        ArgoCdClient client = new ArgoCdClient(in);
+        V1alpha1ApplicationSet appSet = client.getApplicationSet(in.applicationSet());
+        System.out.println("appSet: " + appSet);
+    }
+    @Test
+    public void testApplicationSetDeleteWithAzureToken() throws Exception {
+        TaskParams.DeleteApplicationSetParams in = ImmutableTestDeleteAppSetParams.builder().
+                baseUrl(System.getProperty("ARGO_CD_BASE_URL"))
+                .auth(azure()).
+                applicationSet(System.getProperty("ARGO_APPSET")).build();
+
+        ArgoCdClient client = new ArgoCdClient(in);
+        client.deleteApplicationSet(in.applicationSet());
+    }
+
+    @Value.Immutable
+    @Value.Style(jdkOnly = true)
+    public interface TestCreateAppSetParams extends TestCreateParams, TaskParams.CreateUpdateApplicationSetParams {
+
+    }
+
+    @Value.Immutable
+    @Value.Style(jdkOnly = true)
+    public interface TestGetAppSetParams extends TaskParams.GetApplicationSetParams {
+        @Value.Default()
+        @Override
+        default boolean validateCerts() {
+            return false;
+        }
+    }
+
+    @Value.Immutable
+    @Value.Style(jdkOnly = true)
+    public interface TestDeleteAppSetParams extends TaskParams.DeleteApplicationSetParams {
+        @Value.Default()
+        @Override
+        default boolean validateCerts() {
+            return false;
+        }
     }
 
     @Value.Immutable
@@ -357,7 +438,7 @@ public class ArgoCdClientTest {
         @Value.Style(jdkOnly = true)
         interface TestHelm extends TaskParams.CreateUpdateParams.Helm {
 
-            static TestHelm of(List <Map<String, Object>> parameters, String values) {
+            static TestHelm of(List<Map<String, Object>> parameters, String values) {
                 return ImmutableTestHelm.builder()
                         .parameters(parameters)
                         .values(values)

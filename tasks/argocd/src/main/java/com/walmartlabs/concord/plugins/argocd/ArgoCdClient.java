@@ -170,7 +170,7 @@ public class ArgoCdClient {
                     if (finishedAt == null) {
                         // if it is not finished yet
                         operationInProgress = true;
-                    } else if (operation != null && !operation.getSync().getDryRun() && (reconciledAt == null || reconciledAt.isBefore(finishedAt))) {
+                    } else if (operation != null && !Boolean.TRUE.equals(operation.getSync().getDryRun()) && (reconciledAt == null || reconciledAt.isBefore(finishedAt))) {
                         // if it is just finished and we need to wait for controller to reconcile app once after syncing
                         operationInProgress = true;
                     }

@@ -130,24 +130,7 @@ public class ArgoCdTask implements Task {
         try {
             ArgoCdClient client = new ArgoCdClient(in);
 
-            V1alpha1Application application = objectMapper.buildApplicationObject(in);
-
-            Map<String, Object> metadata = new HashMap<>();
-            metadata.put("name", in.applicationSet());
-            metadata.put("namespace", in.applicationSetNamespace());
-            Map<String, Object> applicationSetMap = new HashMap<>();
-            applicationSetMap.put("metadata", metadata);
-            Map<String, Object> spec = new HashMap<>();
-            spec.put("generators", in.generators());
-            Map<String,Object> syncPolicy = new HashMap<>();
-            syncPolicy.put("preserveResourcesOnDeletion", in.preserveResourcesOnDeletion());
-            spec.put("syncPolicy",syncPolicy);
-            spec.put("strategy", in.strategy());
-            spec.put("template", application);
-            applicationSetMap.put("spec", spec);
-            applicationSetMap.put("status", in.status());
-
-            V1alpha1ApplicationSet applicationSet = client.createApplicationSet(objectMapper.mapToModel(applicationSetMap,V1alpha1ApplicationSet.class), in.upsert());
+            V1alpha1ApplicationSet applicationSet = client.createApplicationSet(objectMapper.buildApplicationSetObject(in), in.upsert());
             return TaskResult.success()
                     .value("spec", toMap(applicationSet));
 

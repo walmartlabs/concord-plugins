@@ -279,8 +279,6 @@ public interface TaskParams {
 
         Map<String, Object> strategy();
 
-        Map<String, Object> status();
-
         boolean upsert();
     }
 

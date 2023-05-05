@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.walmartlabs.concord.plugins.argocd.openapi.model.V1alpha1Application;
+import com.walmartlabs.concord.plugins.argocd.openapi.model.V1alpha1ApplicationSet;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -133,5 +134,24 @@ public class ObjectMapper {
         body.put("spec", spec);
 
         return mapToModel(body, V1alpha1Application.class);
+    }
+
+    public V1alpha1ApplicationSet buildApplicationSetObject(TaskParams.CreateUpdateApplicationSetParams in) throws IOException {
+        V1alpha1Application application = buildApplicationObject(in);
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("name", in.applicationSet());
+        metadata.put("namespace", in.applicationSetNamespace());
+        Map<String, Object> applicationSetMap = new HashMap<>();
+        applicationSetMap.put("metadata", metadata);
+        Map<String, Object> spec = new HashMap<>();
+        spec.put("generators", in.generators());
+        Map<String,Object> syncPolicy = new HashMap<>();
+        syncPolicy.put("preserveResourcesOnDeletion", in.preserveResourcesOnDeletion());
+        spec.put("syncPolicy",syncPolicy);
+        spec.put("strategy", in.strategy());
+        spec.put("template", application);
+        applicationSetMap.put("spec", spec);
+        return mapToModel(applicationSetMap, V1alpha1ApplicationSet.class);
     }
 }

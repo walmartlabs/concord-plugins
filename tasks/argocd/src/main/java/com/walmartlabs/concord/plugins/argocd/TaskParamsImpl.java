@@ -366,11 +366,6 @@ public class TaskParamsImpl implements TaskParams {
         }
 
         @Override
-        public Map<String, Object> status() {
-            return variables.getMap(STATUS_KEY, Collections.emptyMap());
-        }
-
-        @Override
         public boolean upsert() {
             return variables.getBoolean(UPSERT_KEY, false);
         }
