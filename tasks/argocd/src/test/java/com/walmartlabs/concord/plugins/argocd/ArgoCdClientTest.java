@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-//@Disabled("Required url, credentials, app")
+@Disabled("Required url, credentials, app")
 public class ArgoCdClientTest {
 
     ObjectMapper objectMapper = new ObjectMapper();
