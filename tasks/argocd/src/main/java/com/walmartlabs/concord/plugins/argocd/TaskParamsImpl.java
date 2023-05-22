@@ -332,8 +332,6 @@ public class TaskParamsImpl implements TaskParams {
     private static class CreateUpdateApplicationSetParamsImpl extends CreateParamsImpl implements CreateUpdateApplicationSetParams {
 
         private static final String APPLICATION_SET_KEY = "applicationSet";
-        private static final String APPLICATION_SET_NAMESPACE_KEY = "applicationSetNamespace";
-        private static final String STATUS_KEY = "status";
         private static final String UPSERT_KEY = "upsert";
         private static final String GENERATORS_KEY = "generators";
         private static final String STRATEGY_KEY = "strategy";
@@ -348,10 +346,6 @@ public class TaskParamsImpl implements TaskParams {
             return variables.assertString(APPLICATION_SET_KEY);
         }
 
-        @Override
-        public String applicationSetNamespace() {
-            return variables.getString(APPLICATION_SET_NAMESPACE_KEY, "argocd");
-        }
 
         @Override
         public List<Map<String, Object>> generators() {
@@ -366,6 +360,11 @@ public class TaskParamsImpl implements TaskParams {
         @Override
         public Map<String, Object> strategy() {
             return variables.getMap(STRATEGY_KEY, Collections.emptyMap());
+        }
+
+        @Override
+        public String project() {
+            return variables.assertString(PROJECT_KEY);
         }
 
         @Override
@@ -394,7 +393,7 @@ public class TaskParamsImpl implements TaskParams {
         private static final String APP_KEY = "app";
         private static final String NAMESPACE_KEY = "namespace";
         private static final String CREATE_NAMESPACE_KEY = "createNamespace";
-        private static final String PROJECT_KEY = "project";
+        protected static final String PROJECT_KEY = "project";
         private static final String CLUSTER_KEY = "cluster";
         private static final String GIT_REPO_KEY = "gitRepo";
         private static final String HELM_REPO_KEY = "helmRepo";

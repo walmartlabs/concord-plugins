@@ -273,8 +273,6 @@ public interface TaskParams {
 
         String applicationSet();
 
-        String applicationSetNamespace();
-
         List<Map<String, Object>> generators();
 
         boolean preserveResourcesOnDeletion();

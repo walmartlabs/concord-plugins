@@ -141,7 +141,7 @@ public class ObjectMapper {
 
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("name", in.applicationSet());
-        metadata.put("namespace", in.applicationSetNamespace());
+        metadata.put("namespace", ArgoCdConstants.ARGOCD_NAMESPACE);
         Map<String, Object> applicationSetMap = new HashMap<>();
         applicationSetMap.put("metadata", metadata);
         Map<String, Object> spec = new HashMap<>();
