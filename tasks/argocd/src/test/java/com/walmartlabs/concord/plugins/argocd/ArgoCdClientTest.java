@@ -293,7 +293,6 @@ public class ArgoCdClientTest {
                 .createNamespace(true)
                 .preserveResourcesOnDeletion(false)
                 .applicationSet(System.getProperty("ARGO_APPSET"))
-                .applicationSetNamespace("argocd")
                 .upsert(true)
                 .build();
 
