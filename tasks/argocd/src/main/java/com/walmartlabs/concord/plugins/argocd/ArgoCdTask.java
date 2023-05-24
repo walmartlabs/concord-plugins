@@ -9,9 +9,9 @@ package com.walmartlabs.concord.plugins.argocd;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -24,18 +24,18 @@ import com.walmartlabs.concord.ApiClient;
 import com.walmartlabs.concord.client.ProcessEventsApi;
 import com.walmartlabs.concord.common.ConfigurationUtils;
 import com.walmartlabs.concord.plugins.argocd.openapi.ApiException;
-import com.walmartlabs.concord.plugins.argocd.openapi.model.V1alpha1AppProject;
-import com.walmartlabs.concord.plugins.argocd.openapi.model.V1alpha1Application;
-import com.walmartlabs.concord.plugins.argocd.openapi.model.V1alpha1ApplicationSpec;
-import com.walmartlabs.concord.plugins.argocd.openapi.model.V1alpha1HelmParameter;
+import com.walmartlabs.concord.plugins.argocd.openapi.model.*;
 import com.walmartlabs.concord.runtime.v2.sdk.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Named;
+import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Named("argocd")
 public class ArgoCdTask implements Task {
@@ -89,9 +89,53 @@ public class ArgoCdTask implements Task {
             case DELETEPROJECT: {
                 return processProjectDeleteAction((TaskParams.DeleteProjectParams) params);
             }
+            case GETAPPLICATIONSET: {
+                return processGetApplicationSetAction((TaskParams.GetApplicationSetParams) params);
+            }
+            case DELETEAPPLICATIONSET: {
+                return processDeleteApplicationSetAction((TaskParams.DeleteApplicationSetParams) params);
+            }
+            case CREATEAPPLICATIONSET: {
+                return processCreateApplicationSetAction((TaskParams.CreateUpdateApplicationSetParams) params);
+            }
             default: {
                 throw new IllegalArgumentException("Unsupported action type: " + params.action());
             }
+        }
+    }
+
+    private TaskResult processGetApplicationSetAction(TaskParams.GetApplicationSetParams in) throws Exception {
+        ArgoCdClient client = new ArgoCdClient(in);
+        V1alpha1ApplicationSet applicationSet = client.getApplicationSet(in.applicationSet());
+        return TaskResult.success()
+                .value("applicationSet", toMap(applicationSet));
+    }
+
+    private TaskResult processDeleteApplicationSetAction(TaskParams.DeleteApplicationSetParams in) throws Exception {
+        ArgoCdClient client = new ArgoCdClient(in);
+        log.info("Deleting '{}' applicationset ", in.applicationSet());
+        record(in.recordEvents(), in.applicationSet(), in.baseUrl(), in.action().toString());
+
+        client.deleteApplicationSet(in.applicationSet());
+        return TaskResult.success();
+    }
+
+    private TaskResult processCreateApplicationSetAction(TaskParams.CreateUpdateApplicationSetParams in) throws Exception {
+        assertProjectInfo(context);
+        lockService.projectLock(in.applicationSet());
+        log.info("Updating '{}' applicationset spec", in.applicationSet());
+
+        record(in.recordEvents(), in.applicationSet(), in.baseUrl(), in.action().toString());
+
+        try {
+            ArgoCdClient client = new ArgoCdClient(in);
+
+            V1alpha1ApplicationSet applicationSet = client.createApplicationSet(objectMapper.buildApplicationSetObject(in), in.upsert());
+            return TaskResult.success()
+                    .value("spec", toMap(applicationSet));
+
+        } finally {
+            lockService.projectUnlock(in.applicationSet());
         }
     }
 
@@ -110,7 +154,7 @@ public class ArgoCdTask implements Task {
 
             appSpec = ConfigurationUtils.deepMerge(appSpec, in.spec());
             V1alpha1ApplicationSpec specObject = objectMapper.mapToModel(appSpec, V1alpha1ApplicationSpec.class);
-            V1alpha1ApplicationSpec result  = client.updateAppSpec(in.app(),specObject);
+            V1alpha1ApplicationSpec result = client.updateAppSpec(in.app(), specObject);
 
             return TaskResult.success()
                     .value("spec", result);
@@ -198,8 +242,9 @@ public class ArgoCdTask implements Task {
         record(in.recordEvents(), in.app(), in.baseUrl(), in.action().toString());
 
         try {
+            V1alpha1Application application = objectMapper.buildApplicationObject(in);
             ArgoCdClient client = new ArgoCdClient(in);
-            V1alpha1Application app = client.createApp(in);
+            V1alpha1Application app = client.createApp(application);
             app = client.waitForSync(in.app(), app.getMetadata().getResourceVersion(), in.syncTimeout(),
                     toWatchParams(false));
             return TaskResult.success()

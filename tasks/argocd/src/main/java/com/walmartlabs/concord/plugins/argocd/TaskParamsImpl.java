@@ -9,9 +9,9 @@ package com.walmartlabs.concord.plugins.argocd;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -64,6 +64,15 @@ public class TaskParamsImpl implements TaskParams {
             }
             case CREATEPROJECT: {
                 return new CreateProjectParamsImpl(variables);
+            }
+            case CREATEAPPLICATIONSET: {
+                return new CreateUpdateApplicationSetParamsImpl(variables);
+            }
+            case GETAPPLICATIONSET: {
+                return new GetApplicationSetParamsImpl(variables);
+            }
+            case DELETEAPPLICATIONSET: {
+                return new DeleteApplicationSetParamsImpl(variables);
             }
             default: {
                 throw new IllegalArgumentException("Unsupported action type: " + action(variables));
@@ -236,7 +245,9 @@ public class TaskParamsImpl implements TaskParams {
         }
 
         @Override
-        public String authority() { return variables.assertString(AUTHORITY_KEY); }
+        public String authority() {
+            return variables.assertString(AUTHORITY_KEY);
+        }
 
         @Override
         public Set<String> scope() {
@@ -304,12 +315,85 @@ public class TaskParamsImpl implements TaskParams {
         }
     }
 
+    private static class GetApplicationSetParamsImpl extends TaskParamsImpl implements GetApplicationSetParams {
+
+        private static final String APPLICATIONSET_KEY = "applicationSet";
+
+        protected GetApplicationSetParamsImpl(Variables variables) {
+            super(variables);
+        }
+
+        @Override
+        public String applicationSet() {
+            return variables.assertString(APPLICATIONSET_KEY);
+        }
+    }
+
+    private static class CreateUpdateApplicationSetParamsImpl extends CreateParamsImpl implements CreateUpdateApplicationSetParams {
+
+        private static final String APPLICATION_SET_KEY = "applicationSet";
+        private static final String UPSERT_KEY = "upsert";
+        private static final String GENERATORS_KEY = "generators";
+        private static final String STRATEGY_KEY = "strategy";
+        private static final String PRESERVE_RESOURCES_ON_DELETEION_KEY = "preserveResourcesOnDeletion";
+
+        protected CreateUpdateApplicationSetParamsImpl(Variables variables) {
+            super(variables);
+        }
+
+        @Override
+        public String applicationSet() {
+            return variables.assertString(APPLICATION_SET_KEY);
+        }
+
+
+        @Override
+        public List<Map<String, Object>> generators() {
+            return variables.assertList(GENERATORS_KEY);
+        }
+
+        @Override
+        public boolean preserveResourcesOnDeletion() {
+            return variables.getBoolean(PRESERVE_RESOURCES_ON_DELETEION_KEY, true);
+        }
+
+        @Override
+        public Map<String, Object> strategy() {
+            return variables.getMap(STRATEGY_KEY, Collections.emptyMap());
+        }
+
+        @Override
+        public String project() {
+            return variables.assertString(PROJECT_KEY);
+        }
+
+        @Override
+        public boolean upsert() {
+            return variables.getBoolean(UPSERT_KEY, false);
+        }
+
+    }
+
+    private static class DeleteApplicationSetParamsImpl extends TaskParamsImpl implements DeleteApplicationSetParams {
+
+        private static final String APPLICATIONSET_KEY = "applicationSet";
+
+        protected DeleteApplicationSetParamsImpl(Variables variables) {
+            super(variables);
+        }
+
+        @Override
+        public String applicationSet() {
+            return variables.assertString(APPLICATIONSET_KEY);
+        }
+    }
+
     public static class CreateParamsImpl extends TaskParamsImpl implements CreateUpdateParams {
 
         private static final String APP_KEY = "app";
         private static final String NAMESPACE_KEY = "namespace";
         private static final String CREATE_NAMESPACE_KEY = "createNamespace";
-        private static final String PROJECT_KEY = "project";
+        protected static final String PROJECT_KEY = "project";
         private static final String CLUSTER_KEY = "cluster";
         private static final String GIT_REPO_KEY = "gitRepo";
         private static final String HELM_REPO_KEY = "helmRepo";
@@ -817,6 +901,7 @@ public class TaskParamsImpl implements TaskParams {
                     .collect(Collectors.toList());
         }
     }
+
 
     private static Action action(Variables variables) {
         String action = variables.getString(ACTION_KEY, Action.SYNC.name());
