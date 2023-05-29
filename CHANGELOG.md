@@ -1,5 +1,23 @@
 # Change log
 
+## [1.47.0] - TBD
+
+### Added
+
+- argocd: add support for project create, delete actions
+  ([#118](https://github.com/walmartlabs/concord-plugins/pull/118))
+- argocd: add support for applicationSet create, delete, get actions
+  ([#125](https://github.com/walmartlabs/concord-plugins/pull/125))
+
+### Changed
+
+- ghaction: jdk8/11 builds removed 
+  ([#121](https://github.com/walmartlabs/concord-plugins/pull/121))
+- argocd: migrate to open api client
+  ([#118](https://github.com/walmartlabs/concord-plugins/pull/118))
+- git: jgit/git versions up
+  ([#120](https://github.com/walmartlabs/concord-plugins/pull/120))
+
 ## [1.46.0] - 2022-02-23
 
 ### Added
