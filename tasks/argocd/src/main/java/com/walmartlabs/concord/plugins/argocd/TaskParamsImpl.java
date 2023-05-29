@@ -400,6 +400,7 @@ public class TaskParamsImpl implements TaskParams {
         private static final String HELM_KEY = "helm";
         private static final String ANNOTATIONS_KEY = "annotations";
         private static final String SYNC_TIMEOUT_KEY = "syncTimeout";
+        private static final String SPEC_KEY = "spec";
 
         protected CreateParamsImpl(Variables variables) {
             super(variables);
@@ -428,6 +429,11 @@ public class TaskParamsImpl implements TaskParams {
         @Override
         public String project() {
             return variables.getString(PROJECT_KEY, "default");
+        }
+
+        @Override
+        public Map<String, Object> spec() {
+            return variables.getMap(SPEC_KEY, null);
         }
 
         @Nullable
@@ -548,6 +554,10 @@ public class TaskParamsImpl implements TaskParams {
 
             private static final String PARAMS_KEY = "parameters";
             private static final String VALUES_KEY = "values";
+            private static final String RELEASE_NAME_KEY = "releaseName";
+            private static final String VERSION_KEY = "version";
+            private static final String SKIP_CRDS_KEY = "skipCrds";
+            private static final String IGNORE_MISSING_VALUE_FILES_KEY = "ignoreMissingValueFiles";
 
             private final Variables variables;
 
@@ -564,6 +574,22 @@ public class TaskParamsImpl implements TaskParams {
             public String values() {
                 return variables.assertString(VALUES_KEY);
             }
+
+            @Override
+            public String releaseName() {
+                return variables.getString(RELEASE_NAME_KEY, null);
+            }
+
+            @Override
+            public boolean skipCrds() {
+                return variables.getBoolean(SKIP_CRDS_KEY, Helm.super.skipCrds());
+            }
+
+            @Override
+            public boolean ignoreMissingValueFiles() {
+                return variables.getBoolean(IGNORE_MISSING_VALUE_FILES_KEY, Helm.super.ignoreMissingValueFiles());
+            }
+
         }
     }
 
