@@ -27,12 +27,15 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.walmartlabs.concord.plugins.argocd.openapi.model.V1alpha1Application;
 import com.walmartlabs.concord.plugins.argocd.openapi.model.V1alpha1ApplicationSet;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.*;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Objects;
+import java.util.Collections;
 
 public class ObjectMapper {
 
@@ -84,11 +87,10 @@ public class ObjectMapper {
         Map<String, Object> destination = new HashMap<>();
         Map<String, Object> body = new HashMap<>();
         Map<String, Object> spec = new HashMap<>();
+        Map<String, Object> helm = new HashMap<>();
 
         if (in.spec() != null)
             spec = Objects.requireNonNull(in.spec());
-
-        Map<String, Object> helm = new HashMap<>();
 
         metadata.put("name", in.app());
         metadata.put("namespace", ArgoCdConstants.ARGOCD_NAMESPACE);
