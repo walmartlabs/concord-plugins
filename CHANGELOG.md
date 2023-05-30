@@ -1,6 +1,6 @@
 # Change log
 
-## [1.47.0] - TBD
+## [1.47.0] - 2023-05-30
 
 ### Added
 
@@ -8,6 +8,8 @@
   ([#118](https://github.com/walmartlabs/concord-plugins/pull/118))
 - argocd: add support for applicationSet create, delete, get actions
   ([#125](https://github.com/walmartlabs/concord-plugins/pull/125))
+- argocd: optional spec option to provide additional params for app creation
+  ([#128](https://github.com/walmartlabs/concord-plugins/pull/128))
 
 ### Changed
 
