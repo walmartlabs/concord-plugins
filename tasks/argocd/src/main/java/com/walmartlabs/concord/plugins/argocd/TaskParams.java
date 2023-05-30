@@ -212,6 +212,9 @@ public interface TaskParams {
         @Nullable
         Map<String, String> annotations();
 
+        @Nullable
+        Map<String, Object> spec();
+
         interface GitRepo {
             String repoUrl();
 
@@ -233,6 +236,19 @@ public interface TaskParams {
             List<Map<String, Object>> parameters();
 
             String values();
+
+            @Nullable
+            String releaseName();
+
+            @Value.Default
+            default boolean skipCrds() {
+                return true;
+            }
+
+            @Value.Default
+            default boolean ignoreMissingValueFiles() {
+                return true;
+            }
         }
     }
 

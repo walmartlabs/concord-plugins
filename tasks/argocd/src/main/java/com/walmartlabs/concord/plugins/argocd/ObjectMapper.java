@@ -30,9 +30,12 @@ import com.walmartlabs.concord.plugins.argocd.openapi.model.V1alpha1ApplicationS
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.HashMap;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.Objects;
+import java.util.Collections;
 
 public class ObjectMapper {
 
@@ -80,11 +83,14 @@ public class ObjectMapper {
 
     public V1alpha1Application buildApplicationObject(TaskParams.CreateUpdateParams in) throws IOException {
         Map<String, Object> metadata = new HashMap<>();
-        Map<String, Object> spec = new HashMap<>();
         Map<String, Object> source = new HashMap<>();
-        Map<String, Object> helm = new HashMap<>();
         Map<String, Object> destination = new HashMap<>();
         Map<String, Object> body = new HashMap<>();
+        Map<String, Object> spec = new HashMap<>();
+        Map<String, Object> helm = new HashMap<>();
+
+        if (in.spec() != null)
+            spec = Objects.requireNonNull(in.spec());
 
         metadata.put("name", in.app());
         metadata.put("namespace", ArgoCdConstants.ARGOCD_NAMESPACE);
@@ -96,6 +102,11 @@ public class ObjectMapper {
 
         destination.put("namespace", in.namespace());
         destination.put("name", in.cluster());
+
+        // check if there is an existing `source` defined as part of spec
+        // merge the values from the parameters passed into spec if defined
+        if (spec.get("source") != null && spec.get("source") instanceof Map)
+            source = (Map<String, Object>) spec.get("source");
 
         if (in.gitRepo() != null) {
             source.put("repoURL", Objects.requireNonNull(in.gitRepo()).repoUrl());
@@ -112,23 +123,53 @@ public class ObjectMapper {
         }
 
         if (in.helm() != null) {
+
+            // check if there is `helm` defined as part of source. Merge the values
+            // from the parameters passed into existing helm params if defined
+            if (source.get("helm") != null && source.get("helm") instanceof Map)
+                helm = (Map<String, Object>) source.get("helm");
+
             if (Objects.requireNonNull(in.helm()).parameters() != null)
                 helm.put("parameters", Objects.requireNonNull(in.helm()).parameters());
 
             helm.put("values", Objects.requireNonNull(in.helm()).values());
+
+            if (Objects.requireNonNull(in.helm()).releaseName() != null)
+                helm.put("releaseName", Objects.requireNonNull(in.helm()).releaseName());
+
+            helm.put("skipCrds", Objects.requireNonNull(in.helm()).skipCrds());
+            helm.put("ignoreMissingValueFiles", Objects.requireNonNull(in.helm()).ignoreMissingValueFiles());
+
             source.put("helm", helm);
         }
         spec.put("project", in.project());
         spec.put("destination", destination);
         spec.put("source", source);
 
-        if (in.createNamespace()) {
-            Map<String, Object> syncPolicy = new HashMap<>(ArgoCdConstants.SYNC_POLICY);
-            syncPolicy.put("syncOptions", ArgoCdConstants.CREATE_NAMESPACE_OPTION);
-            spec.put("syncPolicy", syncPolicy);
+        Map<String, Object> syncPolicy;
+
+        if (spec.get("syncPolicy") != null && spec.get("syncPolicy") instanceof Map) {
+            syncPolicy = (Map<String, Object>) spec.get("syncPolicy");
+
+            List<String> syncOptions;
+
+            if (syncPolicy.get("syncOptions") != null && syncPolicy.get("syncOptions") instanceof List)
+                syncOptions = (List<String>) syncPolicy.get("syncOptions");
+            else
+                syncOptions = new ArrayList<>();
+
+            if (in.createNamespace() && (syncOptions.isEmpty() ||
+                    syncOptions.stream().noneMatch(ArgoCdConstants.CREATE_NAMESPACE_OPTION::equalsIgnoreCase))) {
+                syncOptions.add(ArgoCdConstants.CREATE_NAMESPACE_OPTION);
+                syncPolicy.put("syncOptions", syncOptions);
+            }
         } else {
-            spec.put("syncPolicy", ArgoCdConstants.SYNC_POLICY);
+            syncPolicy = new HashMap<>(ArgoCdConstants.SYNC_POLICY);
+            if (in.createNamespace())
+                syncPolicy.put("syncOptions", Collections.singletonList(ArgoCdConstants.CREATE_NAMESPACE_OPTION));
         }
+
+        spec.put("syncPolicy", syncPolicy);
 
         body.put("metadata", metadata);
         body.put("spec", spec);
