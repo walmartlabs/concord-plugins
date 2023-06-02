@@ -11,7 +11,7 @@
 
     <groupId>com.walmartlabs.concord.plugins</groupId>
     <artifactId>concord-plugins-parent</artifactId>
-    <version>1.47.0</version>
+    <version>1.47.1-SNAPSHOT</version>
 
     <packaging>pom</packaging>
 
