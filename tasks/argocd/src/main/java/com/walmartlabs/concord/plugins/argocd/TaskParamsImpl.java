@@ -68,9 +68,7 @@ public class TaskParamsImpl implements TaskParams {
             case CREATEAPPLICATIONSET: {
                 return new CreateUpdateApplicationSetParamsImpl(variables);
             }
-            case GETAPPLICATIONSET: {
-                return new ApplicationSetParamsImpl(variables);
-            }
+            case GETAPPLICATIONSET:
             case DELETEAPPLICATIONSET: {
                 return new ApplicationSetParamsImpl(variables);
             }
