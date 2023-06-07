@@ -9,9 +9,9 @@ package com.walmartlabs.concord.plugins.argocd;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,7 +23,7 @@ package com.walmartlabs.concord.plugins.argocd;
 import com.walmartlabs.concord.ApiClient;
 import com.walmartlabs.concord.client.ProcessEventsApi;
 import com.walmartlabs.concord.common.ConfigurationUtils;
-import com.walmartlabs.concord.plugins.argocd.openapi.ApiException;
+import com.walmartlabs.concord.plugins.argocd.model.EventStatus;
 import com.walmartlabs.concord.plugins.argocd.openapi.model.*;
 import com.walmartlabs.concord.runtime.v2.sdk.*;
 import org.slf4j.Logger;
@@ -31,11 +31,9 @@ import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Named;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 @Named("argocd")
 public class ArgoCdTask implements Task {
@@ -56,66 +54,85 @@ public class ArgoCdTask implements Task {
 
     @Override
     public TaskResult execute(Variables input) throws Exception {
-        TaskParams params = TaskParamsImpl.of(input, context.defaultVariables().toMap());
-
-        switch (params.action()) {
-            case GET: {
-                return processGetAction((TaskParams.GetParams) params);
+        TaskParamsImpl params = TaskParamsImpl.of(input, context.defaultVariables().toMap());
+        try {
+            TaskResult taskResult;
+            record(params, EventStatus.START);
+            switch (params.action()) {
+                case GET: {
+                    taskResult = processGetAction((TaskParams.GetParams) params);
+                    break;
+                }
+                case SYNC: {
+                    taskResult = processSyncAction((TaskParams.SyncParams) params);
+                    break;
+                }
+                case DELETE: {
+                    taskResult = processDeleteAction((TaskParams.DeleteAppParams) params);
+                    break;
+                }
+                case PATCH: {
+                    taskResult = processPatchAction((TaskParams.PatchParams) params);
+                    break;
+                }
+                case UPDATESPEC: {
+                    taskResult = processUpdateSpecAction((TaskParams.UpdateSpecParams) params);
+                    break;
+                }
+                case SETPARAMS: {
+                    taskResult = processSetParamsAction((TaskParams.SetAppParams) params);
+                    break;
+                }
+                case CREATE: {
+                    taskResult = processCreateAction((TaskParams.CreateUpdateParams) params);
+                    break;
+                }
+                case GETPROJECT: {
+                    taskResult = processGetProjectAction((TaskParams.ProjectParams) params);
+                    break;
+                }
+                case CREATEPROJECT: {
+                    taskResult = processProjectCreateAction((TaskParams.CreateProjectParams) params);
+                    break;
+                }
+                case DELETEPROJECT: {
+                    taskResult = processProjectDeleteAction((TaskParams.ProjectParams) params);
+                    break;
+                }
+                case GETAPPLICATIONSET: {
+                    taskResult = processGetApplicationSetAction((TaskParams.ApplicationSetParams) params);
+                    break;
+                }
+                case DELETEAPPLICATIONSET: {
+                    taskResult = processDeleteApplicationSetAction((TaskParams.ApplicationSetParams) params);
+                    break;
+                }
+                case CREATEAPPLICATIONSET: {
+                    taskResult = processCreateApplicationSetAction((TaskParams.CreateUpdateApplicationSetParams) params);
+                    break;
+                }
+                default: {
+                    throw new IllegalArgumentException("Unsupported action type: " + params.action());
+                }
             }
-            case SYNC: {
-                return processSyncAction((TaskParams.SyncParams) params);
-            }
-            case DELETE: {
-                return processDeleteAction((TaskParams.DeleteAppParams) params);
-            }
-            case PATCH: {
-                return processPatchAction((TaskParams.PatchParams) params);
-            }
-            case UPDATESPEC: {
-                return processUpdateSpecAction((TaskParams.UpdateSpecParams) params);
-            }
-            case SETPARAMS: {
-                return processSetParamsAction((TaskParams.SetAppParams) params);
-            }
-            case CREATE: {
-                return processCreateAction((TaskParams.CreateUpdateParams) params);
-            }
-            case GETPROJECT: {
-                return processGetProjectAction((TaskParams.GetProjectParams) params);
-            }
-            case CREATEPROJECT: {
-                return processProjectCreateAction((TaskParams.CreateProjectParams) params);
-            }
-            case DELETEPROJECT: {
-                return processProjectDeleteAction((TaskParams.DeleteProjectParams) params);
-            }
-            case GETAPPLICATIONSET: {
-                return processGetApplicationSetAction((TaskParams.GetApplicationSetParams) params);
-            }
-            case DELETEAPPLICATIONSET: {
-                return processDeleteApplicationSetAction((TaskParams.DeleteApplicationSetParams) params);
-            }
-            case CREATEAPPLICATIONSET: {
-                return processCreateApplicationSetAction((TaskParams.CreateUpdateApplicationSetParams) params);
-            }
-            default: {
-                throw new IllegalArgumentException("Unsupported action type: " + params.action());
-            }
+            record(params, EventStatus.COMPLETE);
+            return taskResult;
+        } catch (Exception e) {
+            record(params, EventStatus.FAIL, e.getMessage());
+            throw e;
         }
     }
 
-    private TaskResult processGetApplicationSetAction(TaskParams.GetApplicationSetParams in) throws Exception {
+    private TaskResult processGetApplicationSetAction(TaskParams.ApplicationSetParams in) throws Exception {
         ArgoCdClient client = new ArgoCdClient(in);
         V1alpha1ApplicationSet applicationSet = client.getApplicationSet(in.applicationSet());
         return TaskResult.success()
                 .value("applicationSet", toMap(applicationSet));
     }
 
-    private TaskResult processDeleteApplicationSetAction(TaskParams.DeleteApplicationSetParams in) throws Exception {
+    private TaskResult processDeleteApplicationSetAction(TaskParams.ApplicationSetParams in) throws Exception {
         ArgoCdClient client = new ArgoCdClient(in);
         log.info("Deleting '{}' applicationset ", in.applicationSet());
-        record(in.recordEvents(), in.applicationSet(), in.baseUrl(), in.action().toString());
-
         client.deleteApplicationSet(in.applicationSet());
         return TaskResult.success();
     }
@@ -124,9 +141,6 @@ public class ArgoCdTask implements Task {
         assertProjectInfo(context);
         lockService.projectLock(in.applicationSet());
         log.info("Updating '{}' applicationset spec", in.applicationSet());
-
-        record(in.recordEvents(), in.applicationSet(), in.baseUrl(), in.action().toString());
-
         try {
             ArgoCdClient client = new ArgoCdClient(in);
 
@@ -139,15 +153,15 @@ public class ArgoCdTask implements Task {
             applicationSetMap.put("metadata", metadata);
             Map<String, Object> spec = new HashMap<>();
             spec.put("generators", in.generators());
-            Map<String,Object> syncPolicy = new HashMap<>();
+            Map<String, Object> syncPolicy = new HashMap<>();
             syncPolicy.put("preserveResourcesOnDeletion", in.preserveResourcesOnDeletion());
-            spec.put("syncPolicy",syncPolicy);
+            spec.put("syncPolicy", syncPolicy);
             spec.put("strategy", in.strategy());
             spec.put("template", application);
             applicationSetMap.put("spec", spec);
             applicationSetMap.put("status", in.status());
 
-            V1alpha1ApplicationSet applicationSet = client.createApplicationSet(objectMapper.mapToModel(applicationSetMap,V1alpha1ApplicationSet.class), in.upsert());
+            V1alpha1ApplicationSet applicationSet = client.createApplicationSet(objectMapper.mapToModel(applicationSetMap, V1alpha1ApplicationSet.class), in.upsert());
             return TaskResult.success()
                     .value("spec", toMap(applicationSet));
 
@@ -161,8 +175,6 @@ public class ArgoCdTask implements Task {
         lockService.projectLock(in.app());
         log.info("Updating '{}' app spec", in.app());
 
-        record(in.recordEvents(), in.app(), in.baseUrl(), in.action().toString());
-
         try {
             ArgoCdClient client = new ArgoCdClient(in);
 
@@ -171,10 +183,10 @@ public class ArgoCdTask implements Task {
 
             appSpec = ConfigurationUtils.deepMerge(appSpec, in.spec());
             V1alpha1ApplicationSpec specObject = objectMapper.mapToModel(appSpec, V1alpha1ApplicationSpec.class);
-            V1alpha1ApplicationSpec result  = client.updateAppSpec(in.app(),specObject);
+            V1alpha1ApplicationSpec result = client.updateAppSpec(in.app(), specObject);
 
             return TaskResult.success()
-                    .value("spec", result);
+                    .value("spec", toMap(result));
         } finally {
             lockService.projectUnlock(in.app());
         }
@@ -184,8 +196,6 @@ public class ArgoCdTask implements Task {
         assertProjectInfo(context);
         lockService.projectLock(in.app());
         log.info("Setting '{}' app params", in.app());
-
-        record(in.recordEvents(), in.app(), in.baseUrl(), in.action().toString());
 
         try {
             ArgoCdClient client = new ArgoCdClient(in);
@@ -213,22 +223,18 @@ public class ArgoCdTask implements Task {
                 .value("app", toMap(app));
     }
 
-    private TaskResult processGetProjectAction(TaskParams.GetProjectParams in) throws Exception {
+    private TaskResult processGetProjectAction(TaskParams.ProjectParams in) throws Exception {
         ArgoCdClient client = new ArgoCdClient(in);
         log.info("Getting '{}' project info", in.project());
-
-        record(in.recordEvents(), in.project(), in.baseUrl(), in.action().toString());
 
         V1alpha1AppProject project = client.getProject(in.project());
         return TaskResult.success()
                 .value("project", objectMapper.toMap(project));
     }
 
-    private TaskResult processProjectDeleteAction(TaskParams.DeleteProjectParams in) throws Exception {
+    private TaskResult processProjectDeleteAction(TaskParams.ProjectParams in) throws Exception {
         ArgoCdClient client = new ArgoCdClient(in);
         log.info("Deleting '{}' project ", in.project());
-        record(in.recordEvents(), in.project(), in.baseUrl(), in.action().toString());
-
         client.deleteProject(in.project());
         return TaskResult.success();
     }
@@ -237,8 +243,6 @@ public class ArgoCdTask implements Task {
         assertProjectInfo(context);
         lockService.projectLock(in.app());
         log.info("Synchronizing '{}' app", in.app());
-
-        record(in.recordEvents(), in.app(), in.baseUrl(), in.action().toString());
 
         try {
             ArgoCdClient client = new ArgoCdClient(in);
@@ -255,8 +259,6 @@ public class ArgoCdTask implements Task {
         assertProjectInfo(context);
         lockService.projectLock(in.app());
         log.info("Creating '{}' app", in.app());
-
-        record(in.recordEvents(), in.app(), in.baseUrl(), in.action().toString());
 
         try {
             V1alpha1Application application = objectMapper.buildApplicationObject(in);
@@ -276,8 +278,6 @@ public class ArgoCdTask implements Task {
         lockService.projectLock(in.project());
         log.info("Creating '{}' project", in.project());
 
-        record(in.recordEvents(), in.project(), in.baseUrl(), in.action().toString());
-
         try {
             ArgoCdClient client = new ArgoCdClient(in);
             V1alpha1AppProject project = client.createProject(in);
@@ -293,8 +293,6 @@ public class ArgoCdTask implements Task {
         lockService.projectLock(in.app());
         log.info("Deleting '{}' app", in.app());
 
-        record(in.recordEvents(), in.app(), in.baseUrl(), in.action().toString());
-
         try {
             ArgoCdClient client = new ArgoCdClient(in);
             client.deleteApp(in.app(), in.cascade(), in.propagationPolicy());
@@ -308,9 +306,6 @@ public class ArgoCdTask implements Task {
         assertProjectInfo(context);
         lockService.projectLock(in.app());
         log.info("Patching '{}' app", in.app());
-
-        record(in.recordEvents(), in.app(), in.baseUrl(), in.action().toString());
-
         try {
             ArgoCdClient client = new ArgoCdClient(in);
             client.patchApp(in.app(), in.patches());
@@ -324,15 +319,14 @@ public class ArgoCdTask implements Task {
         return objectMapper.toMap(app);
     }
 
-    private void record(boolean recordEvents, String app, String baseUrl, String action) {
-        if (recordEvents) {
-            RecordEvents.recordEvent(
-                    processEventsApi,
-                    app,
-                    baseUrl,
-                    action,
-                    context.execution().correlationId(),
-                    context.processInstanceId());
+    private void record(TaskParamsImpl in, EventStatus eventStatus) {
+        record(in, eventStatus, null);
+    }
+
+    private void record(TaskParamsImpl in, EventStatus eventStatus, String error) {
+        if (in.recordEvents()) {
+            RecordEvents.recordEvent(processEventsApi, context.processInstanceId(),
+                    context.execution().correlationId(), eventStatus, error, in);
         }
     }
 

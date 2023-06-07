@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 
 public class TaskParamsImpl implements TaskParams {
 
-    public static TaskParams of(Variables input, Map<String, Object> defaults) {
+    public static TaskParamsImpl of(Variables input, Map<String, Object> defaults) {
         Map<String, Object> variablesMap = new HashMap<>(defaults != null ? defaults : Collections.emptyMap());
         variablesMap.putAll(input.toMap());
 
@@ -60,7 +60,7 @@ public class TaskParamsImpl implements TaskParams {
                 return new CreateParamsImpl(variables);
             }
             case GETPROJECT: {
-                return new GetProjectParamsImpl(variables);
+                return new ProjectParamsImpl(variables);
             }
             case CREATEPROJECT: {
                 return new CreateProjectParamsImpl(variables);
@@ -69,10 +69,10 @@ public class TaskParamsImpl implements TaskParams {
                 return new CreateUpdateApplicationSetParamsImpl(variables);
             }
             case GETAPPLICATIONSET: {
-                return new GetApplicationSetParamsImpl(variables);
+                return new ApplicationSetParamsImpl(variables);
             }
             case DELETEAPPLICATIONSET: {
-                return new DeleteApplicationSetParamsImpl(variables);
+                return new ApplicationSetParamsImpl(variables);
             }
             default: {
                 throw new IllegalArgumentException("Unsupported action type: " + action(variables));
@@ -89,6 +89,7 @@ public class TaskParamsImpl implements TaskParams {
     private static final String VALIDATE_CERTS_KEY = "validateCerts";
     private static final String WRITE_TIMEOUT_KEY = "writeTimeout";
     private static final String RECORD_EVENTS_KEY = "recordEvents";
+    private static final String ADDL_PARAMS_KEY = "addlParams";
 
     private static final Map<String, Function<Variables, AuthParams>> authBuilders = createBuilders();
 
@@ -135,6 +136,11 @@ public class TaskParamsImpl implements TaskParams {
     @Override
     public long writeTimeout() {
         return variables.getLong(WRITE_TIMEOUT_KEY, TaskParams.super.writeTimeout());
+    }
+
+    @Override
+    public Map<String, String> addlParams() {
+        return variables.getMap(ADDL_PARAMS_KEY, Collections.emptyMap());
     }
 
     @Override
@@ -279,18 +285,49 @@ public class TaskParamsImpl implements TaskParams {
         }
     }
 
-    private static class GetParamsImpl extends TaskParamsImpl implements GetParams {
-
+    private static class ApplicationParamsImpl extends TaskParamsImpl implements ApplicationParams {
         private static final String APP_KEY = "app";
+
+        protected ApplicationParamsImpl(Variables variables) {
+            super(variables);
+        }
+        @Override
+        public String app() {
+            return variables.assertString(APP_KEY);
+        }
+    }
+
+    private static class ProjectParamsImpl extends TaskParamsImpl implements ProjectParams {
+        private static final String PROJECT_KEY = "project";
+
+        protected ProjectParamsImpl(Variables variables) {
+            super(variables);
+        }
+        @Override
+        public String project() {
+            return variables.assertString(PROJECT_KEY);
+        }
+    }
+
+    private static class ApplicationSetParamsImpl extends TaskParamsImpl implements ApplicationSetParams {
+        private static final String APPLICATIONSET_KEY = "applicationSet";
+
+        protected ApplicationSetParamsImpl(Variables variables) {
+            super(variables);
+        }
+        @Override
+        public String applicationSet() {
+            return variables.assertString(APPLICATIONSET_KEY);
+        }
+    }
+
+
+    private static class GetParamsImpl extends ApplicationParamsImpl implements GetParams {
+
         private static final String REFRESH_KEY = "refresh";
 
         protected GetParamsImpl(Variables variables) {
             super(variables);
-        }
-
-        @Override
-        public String app() {
-            return variables.assertString(APP_KEY);
         }
 
         @Override
@@ -299,101 +336,8 @@ public class TaskParamsImpl implements TaskParams {
         }
     }
 
-    private static class GetProjectParamsImpl extends TaskParamsImpl implements GetProjectParams {
+    public static class CreateParamsImpl extends ApplicationParamsImpl implements CreateUpdateParams {
 
-        private static final String PROJECT_KEY = "project";
-
-        protected GetProjectParamsImpl(Variables variables) {
-            super(variables);
-        }
-
-        @Override
-        public String project() {
-            return variables.assertString(PROJECT_KEY);
-        }
-    }
-
-    private static class GetApplicationSetParamsImpl extends TaskParamsImpl implements GetApplicationSetParams {
-
-        private static final String APPLICATIONSET_KEY = "applicationSet";
-
-        protected GetApplicationSetParamsImpl(Variables variables) {
-            super(variables);
-        }
-
-        @Override
-        public String applicationSet() {
-            return variables.assertString(APPLICATIONSET_KEY);
-        }
-    }
-
-    private static class CreateUpdateApplicationSetParamsImpl extends CreateParamsImpl implements CreateUpdateApplicationSetParams {
-
-        private static final String APPLICATION_SET_KEY = "applicationSet";
-        private static final String APPLICATION_SET_NAMESPACE_KEY = "applicationSetNamespace";
-        private static final String STATUS_KEY = "status";
-        private static final String UPSERT_KEY = "upsert";
-        private static final String GENERATORS_KEY = "generators";
-        private static final String STRATEGY_KEY = "strategy";
-        private static final String PRESERVE_RESOURCES_ON_DELETEION_KEY = "preserveResourcesOnDeletion";
-        protected CreateUpdateApplicationSetParamsImpl(Variables variables) {
-            super(variables);
-        }
-
-        @Override
-        public String applicationSet() {
-            return variables.assertString(APPLICATION_SET_KEY);
-        }
-
-        @Override
-        public String applicationSetNamespace() {
-            return variables.getString(APPLICATION_SET_NAMESPACE_KEY, "argocd");
-        }
-
-        @Override
-        public List<Map<String, Object>> generators() {
-            return variables.assertList(GENERATORS_KEY);
-        }
-
-        @Override
-        public boolean preserveResourcesOnDeletion() {
-            return variables.getBoolean(PRESERVE_RESOURCES_ON_DELETEION_KEY, true);
-        }
-
-        @Override
-        public Map<String, Object> strategy() {
-            return variables.getMap(STRATEGY_KEY, Collections.emptyMap());
-        }
-
-        @Override
-        public Map<String, Object> status() {
-            return variables.getMap(STATUS_KEY, Collections.emptyMap());
-        }
-
-        @Override
-        public boolean upsert() {
-            return variables.getBoolean(UPSERT_KEY, false);
-        }
-
-    }
-
-    private static class DeleteApplicationSetParamsImpl extends TaskParamsImpl implements DeleteApplicationSetParams {
-
-        private static final String APPLICATIONSET_KEY = "applicationSet";
-
-        protected DeleteApplicationSetParamsImpl(Variables variables) {
-            super(variables);
-        }
-
-        @Override
-        public String applicationSet() {
-            return variables.assertString(APPLICATIONSET_KEY);
-        }
-    }
-
-    public static class CreateParamsImpl extends TaskParamsImpl implements CreateUpdateParams {
-
-        private static final String APP_KEY = "app";
         private static final String NAMESPACE_KEY = "namespace";
         private static final String CREATE_NAMESPACE_KEY = "createNamespace";
         private static final String PROJECT_KEY = "project";
@@ -406,11 +350,6 @@ public class TaskParamsImpl implements TaskParams {
 
         protected CreateParamsImpl(Variables variables) {
             super(variables);
-        }
-
-        @Override
-        public String app() {
-            return variables.assertString(APP_KEY);
         }
 
         @Override
@@ -570,9 +509,214 @@ public class TaskParamsImpl implements TaskParams {
         }
     }
 
-    private static class CreateProjectParamsImpl extends TaskParamsImpl implements CreateProjectParams {
 
-        private static final String PROJECT_KEY = "project";
+    private static class PatchParamsImpl extends ApplicationParamsImpl implements PatchParams {
+
+        private static final String PATCHES_KEY = "patches";
+
+        protected PatchParamsImpl(Variables variables) {
+            super(variables);
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public List<Map<String, Object>> patches() {
+            List<Object> patchesPlain = variables.assertList(PATCHES_KEY);
+
+            List<Map<String, Object>> result = new ArrayList<>();
+            for (Object p : patchesPlain) {
+                if (!(p instanceof Map)) {
+                    throw new IllegalArgumentException("Invalid variable type, expected: object, got: " + p.getClass());
+                }
+
+                result.add((Map<String, Object>) p);
+            }
+
+            return result;
+        }
+    }
+
+    private static final class UpdateSpecParamsImpl extends ApplicationParamsImpl implements UpdateSpecParams {
+
+        private static final String SPEC_KEY = "spec";
+
+        protected UpdateSpecParamsImpl(Variables variables) {
+            super(variables);
+        }
+
+        @Override
+        public Map<String, Object> spec() {
+            return variables.assertMap(SPEC_KEY);
+        }
+    }
+
+    private static final class SetAppParamsImpl extends ApplicationParamsImpl implements SetAppParams {
+
+        private static final String HELM_KEY = "helm";
+
+        protected SetAppParamsImpl(Variables variables) {
+            super(variables);
+        }
+
+        @Override
+        public List<HelmParam> helm() {
+            List<Map<String, Object>> params = variables.assertList(HELM_KEY);
+            return params.stream()
+                    .map(MapBackedVariables::new)
+                    .map(HelmParamImpl::new)
+                    .collect(Collectors.toList());
+        }
+
+        private static class HelmParamImpl implements HelmParam {
+
+            private static final String NAME_KEY = "name";
+            private static final String VALUE_KEY = "value";
+
+            private final Variables variables;
+
+            private HelmParamImpl(Variables variables) {
+                this.variables = variables;
+            }
+
+            @Override
+            public String name() {
+                return variables.assertString(NAME_KEY);
+            }
+
+            @Override
+            public Object value() {
+                return variables.assertVariable(VALUE_KEY, Object.class);
+            }
+        }
+    }
+
+    private static class DeleteParamsImpl extends ApplicationParamsImpl implements DeleteAppParams {
+
+        private static final String CASCADE_KEY = "cascade";
+        private static final String PROPAGATION_POLICY = "propagationPolicy";
+
+        protected DeleteParamsImpl(Variables variables) {
+            super(variables);
+        }
+
+        @Override
+        public boolean cascade() {
+            return variables.getBoolean(CASCADE_KEY, DeleteAppParams.super.cascade());
+        }
+
+        @Override
+        public String propagationPolicy() {
+            return variables.getString(PROPAGATION_POLICY);
+        }
+    }
+
+    private static class SyncParamsImpl extends ApplicationParamsImpl implements SyncParams {
+
+        private static class ResourceImpl implements SyncParams.Resource {
+
+            private static final String GROUP_KEY = "group";
+            private static final String KIND_KEY = "kind";
+            private static final String NAME_KEY = "name";
+            private static final String NAMESPACE_KEY = "namespace";
+
+            private final Variables variables;
+
+            private ResourceImpl(Variables variables) {
+                this.variables = variables;
+            }
+
+            @Override
+            @JsonProperty("group")
+            public String group() {
+                return variables.getString(GROUP_KEY);
+            }
+
+            @Override
+            @JsonProperty("kind")
+            public String kind() {
+                return variables.assertString(KIND_KEY);
+            }
+
+            @Override
+            @JsonProperty("name")
+            public String name() {
+                return variables.assertString(NAME_KEY);
+            }
+
+            @Override
+            @JsonProperty("namespace")
+            public String namespace() {
+                return variables.getString(NAMESPACE_KEY);
+            }
+        }
+
+        private static final String REVISION_KEY = "revision";
+        private static final String RETRY_STRATEGY_KEY = "retryStrategy";
+        private static final String STRATEGY_KEY = "strategy";
+        private static final String PRUNE_KEY = "prune";
+        private static final String DRY_RUN_KEY = "dryRun";
+        private static final String SYNC_TIMEOUT_KEY = "syncTimeout";
+        private static final String RESOURCES_KEY = "resources";
+        private static final String WATCH_HEALTH_KEY = "watchHealth";
+
+        protected SyncParamsImpl(Variables variables) {
+            super(variables);
+        }
+
+        @Override
+        public String revision() {
+            return variables.getString(REVISION_KEY);
+        }
+
+        @Override
+        public boolean dryRun() {
+            return variables.getBoolean(DRY_RUN_KEY, SyncParams.super.dryRun());
+        }
+
+        @Override
+        public boolean prune() {
+            return variables.getBoolean(PRUNE_KEY, SyncParams.super.prune());
+        }
+
+        @Override
+        public Map<String, Object> retryStrategy() {
+            return variables.getMap(RETRY_STRATEGY_KEY, SyncParams.super.retryStrategy());
+        }
+
+        @Override
+        public Map<String, Object> strategy() {
+            return variables.getMap(STRATEGY_KEY, SyncParams.super.strategy());
+        }
+
+        @Override
+        public boolean watchHealth() {
+            return variables.getBoolean(WATCH_HEALTH_KEY, SyncParams.super.watchHealth());
+        }
+
+        @Nullable
+        @Override
+        public Duration syncTimeout() {
+            String value = variables.getString(SYNC_TIMEOUT_KEY);
+            if (value == null) {
+                return null;
+            }
+
+            return Duration.parse(value);
+        }
+
+        @Override
+        public List<Resource> resources() {
+            List<Map<String, Object>> params = variables.assertList(RESOURCES_KEY);
+            return params.stream()
+                    .map(MapBackedVariables::new)
+                    .map((MapBackedVariables t) -> new ResourceImpl(variables))
+                    .collect(Collectors.toList());
+        }
+    }
+
+
+    private static class CreateProjectParamsImpl extends ProjectParamsImpl implements CreateProjectParams {
+
         private static final String NAMESPACE_KEY = "namespace";
         private static final String CLUSTER_KEY = "cluster";
         private static final String ANNOTATIONS_KEY = "annotations";
@@ -583,11 +727,6 @@ public class TaskParamsImpl implements TaskParams {
 
         protected CreateProjectParamsImpl(Variables variables) {
             super(variables);
-        }
-
-        @Override
-        public String project() {
-            return variables.assertString(PROJECT_KEY);
         }
 
         @Override
@@ -671,237 +810,52 @@ public class TaskParamsImpl implements TaskParams {
         }
     }
 
-    private static class PatchParamsImpl extends TaskParamsImpl implements PatchParams {
+    private static class CreateUpdateApplicationSetParamsImpl extends CreateParamsImpl implements CreateUpdateApplicationSetParams {
 
-        private static final String APP_KEY = "app";
-        private static final String PATCHES_KEY = "patches";
-
-        protected PatchParamsImpl(Variables variables) {
-            super(variables);
-        }
-
-        @Override
-        public String app() {
-            return variables.assertString(APP_KEY);
-        }
-
-        @Override
-        @SuppressWarnings("unchecked")
-        public List<Map<String, Object>> patches() {
-            List<Object> patchesPlain = variables.assertList(PATCHES_KEY);
-
-            List<Map<String, Object>> result = new ArrayList<>();
-            for (Object p : patchesPlain) {
-                if (!(p instanceof Map)) {
-                    throw new IllegalArgumentException("Invalid variable type, expected: object, got: " + p.getClass());
-                }
-
-                result.add((Map<String, Object>) p);
-            }
-
-            return result;
-        }
-    }
-
-    private static final class UpdateSpecParamsImpl extends TaskParamsImpl implements UpdateSpecParams {
-
-        private static final String APP_KEY = "app";
-        private static final String SPEC_KEY = "spec";
-
-        protected UpdateSpecParamsImpl(Variables variables) {
-            super(variables);
-        }
-
-        @Override
-        public String app() {
-            return variables.assertString(APP_KEY);
-        }
-
-        @Override
-        public Map<String, Object> spec() {
-            return variables.assertMap(SPEC_KEY);
-        }
-    }
-
-    private static final class SetAppParamsImpl extends TaskParamsImpl implements SetAppParams {
-
-        private static final String APP_KEY = "app";
-        private static final String HELM_KEY = "helm";
-
-        protected SetAppParamsImpl(Variables variables) {
-            super(variables);
-        }
-
-        @Override
-        public String app() {
-            return variables.assertString(APP_KEY);
-        }
-
-        @Override
-        public List<HelmParam> helm() {
-            List<Map<String, Object>> params = variables.assertList(HELM_KEY);
-            return params.stream()
-                    .map(MapBackedVariables::new)
-                    .map(HelmParamImpl::new)
-                    .collect(Collectors.toList());
-        }
-
-        private static class HelmParamImpl implements HelmParam {
-
-            private static final String NAME_KEY = "name";
-            private static final String VALUE_KEY = "value";
-
-            private final Variables variables;
-
-            private HelmParamImpl(Variables variables) {
-                this.variables = variables;
-            }
-
-            @Override
-            public String name() {
-                return variables.assertString(NAME_KEY);
-            }
-
-            @Override
-            public Object value() {
-                return variables.assertVariable(VALUE_KEY, Object.class);
-            }
-        }
-    }
-
-    private static class DeleteParamsImpl extends TaskParamsImpl implements DeleteAppParams {
-
-        private static final String APP_KEY = "app";
-        private static final String CASCADE_KEY = "cascade";
-        private static final String PROPAGATION_POLICY = "propagationPolicy";
-
-        protected DeleteParamsImpl(Variables variables) {
-            super(variables);
-        }
-
-        @Override
-        public String app() {
-            return variables.assertString(APP_KEY);
-        }
-
-        @Override
-        public boolean cascade() {
-            return variables.getBoolean(CASCADE_KEY, DeleteAppParams.super.cascade());
-        }
-
-        @Override
-        public String propagationPolicy() {
-            return variables.getString(PROPAGATION_POLICY);
-        }
-    }
-
-    private static class SyncParamsImpl extends TaskParamsImpl implements SyncParams {
-
-        private static class ResourceImpl implements SyncParams.Resource {
-
-            private static final String GROUP_KEY = "group";
-            private static final String KIND_KEY = "kind";
-            private static final String NAME_KEY = "name";
-            private static final String NAMESPACE_KEY = "namespace";
-
-            private final Variables variables;
-
-            private ResourceImpl(Variables variables) {
-                this.variables = variables;
-            }
-
-            @Override
-            @JsonProperty("group")
-            public String group() {
-                return variables.getString(GROUP_KEY);
-            }
-
-            @Override
-            @JsonProperty("kind")
-            public String kind() {
-                return variables.assertString(KIND_KEY);
-            }
-
-            @Override
-            @JsonProperty("name")
-            public String name() {
-                return variables.assertString(NAME_KEY);
-            }
-
-            @Override
-            @JsonProperty("namespace")
-            public String namespace() {
-                return variables.getString(NAMESPACE_KEY);
-            }
-        }
-
-        private static final String APP_KEY = "app";
-        private static final String REVISION_KEY = "revision";
-        private static final String RETRY_STRATEGY_KEY = "retryStrategy";
+        private static final String APPLICATION_SET_NAMESPACE_KEY = "applicationSetNamespace";
+        private static final String APPLICATION_SET_KEY = "applicationSet";
+        private static final String STATUS_KEY = "status";
+        private static final String UPSERT_KEY = "upsert";
+        private static final String GENERATORS_KEY = "generators";
         private static final String STRATEGY_KEY = "strategy";
-        private static final String PRUNE_KEY = "prune";
-        private static final String DRY_RUN_KEY = "dryRun";
-        private static final String SYNC_TIMEOUT_KEY = "syncTimeout";
-        private static final String RESOURCES_KEY = "resources";
-        private static final String WATCH_HEALTH_KEY = "watchHealth";
-
-        protected SyncParamsImpl(Variables variables) {
+        private static final String PRESERVE_RESOURCES_ON_DELETEION_KEY = "preserveResourcesOnDeletion";
+        protected CreateUpdateApplicationSetParamsImpl(Variables variables) {
             super(variables);
         }
 
         @Override
-        public String app() {
-            return variables.assertString(APP_KEY);
+        public String applicationSet() {
+            return variables.assertString(APPLICATION_SET_KEY);
         }
 
         @Override
-        public String revision() {
-            return variables.getString(REVISION_KEY);
+        public String applicationSetNamespace() {
+            return variables.getString(APPLICATION_SET_NAMESPACE_KEY, "argocd");
         }
 
         @Override
-        public boolean dryRun() {
-            return variables.getBoolean(DRY_RUN_KEY, SyncParams.super.dryRun());
+        public List<Map<String, Object>> generators() {
+            return variables.assertList(GENERATORS_KEY);
         }
 
         @Override
-        public boolean prune() {
-            return variables.getBoolean(PRUNE_KEY, SyncParams.super.prune());
-        }
-
-        @Override
-        public Map<String, Object> retryStrategy() {
-            return variables.getMap(RETRY_STRATEGY_KEY, SyncParams.super.retryStrategy());
+        public boolean preserveResourcesOnDeletion() {
+            return variables.getBoolean(PRESERVE_RESOURCES_ON_DELETEION_KEY, true);
         }
 
         @Override
         public Map<String, Object> strategy() {
-            return variables.getMap(STRATEGY_KEY, SyncParams.super.strategy());
+            return variables.getMap(STRATEGY_KEY, Collections.emptyMap());
         }
 
         @Override
-        public boolean watchHealth() {
-            return variables.getBoolean(WATCH_HEALTH_KEY, SyncParams.super.watchHealth());
-        }
-
-        @Nullable
-        @Override
-        public Duration syncTimeout() {
-            String value = variables.getString(SYNC_TIMEOUT_KEY);
-            if (value == null) {
-                return null;
-            }
-
-            return Duration.parse(value);
+        public Map<String, Object> status() {
+            return variables.getMap(STATUS_KEY, Collections.emptyMap());
         }
 
         @Override
-        public List<Resource> resources() {
-            List<Map<String, Object>> params = variables.assertList(RESOURCES_KEY);
-            return params.stream()
-                    .map(MapBackedVariables::new)
-                    .map((MapBackedVariables t) -> new ResourceImpl(variables))
-                    .collect(Collectors.toList());
+        public boolean upsert() {
+            return variables.getBoolean(UPSERT_KEY, false);
         }
     }
 

@@ -115,71 +115,28 @@ public interface TaskParams {
 
     AuthParams auth();
 
-    interface GetProjectParams extends TaskParams {
+    Map<String, String> addlParams();
 
-        String project();
-    }
-
-    interface DeleteProjectParams extends TaskParams {
-
-        String project();
-    }
-
-    interface CreateProjectParams extends TaskParams {
-
-        String project();
-
-        boolean upsert();
-
-        @Value.Default
-        default String namespace() {
-            return "argocd";
-        }
-
-        @Nullable
-        String cluster();
-
-        @Nullable
-        String description();
-
-        @Nullable
-        Map<String, String> annotations();
-
-        @Value.Default
-        default List<String> sourceRepos() {
-            return Collections.emptyList();
-        }
-
-        @Nullable
-        List<Destinations> destinations();
-
-        interface Destinations {
-
-            @Nullable
-            String name();
-
-            @Nullable
-            String namespace();
-
-            @Nullable
-            String server();
-        }
-    }
-
-
-    interface GetParams extends TaskParams {
-
+    interface ApplicationParams extends TaskParams {
         String app();
+    }
 
+    interface ApplicationSetParams extends TaskParams {
+        String applicationSet();
+    }
+
+    interface ProjectParams extends TaskParams {
+        String project();
+    }
+
+    interface GetParams extends ApplicationParams {
         @Value.Default
         default boolean refresh() {
             return false;
         }
     }
 
-    interface CreateUpdateParams extends TaskParams {
-
-        String app();
+    interface CreateUpdateParams extends ApplicationParams {
 
         String cluster();
 
@@ -234,23 +191,17 @@ public interface TaskParams {
         }
     }
 
-    interface PatchParams extends TaskParams {
-
-        String app();
+    interface PatchParams extends ApplicationParams {
 
         List<Map<String, Object>> patches();
     }
 
-    interface UpdateSpecParams extends TaskParams {
-
-        String app();
+    interface UpdateSpecParams extends ApplicationParams {
 
         Map<String, Object> spec();
     }
 
-    interface SetAppParams extends TaskParams {
-
-        String app();
+    interface SetAppParams extends ApplicationParams {
 
         List<HelmParam> helm();
 
@@ -262,34 +213,7 @@ public interface TaskParams {
         }
     }
 
-    interface GetApplicationSetParams extends TaskParams {
-
-        String applicationSet();
-    }
-
-    interface CreateUpdateApplicationSetParams extends TaskParams,CreateUpdateParams {
-
-        String applicationSet();
-
-        String applicationSetNamespace();
-
-        List<Map<String, Object>> generators();
-
-        boolean preserveResourcesOnDeletion();
-
-        Map<String, Object> strategy();
-
-        Map<String, Object> status();
-
-        boolean upsert();
-    }
-
-    interface DeleteApplicationSetParams extends TaskParams {
-
-        String applicationSet();
-    }
-
-    interface SyncParams extends TaskParams {
+    interface SyncParams extends ApplicationParams {
 
         interface Resource {
 
@@ -301,8 +225,6 @@ public interface TaskParams {
 
             String namespace();
         }
-
-        String app();
 
         @Nullable
         String revision();
@@ -338,9 +260,7 @@ public interface TaskParams {
         Duration syncTimeout();
     }
 
-    interface DeleteAppParams extends TaskParams {
-
-        String app();
+    interface DeleteAppParams extends ApplicationParams {
 
         @Value.Default
         default boolean cascade() {
@@ -349,6 +269,60 @@ public interface TaskParams {
 
         @Nullable
         String propagationPolicy();
+    }
+
+    interface CreateUpdateApplicationSetParams extends ApplicationSetParams,CreateUpdateParams {
+
+        String applicationSetNamespace();
+
+        List<Map<String, Object>> generators();
+
+        boolean preserveResourcesOnDeletion();
+
+        Map<String, Object> strategy();
+
+        Map<String, Object> status();
+
+        boolean upsert();
+    }
+
+    interface CreateProjectParams extends ProjectParams {
+
+        boolean upsert();
+
+        @Value.Default
+        default String namespace() {
+            return "argocd";
+        }
+
+        @Nullable
+        String cluster();
+
+        @Nullable
+        String description();
+
+        @Nullable
+        Map<String, String> annotations();
+
+        @Value.Default
+        default List<String> sourceRepos() {
+            return Collections.emptyList();
+        }
+
+        @Nullable
+        List<Destinations> destinations();
+
+        interface Destinations {
+
+            @Nullable
+            String name();
+
+            @Nullable
+            String namespace();
+
+            @Nullable
+            String server();
+        }
     }
 
     enum Action {
