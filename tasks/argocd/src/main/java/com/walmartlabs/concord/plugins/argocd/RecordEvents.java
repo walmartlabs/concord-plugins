@@ -24,6 +24,7 @@ import com.walmartlabs.concord.ApiException;
 import com.walmartlabs.concord.client.ProcessEventRequest;
 import com.walmartlabs.concord.client.ProcessEventsApi;
 import com.walmartlabs.concord.plugins.argocd.model.EventStatus;
+import com.walmartlabs.concord.runtime.v2.sdk.TaskResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,7 +36,7 @@ public class RecordEvents {
     private final static List<String> BLACK_LIST = Arrays.asList("auth");
 
     static void recordEvent(ProcessEventsApi processEventsApi, UUID instanceId, UUID correlationId,
-                            EventStatus eventStatus, String error, TaskParamsImpl taskParams) {
+                            EventStatus eventStatus, String error, TaskParamsImpl taskParams, TaskResult taskResult) {
         Map<String, Object> inVarsMap = taskParams.variables.toMap();
         Map<String, Object> eventData = new HashMap<>();
         for (Map.Entry<String, Object> e : inVarsMap.entrySet()) {
@@ -46,6 +47,7 @@ public class RecordEvents {
         eventData.put("correlationId", correlationId);
         eventData.put("status", eventStatus.toString());
         eventData.put("error", error);
+        eventData.put("result",taskResult);
         try {
             processEventsApi.event(instanceId, new ProcessEventRequest()
                     .setEventType("ARGOCD")
