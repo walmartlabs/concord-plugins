@@ -9,9 +9,9 @@ package com.walmartlabs.concord.plugins.argocd;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,31 +23,35 @@ package com.walmartlabs.concord.plugins.argocd;
 import com.walmartlabs.concord.ApiException;
 import com.walmartlabs.concord.client.ProcessEventRequest;
 import com.walmartlabs.concord.client.ProcessEventsApi;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-
+import com.walmartlabs.concord.plugins.argocd.model.EventStatus;
+import com.walmartlabs.concord.runtime.v2.sdk.TaskResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.*;
 
 public class RecordEvents {
 
     private final static Logger log = LoggerFactory.getLogger(RecordEvents.class);
+    private final static List<String> BLACK_LIST = Arrays.asList("auth");
 
-    static void recordEvent(ProcessEventsApi processEventsApi, String app, String argoUrl, String action,
-                             UUID correlationId, UUID instanceId) {
-        Map<String, Object> m = new HashMap<>();
-
-        m.put("correlationId", correlationId);
-        m.put("appName", app);
-        m.put("argoInstanceUrl", argoUrl);
-        m.put("action", action);
-
+    static void recordEvent(ProcessEventsApi processEventsApi, UUID instanceId, UUID correlationId,
+                            EventStatus eventStatus, String error, TaskParamsImpl taskParams, TaskResult taskResult) {
+        Map<String, Object> inVarsMap = taskParams.variables.toMap();
+        Map<String, Object> eventData = new HashMap<>();
+        for (Map.Entry<String, Object> e : inVarsMap.entrySet()) {
+            if (!BLACK_LIST.contains(e.getKey())) {
+                eventData.put(e.getKey(), e.getValue());
+            }
+        }
+        eventData.put("correlationId", correlationId);
+        eventData.put("status", eventStatus.toString());
+        eventData.put("error", error);
+        eventData.put("result",taskResult);
         try {
             processEventsApi.event(instanceId, new ProcessEventRequest()
                     .setEventType("ARGOCD")
-                    .setData(m));
+                    .setData(eventData));
         } catch (ApiException e) {
             log.warn("recordEvents -> error while recording the event, ignoring: {}", e.getMessage());
         }

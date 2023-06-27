@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 
 public class TaskParamsImpl implements TaskParams {
 
-    public static TaskParams of(Variables input, Map<String, Object> defaults) {
+    public static TaskParamsImpl of(Variables input, Map<String, Object> defaults) {
         Map<String, Object> variablesMap = new HashMap<>(defaults != null ? defaults : Collections.emptyMap());
         variablesMap.putAll(input.toMap());
 
