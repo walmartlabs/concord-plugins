@@ -198,7 +198,7 @@ public class ArgoCdTask implements Task {
             V1alpha1ApplicationSpec appSpec = client.updateAppSpec(in.app(), app.getSpec());
 
             return TaskResult.success()
-                    .value("spec", appSpec);
+                    .value("spec", toMap(appSpec));
         } finally {
             lockService.projectUnlock(in.app());
         }
