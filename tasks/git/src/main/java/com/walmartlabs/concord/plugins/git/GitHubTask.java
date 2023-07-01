@@ -75,6 +75,7 @@ public class GitHubTask {
     private static final String GITHUB_HOOK_CONTENT_TYPE = "contentType";
     private static final String GITHUB_HOOK_SECRET = "secret";
     private static final String GITHUB_HOOK_INSECURE_SSL = "insecureSsl";
+    private static final String GITHUB_HOOK_REPLACE = "replace";
 
     private static final String STATUS_CHECK_STATE = "state";
     private static final String STATUS_CHECK_TARGET_URL = "targetUrl";
@@ -862,6 +863,7 @@ public class GitHubTask {
         String gitHubAccessToken = assertString(in, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
+        String hookUrl = assertString(in, GITHUB_HOOK_URL).trim();
 
         GitHubClient client = GitHubClient.createClient(gitHubUri);
         client.setOAuth2Token(gitHubAccessToken);
@@ -877,7 +879,7 @@ public class GitHubTask {
             config.put("secret", getString(in, GITHUB_HOOK_SECRET));
             config.put("insecure_ssl", getString(in, GITHUB_HOOK_INSECURE_SSL, "0"));
         }
-        config.put("url", assertString(in, GITHUB_HOOK_URL));
+        config.put("url", hookUrl);
 
         RepositoryHook hook = new RepositoryHook()
                 .setActive(true)
@@ -886,6 +888,14 @@ public class GitHubTask {
                 .setConfig(config);
 
         try {
+            if (MapUtils.getBoolean(in, GITHUB_HOOK_REPLACE, false)) {
+                List<RepositoryHook> hooks = service.getHooks(repo);
+                List<RepositoryHook> existingHooks = hooks.stream().filter(h -> hookUrl.equalsIgnoreCase(h.getUrl())).collect(Collectors.toList());
+                for (RepositoryHook h : existingHooks) {
+                    service.deleteHook(repo, h.getId());
+                }
+            }
+
             RepositoryHook result = service.createHook(repo, hook);
             log.info("Hook created id: {}", result.getId());
             return Collections.singletonMap("hook", objectMapper.convertValue(result, OBJECT_TYPE));
