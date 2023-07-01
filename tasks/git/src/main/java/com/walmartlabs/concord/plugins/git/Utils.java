@@ -62,12 +62,14 @@ public final class Utils {
 
         if (secret instanceof UsernamePassword) {
             char[] password = ((UsernamePassword) secret).getPassword();
-            if (password != null) {
+            if (password != null && password.length != 0) {
                 s = s.replace(new String(password), "***");
             }
         } else if (secret instanceof TokenSecret) {
             String token = ((TokenSecret) secret).getToken();
-            s = s.replace(token, "***");
+            if (token != null && !token.trim().isEmpty()) {
+                s = s.replace(token, "***");
+            }
         }
         return s;
     }
