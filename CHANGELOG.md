@@ -1,5 +1,14 @@
 # Change log
 
+## [1.48.0] - TBD
+
+### Added
+
+### Changed
+
+- github: allow replace existing hooks
+([#124](https://github.com/walmartlabs/concord-plugins/pull/124))
+
 ## [1.47.0] - 2023-05-30
 
 ### Added
