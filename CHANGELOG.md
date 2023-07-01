@@ -5,7 +5,8 @@
 ### Added
 
 ### Changed
-
+- git: ignore empty token/password in hideSensitiveData
+([#123](https://github.com/walmartlabs/concord-plugins/pull/123))
 - github: allow replace existing hooks
 ([#124](https://github.com/walmartlabs/concord-plugins/pull/124))
 
