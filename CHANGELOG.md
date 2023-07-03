@@ -5,6 +5,9 @@
 ### Added
 
 ### Changed
+
+- argocd-task: make result serializable for setparams action
+([#131](https://github.com/walmartlabs/concord-plugins/pull/131))
 - git: ignore empty token/password in hideSensitiveData
 ([#123](https://github.com/walmartlabs/concord-plugins/pull/123))
 - github: allow replace existing hooks
