@@ -28,15 +28,16 @@ import com.walmartlabs.concord.runtime.v2.sdk.TaskResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.*;
 
 public class RecordEvents {
 
     private final static Logger log = LoggerFactory.getLogger(RecordEvents.class);
-    private final static List<String> BLACK_LIST = Arrays.asList("auth");
+    private final static List<String> BLACK_LIST = Arrays.asList("auth", "spec", "helm");
 
     static void recordEvent(ProcessEventsApi processEventsApi, UUID instanceId, UUID correlationId,
-                            EventStatus eventStatus, String error, TaskParamsImpl taskParams, TaskResult taskResult) {
+                            EventStatus eventStatus, String error, TaskParamsImpl taskParams, TaskResult taskResult) throws IOException {
         Map<String, Object> inVarsMap = taskParams.variables.toMap();
         Map<String, Object> eventData = new HashMap<>();
         for (Map.Entry<String, Object> e : inVarsMap.entrySet()) {
@@ -47,7 +48,21 @@ public class RecordEvents {
         eventData.put("correlationId", correlationId);
         eventData.put("status", eventStatus.toString());
         eventData.put("error", error);
-        eventData.put("result",taskResult);
+
+        if(taskParams.action() == TaskParams.Action.UPDATESPEC) {
+            TaskParams.UpdateSpecParams updateParams = (TaskParams.UpdateSpecParams) taskParams;
+            Map<String, Object> spec = updateParams.spec();
+            if(spec != null){
+                if(spec.containsKey("destination")) {
+                    Map<String, Object> destination = (Map<String, Object>) spec.get("destination");
+                    if(destination != null) {
+                        eventData.put("cluster", destination.get("name"));
+                        eventData.put("namespace", destination.get("namespace"));
+                    }
+                }
+                eventData.put("project",spec.get("project"));
+            }
+        }
         try {
             processEventsApi.event(instanceId, new ProcessEventRequest()
                     .setEventType("ARGOCD")

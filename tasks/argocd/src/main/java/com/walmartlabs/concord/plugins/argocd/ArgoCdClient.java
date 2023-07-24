@@ -71,8 +71,7 @@ public class ArgoCdClient {
 
     public V1alpha1Application getApp(String app, boolean refresh) throws IOException, ApiException {
         ApplicationServiceApi api = new ApplicationServiceApi(this.client);
-        V1alpha1Application application = api.applicationServiceGet(app, Boolean.toString(refresh), null, null, null, null, null);
-        return application;
+        return api.applicationServiceGet(app, Boolean.toString(refresh), null, null, null, null, null);
     }
 
     public void deleteApp(String app, boolean cascade, String propagationPolicy) throws IOException, ApiException {
@@ -194,9 +193,9 @@ public class ArgoCdClient {
         return null;
     }
 
-    public V1alpha1Application createApp(V1alpha1Application application) throws RuntimeException, IOException, ApiException {
+    public V1alpha1Application createApp(V1alpha1Application application, boolean upsert) throws RuntimeException, IOException, ApiException {
         ApplicationServiceApi api = new ApplicationServiceApi(client);
-        return api.applicationServiceCreate(application, null, null);
+        return api.applicationServiceCreate(application, upsert, true);
     }
 
     public V1alpha1ApplicationSpec updateAppSpec(String app, V1alpha1ApplicationSpec spec) throws IOException, ApiException {

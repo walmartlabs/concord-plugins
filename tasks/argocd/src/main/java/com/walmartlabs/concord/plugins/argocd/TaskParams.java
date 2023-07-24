@@ -187,6 +187,8 @@ public interface TaskParams {
 
         String namespace();
 
+        boolean upsert();
+
         @Value.Default
         default boolean createNamespace() {
             return false;
