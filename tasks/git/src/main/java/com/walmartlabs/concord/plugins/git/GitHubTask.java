@@ -176,6 +176,9 @@ public class GitHubTask {
             } case CREATEHOOK: {
                 return createHook(in, gitHubUri);
             }
+            case GETPRFILES: {
+                return getPRFiles(in, gitHubUri);
+            }
             default:
                 throw new IllegalArgumentException("Unsupported action type: " + action);
         }
@@ -717,6 +720,33 @@ public class GitHubTask {
         }
     }
 
+    private Map<String, Object> getPRFiles(Map<String, Object> in, String gitHubUri) {
+        String gitHubAccessToken = assertString(in, GITHUB_ACCESSTOKEN);
+        String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
+        String gitHubRepoName = assertString(in, GITHUB_REPONAME);
+        int gitHubPRNumber = assertInt(in, GITHUB_PRNUMBER);
+
+        GitHubClient client = GitHubClient.createClient(gitHubUri);
+
+        try {
+            client.setOAuth2Token(gitHubAccessToken);
+            IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
+
+            PullRequestService prService = new PullRequestService(client);
+
+            log.info("Getting PR {} files from '{}/{}'", gitHubPRNumber, gitHubOrgName, gitHubRepoName);
+            List<CommitFile> list = prService.getFiles(repo, gitHubPRNumber);
+            if (list == null) {
+                list = Collections.emptyList();
+            }
+
+            ObjectMapper om = new ObjectMapper();
+            return Collections.singletonMap("prFiles", om.convertValue(list, Object.class));
+        } catch (Exception e) {
+            throw new RuntimeException("Error occurred while getting PR list: " + e.getMessage());
+        }
+    }
+
     private static Map<String, Object> createRepo(Map<String, Object> in, String gitHubUri) {
         String gitHubAccessToken = assertString(in, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
@@ -996,6 +1026,7 @@ public class GitHubTask {
         GETBRANCHLIST,
         GETPR,
         GETPRLIST,
+        GETPRFILES,
         GETTAGLIST,
         GETLATESTSHA,
         CREATEREPO,
