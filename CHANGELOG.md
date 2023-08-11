@@ -1,6 +1,6 @@
 # Change log
 
-## [1.48.0] - TBD
+## [1.48.0] - 2023-08-11
 
 ### Added
 - github: allow get PR files
