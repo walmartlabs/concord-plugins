@@ -3,6 +3,8 @@
 ## [1.48.0] - TBD
 
 ### Added
+- github: allow get PR files
+([#134](https://github.com/walmartlabs/concord-plugins/pull/134))
 
 ### Changed
 
