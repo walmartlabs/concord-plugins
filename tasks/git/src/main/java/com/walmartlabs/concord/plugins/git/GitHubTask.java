@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.walmartlabs.concord.plugins.git.Utils.getUrl;
 import static com.walmartlabs.concord.sdk.MapUtils.*;
@@ -175,6 +176,9 @@ public class GitHubTask {
                 return getContent(in, gitHubUri);
             } case CREATEHOOK: {
                 return createHook(in, gitHubUri);
+            }
+            case GETPRFILES: {
+                return getPRFiles(in, gitHubUri);
             }
             default:
                 throw new IllegalArgumentException("Unsupported action type: " + action);
@@ -717,6 +721,47 @@ public class GitHubTask {
         }
     }
 
+    private Map<String, Object> getPRFiles(Map<String, Object> in, String gitHubUri) {
+        String gitHubAccessToken = assertString(in, GITHUB_ACCESSTOKEN);
+        String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
+        String gitHubRepoName = assertString(in, GITHUB_REPONAME);
+        int gitHubPRNumber = assertInt(in, GITHUB_PRNUMBER);
+
+        GitHubClient client = GitHubClient.createClient(gitHubUri);
+
+        try {
+            client.setOAuth2Token(gitHubAccessToken);
+            IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
+
+            PullRequestService prService = new PullRequestService(client);
+
+            log.info("Getting PR {} files from '{}/{}'", gitHubPRNumber, gitHubOrgName, gitHubRepoName);
+            List<CommitFile> list = prService.getFiles(repo, gitHubPRNumber);
+            if (list == null) {
+                list = Collections.emptyList();
+            }
+
+            // cleanup patch field
+            list = list.stream().map(f -> f.setPatch(null)).collect(Collectors.toList());
+
+            List<String> modified = list.stream().filter(f -> "modified".equals(f.getStatus())).map(CommitFile::getFilename).collect(Collectors.toList());
+            List<String> removed = list.stream().filter(f -> "removed".equals(f.getStatus())).map(CommitFile::getFilename).collect(Collectors.toList());
+            List<String> added = list.stream().filter(f -> "added".equals(f.getStatus())).map(CommitFile::getFilename).collect(Collectors.toList());
+            List<String> any = Stream.concat(modified.stream(), Stream.concat(removed.stream(), added.stream())).collect(Collectors.toList());
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("prFiles", new ObjectMapper().convertValue(list, Object.class));
+            result.put("prFilesModified", modified);
+            result.put("prFilesRemoved", removed);
+            result.put("prFilesAdded", added);
+            result.put("prFilesAny", any);
+
+            return result;
+        } catch (Exception e) {
+            throw new RuntimeException("Error occurred while getting PR list: " + e.getMessage());
+        }
+    }
+
     private static Map<String, Object> createRepo(Map<String, Object> in, String gitHubUri) {
         String gitHubAccessToken = assertString(in, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
@@ -996,6 +1041,7 @@ public class GitHubTask {
         GETBRANCHLIST,
         GETPR,
         GETPRLIST,
+        GETPRFILES,
         GETTAGLIST,
         GETLATESTSHA,
         CREATEREPO,
