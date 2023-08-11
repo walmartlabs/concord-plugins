@@ -1,5 +1,20 @@
 # Change log
 
+## [1.48.0] - TBD
+
+### Added
+- github: allow get PR files
+([#134](https://github.com/walmartlabs/concord-plugins/pull/134))
+
+### Changed
+
+- argocd-task: make result serializable for setparams action
+([#131](https://github.com/walmartlabs/concord-plugins/pull/131))
+- git: ignore empty token/password in hideSensitiveData
+([#123](https://github.com/walmartlabs/concord-plugins/pull/123))
+- github: allow replace existing hooks
+([#124](https://github.com/walmartlabs/concord-plugins/pull/124))
+
 ## [1.47.0] - 2023-05-30
 
 ### Added
