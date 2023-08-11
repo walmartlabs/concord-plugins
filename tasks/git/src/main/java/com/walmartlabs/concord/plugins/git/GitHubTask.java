@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.walmartlabs.concord.plugins.git.Utils.getUrl;
 import static com.walmartlabs.concord.sdk.MapUtils.*;
@@ -740,8 +741,22 @@ public class GitHubTask {
                 list = Collections.emptyList();
             }
 
-            ObjectMapper om = new ObjectMapper();
-            return Collections.singletonMap("prFiles", om.convertValue(list, Object.class));
+            // cleanup patch field
+            list = list.stream().map(f -> f.setPatch(null)).collect(Collectors.toList());
+
+            List<String> modified = list.stream().filter(f -> "modified".equals(f.getStatus())).map(CommitFile::getFilename).collect(Collectors.toList());
+            List<String> removed = list.stream().filter(f -> "removed".equals(f.getStatus())).map(CommitFile::getFilename).collect(Collectors.toList());
+            List<String> added = list.stream().filter(f -> "added".equals(f.getStatus())).map(CommitFile::getFilename).collect(Collectors.toList());
+            List<String> any = Stream.concat(modified.stream(), Stream.concat(removed.stream(), added.stream())).collect(Collectors.toList());
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("prFiles", new ObjectMapper().convertValue(list, Object.class));
+            result.put("prFilesModified", modified);
+            result.put("prFilesRemoved", removed);
+            result.put("prFilesAdded", added);
+            result.put("prFilesAny", any);
+
+            return result;
         } catch (Exception e) {
             throw new RuntimeException("Error occurred while getting PR list: " + e.getMessage());
         }
