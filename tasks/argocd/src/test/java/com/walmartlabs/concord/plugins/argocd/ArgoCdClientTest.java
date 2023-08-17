@@ -81,7 +81,7 @@ public class ArgoCdClientTest {
                 .build();
 
         ArgoCdClient client = new ArgoCdClient(in);
-        V1alpha1Application app = client.createApp(objectMapper.buildApplicationObject(in));
+        V1alpha1Application app = client.createApp(objectMapper.buildApplicationObject(in), false);
         System.out.println("app: " + app);
 
         app = client.waitForSync(in.app(), app.getMetadata().getResourceVersion(), in.syncTimeout(), WaitWatchParams.builder().build());
@@ -262,7 +262,7 @@ public class ArgoCdClientTest {
                 .build();
 
         ArgoCdClient client = new ArgoCdClient(in);
-        V1alpha1Application app = client.createApp(objectMapper.buildApplicationObject(in));
+        V1alpha1Application app = client.createApp(objectMapper.buildApplicationObject(in), false);
         System.out.println("app: " + app);
 
         app = client.waitForSync(in.app(), app.getMetadata().getResourceVersion(), in.syncTimeout(), WaitWatchParams.builder().build());

@@ -251,7 +251,7 @@ public class ArgoCdTask implements Task {
         try {
             V1alpha1Application application = objectMapper.buildApplicationObject(in);
             ArgoCdClient client = new ArgoCdClient(in);
-            V1alpha1Application app = client.createApp(application);
+            V1alpha1Application app = client.createApp(application, in.upsert());
             app = client.waitForSync(in.app(), app.getMetadata().getResourceVersion(), in.syncTimeout(),
                     toWatchParams(false));
             return TaskResult.success()
@@ -309,7 +309,7 @@ public class ArgoCdTask implements Task {
     }
 
 
-    private void record(TaskParamsImpl in, EventStatus eventStatus, TaskResult taskResult, String error) {
+    private void record(TaskParamsImpl in, EventStatus eventStatus, TaskResult taskResult, String error) throws IOException {
         if (in.recordEvents()) {
             RecordEvents.recordEvent(processEventsApi, context.processInstanceId(),
                     context.execution().correlationId(), eventStatus, error, in, taskResult);

@@ -332,7 +332,6 @@ public class TaskParamsImpl implements TaskParams {
     private static class CreateUpdateApplicationSetParamsImpl extends CreateParamsImpl implements CreateUpdateApplicationSetParams {
 
         private static final String APPLICATION_SET_KEY = "applicationSet";
-        private static final String UPSERT_KEY = "upsert";
         private static final String GENERATORS_KEY = "generators";
         private static final String STRATEGY_KEY = "strategy";
         private static final String PRESERVE_RESOURCES_ON_DELETEION_KEY = "preserveResourcesOnDeletion";
@@ -367,11 +366,6 @@ public class TaskParamsImpl implements TaskParams {
             return variables.assertString(PROJECT_KEY);
         }
 
-        @Override
-        public boolean upsert() {
-            return variables.getBoolean(UPSERT_KEY, false);
-        }
-
     }
 
     private static class DeleteApplicationSetParamsImpl extends TaskParamsImpl implements DeleteApplicationSetParams {
@@ -401,6 +395,7 @@ public class TaskParamsImpl implements TaskParams {
         private static final String ANNOTATIONS_KEY = "annotations";
         private static final String SYNC_TIMEOUT_KEY = "syncTimeout";
         private static final String SPEC_KEY = "spec";
+        private static final String UPSERT_KEY = "upsert";
 
         protected CreateParamsImpl(Variables variables) {
             super(variables);
@@ -420,6 +415,9 @@ public class TaskParamsImpl implements TaskParams {
         public String namespace() {
             return variables.assertString(NAMESPACE_KEY);
         }
+
+        @Override
+        public boolean upsert() { return variables.getBoolean(UPSERT_KEY, false); }
 
         @Override
         public boolean createNamespace() {
