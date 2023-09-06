@@ -319,11 +319,6 @@ public class ArgoCdTask implements Task {
         return objectMapper.toMap(app);
     }
 
-    private List<Map<String, Object>> toList(Object appsets) {
-        return objectMapper.toList(appsets);
-    }
-
-
     private void record(TaskParamsImpl in, EventStatus eventStatus, TaskResult taskResult, String error) throws IOException {
         if (in.recordEvents()) {
             RecordEvents.recordEvent(processEventsApi, context.processInstanceId(),
