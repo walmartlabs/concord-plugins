@@ -228,6 +228,11 @@ public class ArgoCdClient {
         return api.applicationSetServiceGet(name);
     }
 
+    public V1alpha1ApplicationSetList listApplicationSets(List<String> projects, String selector) throws ApiException {
+        ApplicationSetServiceApi api = new ApplicationSetServiceApi(client);
+        return api.applicationSetServiceList(projects, selector);
+    }
+
     public V1alpha1AppProject createProject(TaskParams.CreateProjectParams in) throws IOException, ApiException {
         ProjectServiceApi api = new ProjectServiceApi(client);
 

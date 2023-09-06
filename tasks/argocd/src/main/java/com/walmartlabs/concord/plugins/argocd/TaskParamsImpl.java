@@ -74,6 +74,9 @@ public class TaskParamsImpl implements TaskParams {
             case DELETEAPPLICATIONSET: {
                 return new DeleteApplicationSetParamsImpl(variables);
             }
+            case LISTAPPLICATIONSETS: {
+                return new ListApplicationSetParamsImpl(variables);
+            }
             default: {
                 throw new IllegalArgumentException("Unsupported action type: " + action(variables));
             }
@@ -379,6 +382,34 @@ public class TaskParamsImpl implements TaskParams {
         @Override
         public String applicationSet() {
             return variables.assertString(APPLICATIONSET_KEY);
+        }
+    }
+
+    private static class ListApplicationSetParamsImpl extends TaskParamsImpl implements ListApplicationSetParams {
+
+        private static final String APPLICATIONSET_KEY = "applicationSet";
+        private static final String PROJECTS_KEY = "projects";
+        private static final String PROJECT_KEY = "project";
+        private static final String SELECTOR_KEY = "selector";
+
+        protected ListApplicationSetParamsImpl(Variables variables) {
+            super(variables);
+        }
+
+        @Override
+        public List<String> projects() {
+            if (variables.getList(PROJECTS_KEY, null) != null) {
+                return variables.getList(PROJECTS_KEY, null);
+            } else if (variables.getString(PROJECT_KEY) != null) {
+                return Collections.singletonList(variables.getString(PROJECT_KEY));
+            } else {
+                throw new IllegalArgumentException("List of projects (`projects`) or a specific project (`project`) is mandatory");
+            }
+        }
+
+        @Override
+        public String selector() {
+            return variables.getString(SELECTOR_KEY, null);
         }
     }
 
