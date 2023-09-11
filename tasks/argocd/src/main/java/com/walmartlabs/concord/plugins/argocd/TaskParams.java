@@ -305,6 +305,14 @@ public interface TaskParams {
         String applicationSet();
     }
 
+    interface ListApplicationSetParams extends TaskParams {
+
+        List<String> projects();
+
+        @Nullable
+        String selector();
+    }
+
     interface SyncParams extends TaskParams {
 
         interface Resource {
@@ -380,6 +388,7 @@ public interface TaskParams {
         DELETEPROJECT,
         GETAPPLICATIONSET,
         DELETEAPPLICATIONSET,
-        CREATEAPPLICATIONSET
+        CREATEAPPLICATIONSET,
+        LISTAPPLICATIONSETS
     }
 }

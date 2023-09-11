@@ -115,6 +115,10 @@ public class ArgoCdTask implements Task {
                     taskResult = processCreateApplicationSetAction((TaskParams.CreateUpdateApplicationSetParams) params);
                     break;
                 }
+                case LISTAPPLICATIONSETS: {
+                    taskResult = processListApplicationSetAction((TaskParams.ListApplicationSetParams) params);
+                    break;
+                }
                 default: {
                     throw new IllegalArgumentException("Unsupported action type: " + params.action());
                 }
@@ -156,6 +160,13 @@ public class ArgoCdTask implements Task {
         } finally {
             lockService.projectUnlock(in.applicationSet());
         }
+    }
+
+    private TaskResult processListApplicationSetAction(TaskParams.ListApplicationSetParams in) throws Exception {
+        ArgoCdClient client = new ArgoCdClient(in);
+        V1alpha1ApplicationSetList applicationSetList = client.listApplicationSets(in.projects(), in.selector());
+        return TaskResult.success()
+                .value("applicationSetList", toMap(applicationSetList));
     }
 
     private TaskResult processUpdateSpecAction(TaskParams.UpdateSpecParams in) throws Exception {
@@ -307,7 +318,6 @@ public class ArgoCdTask implements Task {
     private Map<String, Object> toMap(Object app) {
         return objectMapper.toMap(app);
     }
-
 
     private void record(TaskParamsImpl in, EventStatus eventStatus, TaskResult taskResult, String error) throws IOException {
         if (in.recordEvents()) {

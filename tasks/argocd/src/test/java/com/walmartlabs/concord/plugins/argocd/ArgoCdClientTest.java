@@ -22,10 +22,7 @@ package com.walmartlabs.concord.plugins.argocd;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.walmartlabs.concord.plugins.argocd.openapi.model.V1alpha1Application;
-import com.walmartlabs.concord.plugins.argocd.openapi.model.V1alpha1ApplicationSet;
-import com.walmartlabs.concord.plugins.argocd.openapi.model.V1alpha1ApplicationSpec;
-import com.walmartlabs.concord.plugins.argocd.openapi.model.V1alpha1HelmParameter;
+import com.walmartlabs.concord.plugins.argocd.openapi.model.*;
 import org.immutables.value.Value;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -314,6 +311,18 @@ public class ArgoCdClientTest {
     }
 
     @Test
+    public void testApplicationSetListWithAzureToken() throws Exception {
+        TaskParams.ListApplicationSetParams in = ImmutableTestListAppSetParams.builder()
+                .baseUrl(System.getProperty("ARGO_CD_BASE_URL"))
+                .auth(azure())
+                .addProjects(System.getProperty("ARGO_PROJECT")).build();
+
+        ArgoCdClient client = new ArgoCdClient(in);
+        V1alpha1ApplicationSetList appsetList = client.listApplicationSets(in.projects(), in.selector());
+        System.out.println("appsetList: " + appsetList);
+    }
+
+    @Test
     public void testApplicationSetDeleteWithAzureToken() throws Exception {
         TaskParams.DeleteApplicationSetParams in = ImmutableTestDeleteAppSetParams.builder().
                 baseUrl(System.getProperty("ARGO_CD_BASE_URL"))
@@ -333,6 +342,16 @@ public class ArgoCdClientTest {
     @Value.Immutable
     @Value.Style(jdkOnly = true)
     public interface TestGetAppSetParams extends TaskParams.GetApplicationSetParams {
+        @Value.Default()
+        @Override
+        default boolean validateCerts() {
+            return false;
+        }
+    }
+
+    @Value.Immutable
+    @Value.Style(jdkOnly = true)
+    public interface TestListAppSetParams extends TaskParams.ListApplicationSetParams {
         @Value.Default()
         @Override
         default boolean validateCerts() {
