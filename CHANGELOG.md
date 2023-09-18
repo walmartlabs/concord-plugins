@@ -1,5 +1,14 @@
 # Change log
 
+## [1.49.0] - 2023-09-12
+
+### Added
+
+- argocd: update updateSpec event data, add upsert flag for create action
+([#133](https://github.com/walmartlabs/concord-plugins/pull/133))
+- argocd: add functionality to list appset in a project
+([#136](https://github.com/walmartlabs/concord-plugins/pull/136))
+
 ## [1.48.0] - 2023-08-11
 
 ### Added
