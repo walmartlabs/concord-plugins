@@ -14,7 +14,8 @@
     <packaging>takari-jar</packaging>
 
     <properties>
-        <jgit.version>6.5.0.202303070854-r</jgit.version>
+        <jgit.version>5.13.1.202206130422-r</jgit.version>
+        <egit.github.version>5.13.0.202109080827-r</egit.github.version>
     </properties>
 
     <dependencies>
@@ -75,7 +76,7 @@
         <dependency>
             <groupId>org.eclipse.mylyn.github</groupId>
             <artifactId>org.eclipse.egit.github.core</artifactId>
-            <version>6.1.0.202203080745-r</version>
+            <version>${egit.github.version}</version>
         </dependency>
         <dependency>
             <groupId>com.google.code.gson</groupId>
