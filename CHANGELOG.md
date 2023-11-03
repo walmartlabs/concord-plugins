@@ -1,5 +1,12 @@
 # Change log
 
+## [2.0.0] - TBD
+
+### Changed
+
+- update dependencies for concord 2.x 
+([#139](https://github.com/walmartlabs/concord-plugins/pull/139))
+
 ## [1.49.0] - 2023-09-12
 
 ### Added
