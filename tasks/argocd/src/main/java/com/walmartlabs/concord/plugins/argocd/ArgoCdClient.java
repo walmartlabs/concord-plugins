@@ -65,6 +65,8 @@ public class ArgoCdClient {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    private final static int RETRY_LIMIT = 5;
+
     public ArgoCdClient(TaskParams in) throws Exception {
         this.client = createClient(in);
     }
@@ -135,12 +137,33 @@ public class ArgoCdClient {
                 .setConfig(RequestConfig.custom().
                         setSocketTimeout((int) waitTimeout.toMillis()).build())
                 .build();
-        CloseableHttpResponse response = client.getHttpClient().execute(request);
 
+        CloseableHttpResponse response = client.getHttpClient().execute(request);
         BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-        String line;
+        String line = null;
+        int count = 1;
         try {
-            while ((line = bufferedReader.readLine()) != null) {
+            while (true) {
+                try {
+                    line = bufferedReader.readLine();
+                } catch (Exception e) {
+                    V1alpha1Application application = getApp(app, true);
+                    if (checkResourceStatus(p, application.getStatus().getHealth().getStatus(),
+                            application.getStatus().getSync().getStatus(), application.getOperation())) {
+                        return application;
+                    } else {
+                        if (count > RETRY_LIMIT) {
+                            throw new RuntimeException("Failed to sync the application. Giving up after " + count + " attempts");
+                        }
+                        log.info("Error while reading the content from stream. Retrying {} time", ++count);
+                        response = client.getHttpClient().execute(request);
+                        bufferedReader = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+                        continue;
+                    }
+                }
+                if(line == null){
+                    break;
+                }
                 StreamResultOfV1alpha1ApplicationWatchEvent result = objectMapper.readValue(line, StreamResultOfV1alpha1ApplicationWatchEvent.class);
                 if (result.getError() != null) {
                     throw new RuntimeException("Error waiting for status: " + result.getError());
