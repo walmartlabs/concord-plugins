@@ -127,7 +127,6 @@ public class ArgoCdClient {
     }
 
     public V1alpha1Application waitForSync(String app, String resourceVersion, Duration waitTimeout, WaitWatchParams p) throws IOException, ApiException, URISyntaxException {
-        boolean refresh = false;
         log.info("Waiting for application to sync.");
         URI uri = new URIBuilder(URI.create(client.getBasePath()))
                 .setPath("api/v1/stream/applications").addParameter("name", app)
@@ -140,79 +139,78 @@ public class ArgoCdClient {
 
         CloseableHttpResponse response = client.getHttpClient().execute(request);
         BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-        String line = null;
+        String line;
         int count = 1;
-        try {
-            while (true) {
-                try {
-                    line = bufferedReader.readLine();
-                } catch (Exception e) {
-                    V1alpha1Application application = getApp(app, true);
-                    if (checkResourceStatus(p, application.getStatus().getHealth().getStatus(),
-                            application.getStatus().getSync().getStatus(), application.getOperation())) {
-                        return application;
-                    } else {
-                        if (count > RETRY_LIMIT) {
-                            throw new RuntimeException("Failed to sync the application. Giving up after " + count + " attempts");
-                        }
-                        log.info("Error while reading the content from stream. Retrying {} time", ++count);
-                        response = client.getHttpClient().execute(request);
-                        bufferedReader = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-                        continue;
+        while (true) {
+            try {
+                line = bufferedReader.readLine();
+            } catch (Exception e) {
+                V1alpha1Application application = getApp(app, true);
+                if ((application = isSyncCompleted(application,p)) != null) {
+                    return application;
+                } else {
+                    if (count > RETRY_LIMIT) {
+                        throw new RuntimeException("Failed to sync the application. Giving up after " + count + " attempts");
                     }
-                }
-                if(line == null){
-                    break;
-                }
-                StreamResultOfV1alpha1ApplicationWatchEvent result = objectMapper.readValue(line, StreamResultOfV1alpha1ApplicationWatchEvent.class);
-                if (result.getError() != null) {
-                    throw new RuntimeException("Error waiting for status: " + result.getError());
-                }
-
-                if (result.getResult() == null) {
-                    throw new RuntimeException("Error waiting for status: no application");
-                }
-
-                boolean operationInProgress = false;
-
-                V1alpha1Application a = result.getResult().getApplication();
-                // consider the operation is in progress
-                if (a.getOperation() != null) {
-                    // if it just got requested
-                    operationInProgress = true;
-                    if (Boolean.FALSE.equals(a.getOperation().getSync().getDryRun())) {
-                        refresh = true;
-                    }
-                } else if (a.getStatus().getOperationState() != null) {
-                    V1alpha1OperationState opState = Objects.requireNonNull(a.getStatus().getOperationState());
-                    OffsetDateTime finishedAt = OffsetDateTime.parse(opState.getFinishedAt());
-                    OffsetDateTime reconciledAt = OffsetDateTime.parse(a.getStatus().getReconciledAt());
-                    V1alpha1Operation operation = opState.getOperation();
-
-                    if (finishedAt == null) {
-                        // if it is not finished yet
-                        operationInProgress = true;
-                    } else if (operation != null && !Boolean.TRUE.equals(operation.getSync().getDryRun()) && (reconciledAt == null || reconciledAt.isBefore(finishedAt))) {
-                        // if it is just finished and we need to wait for controller to reconcile app once after syncing
-                        operationInProgress = true;
-                    }
-                }
-
-                // Wait on the application as a whole
-                // TODO: support for defined resources
-                boolean selectedResourcesAreReady = checkResourceStatus(p, a.getStatus().getHealth().getStatus(), a.getStatus().getSync().getStatus(), a.getOperation());
-                log.info("Selected resources are ready ? {}", selectedResourcesAreReady);
-                if (selectedResourcesAreReady && (!operationInProgress || !p.watchOperation())) {
-                    if (refresh) {
-                        return getApp(app, true);
-                    }
-                    return a;
+                    log.info("Error while reading the content from stream. Retrying {} time", ++count);
+                    response = client.getHttpClient().execute(request);
+                    bufferedReader = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+                    continue;
                 }
             }
-        } finally {
-            response.close();
+            // End of the stream
+            if (line == null) {
+                break;
+            }
+            StreamResultOfV1alpha1ApplicationWatchEvent result = objectMapper.readValue(line, StreamResultOfV1alpha1ApplicationWatchEvent.class);
+            if (result.getError() != null) {
+                throw new RuntimeException("Error waiting for status: " + result.getError());
+            }
+
+            if (result.getResult() == null) {
+                throw new RuntimeException("Error waiting for status: no application");
+            }
+
+            V1alpha1Application a = result.getResult().getApplication();
+        }
+        return null;
+    }
+
+    private V1alpha1Application isSyncCompleted(V1alpha1Application a, WaitWatchParams p) throws IOException, ApiException {
+        boolean refresh = false;
+        boolean operationInProgress = false;
+        // consider the operation is in progress
+        if (a.getOperation() != null) {
+            // if it just got requested
+            operationInProgress = true;
+            if (Boolean.FALSE.equals(a.getOperation().getSync().getDryRun())) {
+                refresh = true;
+            }
+        } else if (a.getStatus().getOperationState() != null) {
+            V1alpha1OperationState opState = Objects.requireNonNull(a.getStatus().getOperationState());
+            OffsetDateTime finishedAt = OffsetDateTime.parse(opState.getFinishedAt());
+            OffsetDateTime reconciledAt = OffsetDateTime.parse(a.getStatus().getReconciledAt());
+            V1alpha1Operation operation = opState.getOperation();
+
+            if (finishedAt == null) {
+                // if it is not finished yet
+                operationInProgress = true;
+            } else if (operation != null && !Boolean.TRUE.equals(operation.getSync().getDryRun()) && (reconciledAt == null || reconciledAt.isBefore(finishedAt))) {
+                // if it is just finished and we need to wait for controller to reconcile app once after syncing
+                operationInProgress = true;
+            }
         }
 
+        // Wait on the application as a whole
+        // TODO: support for defined resources
+        boolean selectedResourcesAreReady = checkResourceStatus(p, a.getStatus().getHealth().getStatus(), a.getStatus().getSync().getStatus(), a.getOperation());
+        log.info("Selected resources are ready ? {}", selectedResourcesAreReady);
+        if (selectedResourcesAreReady && (!operationInProgress || !p.watchOperation())) {
+            if (refresh) {
+                return getApp(a.getMetadata().getName(), true);
+            }
+            return a;
+        }
         return null;
     }
 
