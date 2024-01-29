@@ -131,73 +131,59 @@ public class ArgoCdClient {
         return api.applicationServiceSync(in.app(), syncRequest);
     }
 
-    private static String readLines(BufferedReader reader) throws IOException {
-        StringBuilder lines = new StringBuilder();
-        String line;
-
-        while ((line = reader.readLine()) != null) {
-            lines.append(line).append("\n");
-        }
-
-        return lines.toString();
-    }
-
     static V1alpha1Application getAppWatchEvent(String app,
                                                 ApiClient client,
                                                 HttpUriRequest request,
                                                 WaitWatchParams p,
                                                 ApplicationServiceApi appApi) throws Exception {
-            String lines;
+
             try (CloseableHttpResponse response = client.getHttpClient().execute(request);
                  BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(response.getEntity().getContent()))) {
+                String line;
 
-                lines = readLines(bufferedReader);
-            }
+                while ((line = bufferedReader.readLine()) != null) {
+                    StreamResultOfV1alpha1ApplicationWatchEvent result = MAPPER.readValue(line, StreamResultOfV1alpha1ApplicationWatchEvent.class);
+                    if (result.getError() != null) {
+                        throw new RuntimeException("Error waiting for status: " + result.getError());
+                    }
 
-            if (lines.isEmpty()) {
-                throw new IllegalStateException("No sync status returned");
-            }
-            StreamResultOfV1alpha1ApplicationWatchEvent result = MAPPER.readValue(lines, StreamResultOfV1alpha1ApplicationWatchEvent.class);
-            if (result.getError() != null) {
-                throw new RuntimeException("Error waiting for status: " + result.getError());
-            }
+                    if (result.getResult() == null) {
+                        throw new RuntimeException("Error waiting for status: no application");
+                    }
 
-            if (result.getResult() == null) {
-                throw new RuntimeException("Error waiting for status: no application");
-            }
+                    boolean operationInProgress;
+                    boolean refreshApp = false;
+                    V1alpha1Application a = Optional.ofNullable(result.getResult().getApplication())
+                            .orElseThrow(() -> new IllegalStateException("No no application info in response"));
 
-            boolean operationInProgress;
-            boolean refreshApp = false;
-            V1alpha1Application a = Optional.ofNullable(result.getResult().getApplication())
-                    .orElseThrow(() -> new IllegalStateException("No no application info in response"));
+                    // consider the operation is in progress
+                    if (a.getOperation() != null) {
+                        // if it just got requested
+                        operationInProgress = true;
+                        if (Boolean.FALSE.equals(Optional.ofNullable(a.getOperation())
+                                .map(V1alpha1Operation::getSync)
+                                .map(V1alpha1SyncOperation::getDryRun)
+                                .orElse(false))) {
+                            refreshApp = true;
+                        }
+                    } else {
+                        operationInProgress = isInProgress(a);
+                    }
 
-            // consider the operation is in progress
-            if (a.getOperation() != null) {
-                // if it just got requested
-                operationInProgress = true;
-                if (Boolean.FALSE.equals(Optional.ofNullable(a.getOperation())
-                        .map(V1alpha1Operation::getSync)
-                        .map(V1alpha1SyncOperation::getDryRun)
-                        .orElse(false))) {
-                    refreshApp = true;
+                    // Wait on the application as a whole
+                    // TODO: support for defined resources
+                    boolean selectedResourcesAreReady = checkResourceStatus(p, healthStatus(a), syncStatus(a), a.getOperation());
+                    log.info("Selected resources are ready? {}", selectedResourcesAreReady);
+                    if (selectedResourcesAreReady && (!operationInProgress || !p.watchOperation())) {
+                        if (refreshApp) {
+                            return getApp(app, true, appApi);
+                        }
+                        return a;
+                    }
                 }
-            } else {
-                operationInProgress = isInProgress(a);
-            }
 
-            // Wait on the application as a whole
-            // TODO: support for defined resources
-            boolean selectedResourcesAreReady = checkResourceStatus(p, healthStatus(a), syncStatus(a), a.getOperation());
-            log.info("Selected resources are ready? {}", selectedResourcesAreReady);
-            if (selectedResourcesAreReady && (!operationInProgress || !p.watchOperation())) {
-                if (refreshApp) {
-                    return getApp(app, true, appApi);
-                }
-                return a;
             }
-
             throw new IllegalStateException("No sync status returned");
-
     }
 
     private static boolean isInProgress(V1alpha1Application a) {
@@ -246,7 +232,6 @@ public class ArgoCdClient {
             if (checkResourceStatus(p, healthStatus(app), syncStatus(app), app.getOperation())) {
                 return Optional.of(app);
             }
-
             return Optional.empty();
         };
 
