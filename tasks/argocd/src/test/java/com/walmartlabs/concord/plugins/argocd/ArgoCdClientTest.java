@@ -9,9 +9,9 @@ package com.walmartlabs.concord.plugins.argocd;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -40,6 +40,7 @@ import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.io.FileWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.OffsetDateTime;
@@ -96,29 +97,35 @@ class ArgoCdClientTest {
     }
 
     private void mockStatusApi() throws Exception {
+        V1alpha1ApplicationWatchEvent applicationWatchEvent = new V1alpha1ApplicationWatchEvent()
+                .application(new V1alpha1Application()
+                        .metadata(new V1ObjectMeta()
+                                .name("test-app")
+                                .name("test-ns"))
+                        .operation(new V1alpha1Operation()
+                                .sync(new V1alpha1SyncOperation()
+                                        .dryRun(false)))
+                        .status(new V1alpha1ApplicationStatus()
+                                .sync(new V1alpha1SyncStatus()
+                                        .status("Inprgoress"))
+                                .health(new V1alpha1HealthStatus()
+                                        .status("Healthy"))
+                                .reconciledAt(OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME))
+                                .operationState(new V1alpha1OperationState()
+                                        .finishedAt(OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)))));
         StreamResultOfV1alpha1ApplicationWatchEvent payload = new StreamResultOfV1alpha1ApplicationWatchEvent()
-                .result(new V1alpha1ApplicationWatchEvent()
-                        .application(new V1alpha1Application()
-                                .metadata(new V1ObjectMeta()
-                                        .name("test-app")
-                                        .name("test-ns"))
-                                .operation(new V1alpha1Operation()
-                                        .sync(new V1alpha1SyncOperation()
-                                                .dryRun(false)))
-                                .status(new V1alpha1ApplicationStatus()
-                                        .sync(new V1alpha1SyncStatus()
-                                                .status("Synced"))
-                                        .health(new V1alpha1HealthStatus()
-                                                .status("Healthy"))
-                                        .reconciledAt(OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME))
-                                        .operationState(new V1alpha1OperationState()
-                                                .finishedAt(OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME))))));
-
-
+                .result(applicationWatchEvent);
         Path appFile = tempDir.resolve("appsync.json");
-        MAPPER.writeValue(appFile.toFile(), payload);
-
-
+        StringBuilder sb = new StringBuilder();
+        sb.append(MAPPER.writeValueAsString(payload));
+        sb.append("\n");
+        applicationWatchEvent.getApplication().getStatus().getSync().status("Synced");
+        payload = new StreamResultOfV1alpha1ApplicationWatchEvent()
+                .result(applicationWatchEvent);
+        sb.append(MAPPER.writeValueAsString(payload));
+        try (FileWriter fw = new FileWriter(appFile.toFile())) {
+            fw.write(sb.toString());
+        }
         CloseableHttpResponse notReadyResp = mock(CloseableHttpResponse.class, RETURNS_DEEP_STUBS);
         // first return nothing, then return a valid response on subsequent call(s)
         when(notReadyResp.getEntity().getContent())
