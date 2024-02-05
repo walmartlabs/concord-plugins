@@ -1,5 +1,12 @@
 # Change log
 
+## [1.50.0] - 2024-02-05
+
+### Added
+
+- argocd: Add retry logic for waitForSync operation to support for new version of argocd (2.8.0+)
+  ([#143](https://github.com/walmartlabs/concord-plugins/pull/143))
+
 ## [1.49.0] - 2023-09-12
 
 ### Added
