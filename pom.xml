@@ -54,15 +54,15 @@
     </modules>
 
     <properties>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <scm.connection>scm:git:https://github.com/walmartlabs/concord-plugins.git</scm.connection>
 
-        <concord.version>2.1.0</concord.version>
+        <concord.version>2.6.0</concord.version>
         <gson.version>2.10</gson.version>
         <okhttp3.version>3.14.9</okhttp3.version>
         <wiremock.version>2.27.2</wiremock.version>
@@ -169,6 +169,26 @@
                         <tsx>java</tsx>
                     </extraExtensions>
                 </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>com.hubspot.maven.plugins</groupId>
+                <artifactId>dependency-scope-maven-plugin</artifactId>
+                <version>0.10</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <fail>true</fail>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
             </plugin>
         </plugins>
     </build>

@@ -20,11 +20,10 @@ package com.walmartlabs.concord.plugins.terraform;
  * =====
  */
 
-import com.squareup.okhttp.OkHttpClient;
-import com.walmartlabs.concord.ApiClient;
-import com.walmartlabs.concord.client.ApiClientConfiguration;
-import com.walmartlabs.concord.client.ApiClientFactory;
-import com.walmartlabs.concord.client.ConcordApiClient;
+import com.walmartlabs.concord.client2.ApiClient;
+import com.walmartlabs.concord.client2.ApiClientConfiguration;
+import com.walmartlabs.concord.client2.ApiClientFactory;
+import com.walmartlabs.concord.client2.DefaultApiClientFactory;
 import com.walmartlabs.concord.runtime.v2.sdk.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -36,6 +35,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 
@@ -233,16 +233,7 @@ public class TerraformTaskV2Test extends AbstractTerraformTest {
     }
 
     ApiClientFactory getApiClientFactory() {
-        return cfg -> {
-            ApiClient apiClient = new ConcordApiClient(cfg.baseUrl(), new OkHttpClient());
-            apiClient.setReadTimeout(60000);
-            apiClient.setConnectTimeout(10000);
-            apiClient.setWriteTimeout(60000);
-
-            apiClient.addDefaultHeader("X-Concord-Trace-Enabled", "true");
-
-            apiClient.setApiKey(cfg.apiKey());
-            return apiClient;
-        };
+        return cfg -> new DefaultApiClientFactory(cfg.baseUrl(), Duration.ofMillis(10000))
+                .create(cfg);
     }
 }

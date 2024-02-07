@@ -21,7 +21,7 @@ package com.walmartlabs.concord.plugins.terraform.backend;
  */
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.walmartlabs.concord.ApiClient;
+import com.walmartlabs.concord.client2.ApiClient;
 import com.walmartlabs.concord.plugins.terraform.TaskConstants;
 import com.walmartlabs.concord.runtime.v2.sdk.Context;
 import com.walmartlabs.concord.runtime.v2.sdk.LockService;
