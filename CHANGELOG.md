@@ -1,5 +1,10 @@
 # Change log
 
+## [2.0.1] - 2024-02-20
+
+- rollback to client1, for client 2 we need concord 2.6.0+ 
+  ([#146](https://github.com/walmartlabs/concord-plugins/pull/146)).
+
 ## [2.0.0] - 2024-02-07
 
 ### Added
