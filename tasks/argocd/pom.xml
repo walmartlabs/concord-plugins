@@ -46,7 +46,7 @@
         </dependency>
         <dependency>
             <groupId>com.walmartlabs.concord</groupId>
-            <artifactId>concord-client2</artifactId>
+            <artifactId>concord-client</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>

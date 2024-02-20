@@ -20,7 +20,7 @@ package com.walmartlabs.concord.plugins.terraform;
  * =====
  */
 
-import com.walmartlabs.concord.client2.ApiClient;
+import com.walmartlabs.concord.ApiClient;
 import com.walmartlabs.concord.plugins.terraform.actions.TerraformActionResult;
 import com.walmartlabs.concord.plugins.terraform.backend.Backend;
 import com.walmartlabs.concord.plugins.terraform.backend.BackendFactoryV2;
