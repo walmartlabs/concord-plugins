@@ -106,7 +106,7 @@ public class ConfluenceTaskCommon {
                     .url("content/")
                     .post(objMain);
 
-            Integer id = Integer.parseInt(results.get("id").toString());
+            Long id = Long.parseLong(results.get("id").toString());
 
             log.info("Confluence page with title '{}' is created under space '{}' and its Id is: '{}'.",
                     pageTitle, spaceKey, id);
@@ -278,7 +278,7 @@ public class ConfluenceTaskCommon {
                     .url("content/")
                     .post(objMain);
 
-            Integer id = Integer.parseInt(results.get("id").toString());
+            Long id = Long.parseLong(results.get("id").toString());
 
             log.info("Child page '{}' is created under parent# '{}/{}' and its Id is: '{}'",
                     childPageTitle, spaceKey, parentPageId, id);
