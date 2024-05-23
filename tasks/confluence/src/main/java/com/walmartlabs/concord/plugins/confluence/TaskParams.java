@@ -187,8 +187,8 @@ public class TaskParams {
             return variables.getMap(CONFLUENCE_PAGE_CONTENT_TEMPLATE_PARAMS, Collections.emptyMap());
         }
 
-        public int parentPageId() {
-            return variables.assertInt(CONFLUENCE_PARENTPAGE_ID);
+        public long parentPageId() {
+            return variables.assertLong(CONFLUENCE_PARENTPAGE_ID);
         }
     }
 
@@ -228,8 +228,8 @@ public class TaskParams {
             super(variables);
         }
 
-        public int pageId() {
-            return variables.assertInt(CONFLUENCE_PAGE_ID);
+        public long pageId() {
+            return variables.assertLong(CONFLUENCE_PAGE_ID);
         }
     }
 
@@ -241,8 +241,8 @@ public class TaskParams {
             super(variables);
         }
 
-        public int pageId() {
-            return variables.assertInt(CONFLUENCE_PAGE_ID);
+        public long pageId() {
+            return variables.assertLong(CONFLUENCE_PAGE_ID);
         }
     }
 
@@ -257,8 +257,8 @@ public class TaskParams {
         }
 
 
-        public int pageId() {
-            return variables.assertInt(CONFLUENCE_PAGE_ID);
+        public long pageId() {
+            return variables.assertLong(CONFLUENCE_PAGE_ID);
         }
 
         public String attachmentComment() {
@@ -279,8 +279,8 @@ public class TaskParams {
             super(variables);
         }
 
-        public int pageId() {
-            return variables.assertInt(CONFLUENCE_PAGE_ID);
+        public long pageId() {
+            return variables.assertLong(CONFLUENCE_PAGE_ID);
         }
 
         public String pageComment() {

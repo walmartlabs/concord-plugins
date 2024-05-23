@@ -24,7 +24,7 @@ import java.io.Serializable;
 
 public class Result implements Serializable {
 
-    public static Result ok(Integer pageId, Integer childId, String data) {
+    public static Result ok(Long pageId, Long childId, String data) {
         return new Result(true, pageId, childId, data, null);
     }
 
@@ -33,12 +33,12 @@ public class Result implements Serializable {
     }
 
     public final boolean ok;
-    public final Integer pageId;
-    public final Integer childId;
+    public final Long pageId;
+    public final Long childId;
     public final String data;
     public final String error;
 
-    public Result(boolean ok, Integer pageId, Integer childId, String data, String error) {
+    public Result(boolean ok, Long pageId, Long childId, String data, String error) {
         this.ok = ok;
         this.pageId = pageId;
         this.childId = childId;
@@ -50,11 +50,11 @@ public class Result implements Serializable {
         return ok;
     }
 
-    public Integer getpageId() {
+    public Long getpageId() {
         return pageId;
     }
 
-    public Integer getChildId() {
+    public Long getChildId() {
         return childId;
     }
 

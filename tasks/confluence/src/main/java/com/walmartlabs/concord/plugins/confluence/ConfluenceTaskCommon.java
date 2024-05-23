@@ -106,7 +106,7 @@ public class ConfluenceTaskCommon {
                     .url("content/")
                     .post(objMain);
 
-            Integer id = Integer.parseInt(results.get("id").toString());
+            Long id = Long.parseLong(results.get("id").toString());
 
             log.info("Confluence page with title '{}' is created under space '{}' and its Id is: '{}'.",
                     pageTitle, spaceKey, id);
@@ -128,10 +128,10 @@ public class ConfluenceTaskCommon {
         String pageUpdate;
         try {
             //Get confluence page id
-            int pageId = Integer.parseInt(Utils.getPageId(in, pageTitle, spaceKey));
+            long pageId = Long.parseLong(Utils.getPageId(in, pageTitle, spaceKey));
             log.info("Id of page '{}/{}': '{}'.", spaceKey, pageTitle, pageId);
 
-            int version = Integer.parseInt(Utils.getPageCurrentVersion(in, pageId));
+            long version = Long.parseLong(Utils.getPageCurrentVersion(in, pageId));
             log.info("Current version of page '{}/{}' is: '{}'.", spaceKey, pageTitle, version);
             log.info("Incrementing the page version accordingly as a part of 'updatePage' action...");
 
@@ -180,7 +180,7 @@ public class ConfluenceTaskCommon {
     }
 
     private Result addCommentsToPage(AddCommentsToPage in) {
-        int pageId = in.pageId();
+        long pageId = in.pageId();
 
         try {
             //Build JSON data
@@ -219,7 +219,7 @@ public class ConfluenceTaskCommon {
     }
 
     private Result uploadAttachment(UploadAttachmentParams in) {
-        int pageId = in.pageId();
+        long pageId = in.pageId();
         String attachmentComment = in.attachmentComment();
 
         try {
@@ -246,7 +246,7 @@ public class ConfluenceTaskCommon {
         String childPageContent = in.childPageContent();
         String template = in.template();
         Map<String, Object> templateParams = in.templateParams();
-        int parentPageId = in.parentPageId();
+        long parentPageId = in.parentPageId();
 
         try {
             //Build JSON data
@@ -278,7 +278,7 @@ public class ConfluenceTaskCommon {
                     .url("content/")
                     .post(objMain);
 
-            Integer id = Integer.parseInt(results.get("id").toString());
+            Long id = Long.parseLong(results.get("id").toString());
 
             log.info("Child page '{}' is created under parent# '{}/{}' and its Id is: '{}'",
                     childPageTitle, spaceKey, parentPageId, id);
@@ -295,7 +295,7 @@ public class ConfluenceTaskCommon {
     }
 
     private Result deletePage(DeletePageParams in) {
-        int pageId = in.pageId();
+        long pageId = in.pageId();
 
         try {
             log.info("Deleting confluence page# '{}''...", pageId);
