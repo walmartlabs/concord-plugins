@@ -56,7 +56,7 @@ public class Utils {
     }
 
     @SuppressWarnings("unchecked")
-    public static String getPageCurrentVersion(TaskParams in, int pageId) {
+    public static String getPageCurrentVersion(TaskParams in, long pageId) {
         Map<String, Object> results;
 
         try {
@@ -77,7 +77,7 @@ public class Utils {
     }
 
     @SuppressWarnings("unchecked")
-    public static String getPageContent(TaskParams in, int pageId) {
+    public static String getPageContent(TaskParams in, long pageId) {
         Map<String, Object> results;
 
         try {
