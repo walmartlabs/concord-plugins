@@ -261,8 +261,11 @@ public class ArgoCdTask implements Task {
             V1alpha1Application application = objectMapper.buildApplicationObject(in);
             ArgoCdClient client = new ArgoCdClient(in);
             V1alpha1Application app = client.createApp(application, in.upsert());
-            app = client.waitForSync(in.app(), app.getMetadata().getResourceVersion(), in.syncTimeout(),
-                    toWatchParams(false));
+            if(in.waitForSync()) {
+                app = client.waitForSync(in.app(), app.getMetadata().getResourceVersion(), in.syncTimeout(),
+                        toWatchParams(in.watchHealth()));
+            }
+
             return TaskResult.success()
                     .value("app", toMap(app));
         } finally {

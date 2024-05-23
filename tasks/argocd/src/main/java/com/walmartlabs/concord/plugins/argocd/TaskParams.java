@@ -217,6 +217,12 @@ public interface TaskParams {
         @Nullable
         Map<String, Object> spec();
 
+        @Value.Default
+        default boolean waitForSync() { return true; }
+
+        @Value.Default
+        default boolean watchHealth() { return false; }
+
         interface GitRepo {
             String repoUrl();
 
@@ -266,6 +272,12 @@ public interface TaskParams {
         String app();
 
         Map<String, Object> spec();
+
+        @Value.Default
+        default Boolean waitFoSync() { return false; }
+
+        @Value.Default
+        default Boolean watchHealth() { return false; }
     }
 
     interface SetAppParams extends TaskParams {

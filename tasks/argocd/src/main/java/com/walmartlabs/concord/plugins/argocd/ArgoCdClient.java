@@ -51,6 +51,7 @@ import javax.net.ssl.SSLContext;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Duration;
@@ -78,7 +79,10 @@ public class ArgoCdClient {
     }
 
     private static V1alpha1Application getApp(String app, boolean refresh, ApplicationServiceApi api) throws ApiException {
-        return api.applicationServiceGet(app, Boolean.toString(refresh), null, null, null, null, null);
+        log.info("Get application start {}", new Date().toString());
+        V1alpha1Application app1 = api.applicationServiceGet(app, Boolean.toString(refresh), null, null, null, null, null);
+        log.info("Get application end {}", new Date().toString());
+        return app1;
     }
 
     public void deleteApp(String app, boolean cascade, String propagationPolicy) throws ApiException {
@@ -96,10 +100,7 @@ public class ArgoCdClient {
 
     public void patchApp(String app, List<Map<String, Object>> patch) throws IOException, ApiException {
         ApplicationServiceApi api = new ApplicationServiceApi(this.client);
-        ApplicationApplicationPatchRequest patchRequest = new ApplicationApplicationPatchRequest()
-                .name(app)
-                .patch(MAPPER.writeValueAsString(patch))
-                .patchType("json");
+        ApplicationApplicationPatchRequest patchRequest = new ApplicationApplicationPatchRequest().name(app).patch(MAPPER.writeValueAsString(patch)).patchType("json");
         api.applicationServicePatch(app, patchRequest);
     }
 
@@ -123,85 +124,71 @@ public class ArgoCdClient {
             resources.add(resourceOb);
         }
         ApplicationApplicationSyncRequest syncRequest = new ApplicationApplicationSyncRequest();
-        syncRequest.dryRun(in.dryRun())
-                .prune(in.prune())
-                .retryStrategy(MAPPER.mapToModel(in.retryStrategy(), V1alpha1RetryStrategy.class))
-                .resources(resources)
-                .strategy(MAPPER.mapToModel(in.strategy(), V1alpha1SyncStrategy.class));
+        syncRequest.dryRun(in.dryRun()).prune(in.prune()).retryStrategy(MAPPER.mapToModel(in.retryStrategy(), V1alpha1RetryStrategy.class)).resources(resources).strategy(MAPPER.mapToModel(in.strategy(), V1alpha1SyncStrategy.class));
         return api.applicationServiceSync(in.app(), syncRequest);
     }
 
-    static V1alpha1Application getAppWatchEvent(String app,
-                                                ApiClient client,
-                                                HttpUriRequest request,
-                                                WaitWatchParams p,
-                                                ApplicationServiceApi appApi) throws Exception {
+    static V1alpha1Application getAppWatchEvent(String app, ApiClient client, HttpUriRequest request, WaitWatchParams p, ApplicationServiceApi appApi) throws Exception {
 
-            try (CloseableHttpResponse response = client.getHttpClient().execute(request);
-                 BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(response.getEntity().getContent()))) {
-                String line;
-
-                while ((line = bufferedReader.readLine()) != null) {
-                    StreamResultOfV1alpha1ApplicationWatchEvent result = MAPPER.readValue(line, StreamResultOfV1alpha1ApplicationWatchEvent.class);
-                    if (result.getError() != null) {
-                        throw new RuntimeException("Error waiting for status: " + result.getError());
-                    }
-
-                    if (result.getResult() == null) {
-                        throw new RuntimeException("Error waiting for status: no application");
-                    }
-
-                    boolean operationInProgress;
-                    boolean refreshApp = false;
-                    V1alpha1Application a = Optional.ofNullable(result.getResult().getApplication())
-                            .orElseThrow(() -> new IllegalStateException("No no application info in response"));
-
-                    // consider the operation is in progress
-                    if (a.getOperation() != null) {
-                        // if it just got requested
-                        operationInProgress = true;
-                        if (Boolean.FALSE.equals(Optional.ofNullable(a.getOperation())
-                                .map(V1alpha1Operation::getSync)
-                                .map(V1alpha1SyncOperation::getDryRun)
-                                .orElse(false))) {
-                            refreshApp = true;
-                        }
-                    } else {
-                        operationInProgress = isInProgress(a);
-                    }
-
-                    // Wait on the application as a whole
-                    // TODO: support for defined resources
-                    boolean selectedResourcesAreReady = checkResourceStatus(p, healthStatus(a), syncStatus(a), a.getOperation());
-                    log.info("Selected resources are ready? {}", selectedResourcesAreReady);
-                    if (selectedResourcesAreReady && (!operationInProgress || !p.watchOperation())) {
-                        if (refreshApp) {
-                            return getApp(app, true, appApi);
-                        }
-                        return a;
-                    }
+        log.info("start get appwatch events {}", new Date().toString());
+        try (CloseableHttpResponse response = client.getHttpClient().execute(request)) {
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+            String line;
+            while ((line = bufferedReader.readLine()) != null) {
+                log.info("Checking streaming buffer {}", new Date().toString());
+                StreamResultOfV1alpha1ApplicationWatchEvent result = MAPPER.readValue(line, StreamResultOfV1alpha1ApplicationWatchEvent.class);
+                if (result.getError() != null) {
+                    throw new RuntimeException("Error waiting for status: " + result.getError());
                 }
 
+                if (result.getResult() == null) {
+                    throw new RuntimeException("Error waiting for status: no application");
+                }
+
+                boolean operationInProgress;
+                boolean refreshApp = false;
+                V1alpha1Application a = Optional.ofNullable(result.getResult().getApplication()).orElseThrow(() -> new IllegalStateException("No no application info in response"));
+
+                // consider the operation is in progress
+                if (a.getOperation() != null) {
+                    // if it just got requested
+                    operationInProgress = true;
+                    if (Boolean.FALSE.equals(Optional.ofNullable(a.getOperation()).map(V1alpha1Operation::getSync).map(V1alpha1SyncOperation::getDryRun).orElse(false))) {
+                        refreshApp = true;
+                    }
+                } else {
+                    operationInProgress = isInProgress(a);
+                }
+
+                // Wait on the application as a whole
+                // TODO: support for defined resources
+                boolean selectedResourcesAreReady = checkResourceStatus(p, healthStatus(a), syncStatus(a), a.getOperation());
+                log.info("Selected resources are ready? {}, {}", (selectedResourcesAreReady && (!operationInProgress || !p.watchOperation())), new Date().toString());
+                if (selectedResourcesAreReady && (!operationInProgress || !p.watchOperation())) {
+                    if (refreshApp) {
+                        log.info("loading application in main attempt {}", new Date().toString());
+                        V1alpha1Application app1 = getApp(app, true, appApi);
+                        log.info("application returned {}", new Date().toString());
+                        return app1;
+                    }
+                    log.info("Retruning application, {}", new Date().toString());
+                    return a;
+                }
             }
-            throw new IllegalStateException("No sync status returned");
+        }
+        throw new IllegalStateException("No sync status returned");
     }
 
     private static boolean isInProgress(V1alpha1Application a) {
-        return Optional.ofNullable(a.getStatus())
-                .map(V1alpha1ApplicationStatus::getOperationState)
+        return Optional.ofNullable(a.getStatus()).map(V1alpha1ApplicationStatus::getOperationState)
                 // ignore dry runs
-                .filter(opState -> !Optional.ofNullable(opState.getOperation())
-                        .map(V1alpha1Operation::getSync)
-                        .map(V1alpha1SyncOperation::getDryRun)
+                .filter(opState -> !Optional.ofNullable(opState.getOperation()).map(V1alpha1Operation::getSync).map(V1alpha1SyncOperation::getDryRun)
                         // assume non-dryRun if not found
                         .orElse(false))
                 // see if last reconcile time is before finishedAt time
                 .map(opState -> {
-                    Optional<OffsetDateTime> rawFinishedAt = Optional.ofNullable(opState.getFinishedAt())
-                            .map(OffsetDateTime::parse);
-                    Optional<OffsetDateTime> rawReconciledAt = Optional.ofNullable(a.getStatus())
-                            .map(V1alpha1ApplicationStatus::getReconciledAt)
-                            .map(OffsetDateTime::parse);
+                    Optional<OffsetDateTime> rawFinishedAt = Optional.ofNullable(opState.getFinishedAt()).map(OffsetDateTime::parse);
+                    Optional<OffsetDateTime> rawReconciledAt = Optional.ofNullable(a.getStatus()).map(V1alpha1ApplicationStatus::getReconciledAt).map(OffsetDateTime::parse);
 
                     boolean comparable = rawFinishedAt.isPresent() && rawReconciledAt.isPresent();
                     return comparable &&
@@ -214,17 +201,9 @@ public class ArgoCdClient {
 
     public V1alpha1Application waitForSync(String appName, String resourceVersion, Duration waitTimeout, WaitWatchParams p) throws URISyntaxException {
         log.info("Waiting for application to sync.");
-        URI uri = new URIBuilder(URI.create(client.getBasePath()))
-                .setPath("api/v1/stream/applications")
-                .addParameter("name", appName)
-                .addParameter("resourceVersion", resourceVersion)
-                .build();
+        URI uri = new URIBuilder(URI.create(client.getBasePath())).setPath("api/v1/stream/applications").addParameter("name", appName).addParameter("resourceVersion", resourceVersion).build();
         waitTimeout = (waitTimeout == null) ? Duration.ZERO : waitTimeout;
-        HttpUriRequest request = RequestBuilder.get(uri)
-                .setConfig(RequestConfig.custom()
-                        .setSocketTimeout((int) waitTimeout.toMillis())
-                        .build())
-                .build();
+        HttpUriRequest request = RequestBuilder.get(uri).setConfig(RequestConfig.custom().setSocketTimeout((int) waitTimeout.toMillis()).build()).build();
 
         Callable<V1alpha1Application> mainAttempt = () -> getAppWatchEvent(appName, client, request, p, new ApplicationServiceApi(client));
         Callable<Optional<V1alpha1Application>> fallback = () -> {
@@ -235,21 +214,15 @@ public class ArgoCdClient {
             return Optional.empty();
         };
 
-        return new CallRetry<>(mainAttempt, fallback).attemptWithRetry(RETRY_LIMIT);
+        return new CallRetry<>(mainAttempt, fallback, List.of(SocketTimeoutException.class)).attemptWithRetry(RETRY_LIMIT);
     }
 
     private static String healthStatus(V1alpha1Application app) {
-        return Optional.ofNullable(app.getStatus())
-                .map(V1alpha1ApplicationStatus::getHealth)
-                .map(V1alpha1HealthStatus::getStatus)
-                .orElse("unknown");
+        return Optional.ofNullable(app.getStatus()).map(V1alpha1ApplicationStatus::getHealth).map(V1alpha1HealthStatus::getStatus).orElse("unknown");
     }
 
     private static String syncStatus(V1alpha1Application app) {
-        return Optional.ofNullable(app.getStatus())
-                .map(V1alpha1ApplicationStatus::getSync)
-                .map(V1alpha1SyncStatus::getStatus)
-                .orElse("unknown");
+        return Optional.ofNullable(app.getStatus()).map(V1alpha1ApplicationStatus::getSync).map(V1alpha1SyncStatus::getStatus).orElse("unknown");
     }
 
     public V1alpha1Application createApp(V1alpha1Application application, boolean upsert) throws RuntimeException, ApiException {
@@ -329,9 +302,7 @@ public class ArgoCdClient {
         project.put("spec", spec);
         V1alpha1AppProject projectObject = MAPPER.mapToModel(project, V1alpha1AppProject.class);
 
-        ProjectProjectCreateRequest createRequest = new ProjectProjectCreateRequest()
-                .project(projectObject)
-                .upsert(in.upsert());
+        ProjectProjectCreateRequest createRequest = new ProjectProjectCreateRequest().project(projectObject).upsert(in.upsert());
 
         return api.projectServiceCreate(createRequest);
     }
@@ -340,8 +311,7 @@ public class ArgoCdClient {
     private static boolean checkResourceStatus(WaitWatchParams p, String healthStatus, String syncStatus, V1alpha1Operation operation) {
         boolean healthCheckPassed = true;
         if (p.watchSuspended() && p.watchHealth()) {
-            healthCheckPassed = HealthStatus.HEALTHY.value().equals(healthStatus) ||
-                    HealthStatus.SUSPENDED.value().equals(healthStatus);
+            healthCheckPassed = HealthStatus.HEALTHY.value().equals(healthStatus) || HealthStatus.SUSPENDED.value().equals(healthStatus);
         } else if (p.watchSuspended()) {
             healthCheckPassed = HealthStatus.SUSPENDED.value().equals(healthStatus);
         } else if (p.watchHealth()) {
@@ -359,17 +329,11 @@ public class ArgoCdClient {
         if (!in.validateCerts()) {
             TrustStrategy acceptingTrustStrategy = (cert, authType) -> true;
             SSLContext sslContext = SSLContexts.custom().loadTrustMaterial(null, acceptingTrustStrategy).build();
-            SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext,
-                    NoopHostnameVerifier.INSTANCE);
+            SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, NoopHostnameVerifier.INSTANCE);
 
-            Registry<ConnectionSocketFactory> socketFactoryRegistry =
-                    RegistryBuilder.<ConnectionSocketFactory>create()
-                            .register("https", sslsf)
-                            .register("http", new PlainConnectionSocketFactory())
-                            .build();
+            Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create().register("https", sslsf).register("http", new PlainConnectionSocketFactory()).build();
 
-            BasicHttpClientConnectionManager connectionManager =
-                    new BasicHttpClientConnectionManager(socketFactoryRegistry);
+            BasicHttpClientConnectionManager connectionManager = new BasicHttpClientConnectionManager(socketFactoryRegistry);
             builder.setSSLSocketFactory(sslsf).setConnectionManager(connectionManager);
         }
         String apiKey;
