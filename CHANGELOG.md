@@ -1,5 +1,13 @@
 # Change log
 
+## [2.0.1] - 2024-05-23
+
+### Changed
+
+- confluence: handle page IDs as long values
+  ([#147](https://github.com/walmartlabs/concord-plugins/pull/147)).
+
+
 ## [2.0.0] - 2024-02-07
 
 ### Added
