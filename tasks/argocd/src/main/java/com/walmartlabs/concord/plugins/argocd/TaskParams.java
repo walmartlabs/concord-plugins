@@ -274,10 +274,13 @@ public interface TaskParams {
         Map<String, Object> spec();
 
         @Value.Default
-        default Boolean waitFoSync() { return false; }
+        default boolean waitForSync() { return false; }
 
         @Value.Default
-        default Boolean watchHealth() { return false; }
+        default boolean watchHealth() { return false; }
+
+        @Nullable
+        Duration syncTimeout();
     }
 
     interface SetAppParams extends TaskParams {

@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
 import javax.inject.Named;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -180,10 +181,21 @@ public class ArgoCdTask implements Task {
 
             appSpec = ConfigurationUtils.deepMerge(appSpec, in.spec());
             V1alpha1ApplicationSpec specObject = objectMapper.mapToModel(appSpec, V1alpha1ApplicationSpec.class);
-            V1alpha1ApplicationSpec result = client.updateAppSpec(in.app(), specObject);
+            client.updateAppSpec(in.app(), specObject);
+            if(in.waitForSync()) {
+                app = client.getApp(in.app(), false);
+                // If other sync operation is not in progress then sync the application.
+                if(!ArgoCdClient.isInProgress(app)) {
+                    ApplicationApplicationSyncRequest syncRequest = new ApplicationApplicationSyncRequest();
+                    syncRequest.dryRun(false).prune(false).retryStrategy(objectMapper.mapToModel(Collections.emptyMap(), V1alpha1RetryStrategy.class)).resources(null).strategy(objectMapper.mapToModel(Collections.emptyMap(), V1alpha1SyncStrategy.class));
+                    client.syncApplication(in.app(),syncRequest);
+                }
+                app = client.waitForSync(in.app(), app.getMetadata().getResourceVersion(), in.syncTimeout(),
+                        toWatchParams(in.watchHealth()));
+            }
 
             return TaskResult.success()
-                    .value("spec", toMap(result));
+                    .value("spec", toMap(app));
         } finally {
             lockService.projectUnlock(in.app());
         }
@@ -262,6 +274,13 @@ public class ArgoCdTask implements Task {
             ArgoCdClient client = new ArgoCdClient(in);
             V1alpha1Application app = client.createApp(application, in.upsert());
             if(in.waitForSync()) {
+                app = client.getApp(in.app(), false);
+                // If other sync operation is not in progress then sync the application.
+                if(!client.isInProgress(app)) {
+                    ApplicationApplicationSyncRequest syncRequest = new ApplicationApplicationSyncRequest();
+                    syncRequest.dryRun(false).prune(false).retryStrategy(objectMapper.mapToModel(Collections.emptyMap(), V1alpha1RetryStrategy.class)).resources(null).strategy(objectMapper.mapToModel(Collections.emptyMap(), V1alpha1SyncStrategy.class));
+                    client.syncApplication(in.app(),syncRequest);
+                }
                 app = client.waitForSync(in.app(), app.getMetadata().getResourceVersion(), in.syncTimeout(),
                         toWatchParams(in.watchHealth()));
             }

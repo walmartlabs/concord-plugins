@@ -69,7 +69,10 @@ public class ArgoCdClient {
 
     private static final int RETRY_LIMIT = 5;
 
+    private TaskParams taskParams;
+
     public ArgoCdClient(TaskParams in) throws Exception {
+        this.taskParams = in;
         this.client = createClient(in);
     }
 
@@ -113,7 +116,6 @@ public class ArgoCdClient {
     }
 
     private V1alpha1Application syncApplication(TaskParams.SyncParams in) throws IOException, ApiException {
-        ApplicationServiceApi api = new ApplicationServiceApi(client);
         List<V1alpha1SyncOperationResource> resources = new ArrayList<>();
         for (TaskParams.SyncParams.Resource resource : in.resources()) {
             V1alpha1SyncOperationResource resourceOb = new V1alpha1SyncOperationResource();
@@ -125,13 +127,18 @@ public class ArgoCdClient {
         }
         ApplicationApplicationSyncRequest syncRequest = new ApplicationApplicationSyncRequest();
         syncRequest.dryRun(in.dryRun()).prune(in.prune()).retryStrategy(MAPPER.mapToModel(in.retryStrategy(), V1alpha1RetryStrategy.class)).resources(resources).strategy(MAPPER.mapToModel(in.strategy(), V1alpha1SyncStrategy.class));
-        return api.applicationServiceSync(in.app(), syncRequest);
+        return syncApplication(in.app(), syncRequest);
+    }
+
+    public V1alpha1Application syncApplication(String app, ApplicationApplicationSyncRequest syncRequest) throws IOException, ApiException {
+        ApplicationServiceApi api = new ApplicationServiceApi(client);
+        return api.applicationServiceSync(app, syncRequest);
     }
 
     static V1alpha1Application getAppWatchEvent(String app, ApiClient client, HttpUriRequest request, WaitWatchParams p, ApplicationServiceApi appApi) throws Exception {
 
         log.info("start get appwatch events {}", new Date().toString());
-        try (CloseableHttpResponse response = client.getHttpClient().execute(request)) {
+        try (CloseableHttpResponse response = client.getHttpClient().execute(request);) {
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
             String line;
             while ((line = bufferedReader.readLine()) != null) {
@@ -179,7 +186,7 @@ public class ArgoCdClient {
         throw new IllegalStateException("No sync status returned");
     }
 
-    private static boolean isInProgress(V1alpha1Application a) {
+    static boolean isInProgress(V1alpha1Application a) {
         return Optional.ofNullable(a.getStatus()).map(V1alpha1ApplicationStatus::getOperationState)
                 // ignore dry runs
                 .filter(opState -> !Optional.ofNullable(opState.getOperation()).map(V1alpha1Operation::getSync).map(V1alpha1SyncOperation::getDryRun)
@@ -199,13 +206,14 @@ public class ArgoCdClient {
                 .orElse(false);
     }
 
-    public V1alpha1Application waitForSync(String appName, String resourceVersion, Duration waitTimeout, WaitWatchParams p) throws URISyntaxException {
+    public V1alpha1Application waitForSync(String appName, String resourceVersion, Duration waitTimeout, WaitWatchParams p) throws Exception {
         log.info("Waiting for application to sync.");
-        URI uri = new URIBuilder(URI.create(client.getBasePath())).setPath("api/v1/stream/applications").addParameter("name", appName).addParameter("resourceVersion", resourceVersion).build();
+        ApiClient apiClient = createClient(taskParams);
+        URI uri = new URIBuilder(URI.create(taskParams.baseUrl())).setPath("api/v1/stream/applications").addParameter("name", appName).addParameter("resourceVersion", resourceVersion).build();
         waitTimeout = (waitTimeout == null) ? Duration.ZERO : waitTimeout;
         HttpUriRequest request = RequestBuilder.get(uri).setConfig(RequestConfig.custom().setSocketTimeout((int) waitTimeout.toMillis()).build()).build();
 
-        Callable<V1alpha1Application> mainAttempt = () -> getAppWatchEvent(appName, client, request, p, new ApplicationServiceApi(client));
+        Callable<V1alpha1Application> mainAttempt = () -> getAppWatchEvent(appName, apiClient, request, p, new ApplicationServiceApi(client));
         Callable<Optional<V1alpha1Application>> fallback = () -> {
             V1alpha1Application app = getApp(appName, true);
             if (checkResourceStatus(p, healthStatus(app), syncStatus(app), app.getOperation())) {
