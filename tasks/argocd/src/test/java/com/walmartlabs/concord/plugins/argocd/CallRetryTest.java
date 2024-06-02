@@ -27,10 +27,13 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 
+import java.net.SocketTimeoutException;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -47,7 +50,7 @@ class CallRetryTest {
     void test() throws Exception {
         when(primaryResp.call()).thenReturn("a");
 
-        String result = new CallRetry<>(primaryResp, fallbackResp).attemptWithRetry(2);
+        String result = new CallRetry<>(primaryResp, fallbackResp, Collections.emptyList()).attemptWithRetry(2);
 
         assertEquals("a", result);
         verify(primaryResp, times(1)).call();
@@ -59,11 +62,21 @@ class CallRetryTest {
         when(primaryResp.call()).thenThrow(new IllegalStateException("forced exception"));
         when(fallbackResp.call()).thenReturn(Optional.of("b"));
 
-        String result = new CallRetry<>(primaryResp, fallbackResp).attemptWithRetry(2);
+        String result = new CallRetry<>(primaryResp, fallbackResp, Collections.emptyList()).attemptWithRetry(2);
 
         assertEquals("b", result);
         verify(primaryResp, times(1)).call();
         verify(fallbackResp, times(1)).call();
+    }
+
+    @Test
+    void testPrimaryFailWithExpectedException() throws Exception {
+        when(primaryResp.call()).thenThrow(new SocketTimeoutException("forced exception"));
+        CallRetry<String> callRetry = new CallRetry<>(primaryResp, fallbackResp, List.of(SocketTimeoutException.class));
+        Exception e = assertThrows(RuntimeException.class, () -> callRetry.attemptWithRetry(2));
+        assertEquals(e.getMessage(), "java.net.SocketTimeoutException: forced exception");
+        verify(primaryResp, times(1)).call();
+        verify(fallbackResp, times(0)).call();
     }
 
     @Test
@@ -81,7 +94,7 @@ class CallRetryTest {
         });
         when(fallbackResp.call()).thenReturn(Optional.empty());
 
-        String result = new CallRetry<>(primaryResp, fallbackResp).attemptWithRetry(2);
+        String result = new CallRetry<>(primaryResp, fallbackResp, Collections.emptyList()).attemptWithRetry(2);
 
         assertEquals("a", result);
         verify(primaryResp, times(2)).call();

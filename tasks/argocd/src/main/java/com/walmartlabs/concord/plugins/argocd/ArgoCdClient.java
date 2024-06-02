@@ -51,6 +51,7 @@ import javax.net.ssl.SSLContext;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Duration;
@@ -137,8 +138,8 @@ public class ArgoCdClient {
                                                 WaitWatchParams p,
                                                 ApplicationServiceApi appApi) throws Exception {
 
-            try (CloseableHttpResponse response = client.getHttpClient().execute(request);
-                 BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(response.getEntity().getContent()))) {
+            try (CloseableHttpResponse response = client.getHttpClient().execute(request)) {
+                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
                 String line;
 
                 while ((line = bufferedReader.readLine()) != null) {
@@ -235,7 +236,7 @@ public class ArgoCdClient {
             return Optional.empty();
         };
 
-        return new CallRetry<>(mainAttempt, fallback).attemptWithRetry(RETRY_LIMIT);
+        return new CallRetry<>(mainAttempt, fallback, List.of(SocketTimeoutException.class) ).attemptWithRetry(RETRY_LIMIT);
     }
 
     private static String healthStatus(V1alpha1Application app) {

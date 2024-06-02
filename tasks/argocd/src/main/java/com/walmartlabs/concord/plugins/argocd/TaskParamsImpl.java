@@ -427,6 +427,8 @@ public class TaskParamsImpl implements TaskParams {
         private static final String SYNC_TIMEOUT_KEY = "syncTimeout";
         private static final String SPEC_KEY = "spec";
         private static final String UPSERT_KEY = "upsert";
+        private static final String WAIT_FOR_SYNC_KEY = "waitForSync";
+        private static final String WATCH_HEALTH_KEY = "watchHealth";
 
         protected CreateParamsImpl(Variables variables) {
             super(variables);
@@ -445,6 +447,16 @@ public class TaskParamsImpl implements TaskParams {
         @Override
         public String namespace() {
             return variables.assertString(NAMESPACE_KEY);
+        }
+
+        @Override
+        public boolean waitForSync() {
+            return variables.getBoolean(WAIT_FOR_SYNC_KEY, CreateUpdateParams.super.waitForSync());
+        }
+
+        @Override
+        public boolean watchHealth() {
+            return variables.getBoolean(WATCH_HEALTH_KEY, CreateUpdateParams.super.watchHealth());
         }
 
         @Override
@@ -759,10 +771,35 @@ public class TaskParamsImpl implements TaskParams {
 
         private static final String APP_KEY = "app";
         private static final String SPEC_KEY = "spec";
+        private static final String WAIT_FOR_SYNC_KEY = "waitForSync";
+        private static final String WATCH_HEALTH_KEY = "watchHealth";
+        private static final String SYNC_TIMEOUT_KEY = "syncTimeout";
 
         protected UpdateSpecParamsImpl(Variables variables) {
             super(variables);
         }
+
+        @Nullable
+        @Override
+        public Duration syncTimeout() {
+            String value = variables.getString(SYNC_TIMEOUT_KEY);
+            if (value == null) {
+                return null;
+            }
+
+            return Duration.parse(value);
+        }
+
+        @Override
+        public boolean waitForSync() {
+            return variables.getBoolean(WAIT_FOR_SYNC_KEY, UpdateSpecParams.super.waitForSync());
+        }
+
+        @Override
+        public boolean watchHealth() {
+            return variables.getBoolean(WATCH_HEALTH_KEY, UpdateSpecParams.super.watchHealth());
+        }
+
 
         @Override
         public String app() {
@@ -847,7 +884,7 @@ public class TaskParamsImpl implements TaskParams {
         }
     }
 
-    private static class SyncParamsImpl extends TaskParamsImpl implements SyncParams {
+    public static class SyncParamsImpl extends TaskParamsImpl implements SyncParams {
 
         private static class ResourceImpl implements SyncParams.Resource {
 
