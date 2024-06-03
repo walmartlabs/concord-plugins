@@ -884,7 +884,7 @@ public class TaskParamsImpl implements TaskParams {
         }
     }
 
-    public static class SyncParamsImpl extends TaskParamsImpl implements SyncParams {
+    private static class SyncParamsImpl extends TaskParamsImpl implements SyncParams {
 
         private static class ResourceImpl implements SyncParams.Resource {
 

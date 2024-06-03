@@ -30,14 +30,14 @@ public class CallRetry<R> {
     private static final Logger log = LoggerFactory.getLogger(CallRetry.class);
     private final Callable<R> mainAttempt;
     private final Collection<Callable<Optional<R>>> fallbackAttempts;
-    private final List<Class<? extends Exception>> exceptionsToNotRetry;
+    private final Set<Class<? extends Exception>> exceptionsToNotRetry;
 
     /**
      * @param mainAttempt Primary call to attempt to execute
      * @param fallbackAttempt Fallback call which will be attempted if the main call throws an exception.
      * @param exceptionsToNotRetry dont retry for these exceptions
      */
-    public CallRetry(Callable<R> mainAttempt, Callable<Optional<R>> fallbackAttempt, List<Class<? extends Exception>> exceptionsToNotRetry) {
+    public CallRetry(Callable<R> mainAttempt, Callable<Optional<R>> fallbackAttempt, Set<Class<? extends Exception>> exceptionsToNotRetry) {
         this.mainAttempt = mainAttempt;
         this.fallbackAttempts = Collections.singleton(fallbackAttempt);
         this.exceptionsToNotRetry = exceptionsToNotRetry;
@@ -51,33 +51,27 @@ public class CallRetry<R> {
      * @return Results of main call, or fallback result if data is present after main failure
      */
     public R attemptWithRetry(int maxTries) {
-        log.info("attempt with retry start {}", new Date().toString());
         Throwable lastError = null;
 
         int attemptsMade = 0;
         while (attemptsMade++ < maxTries) {
             try {
                 R out = mainAttempt.call();
-                log.info("after main attempt {}", new Date().toString());
                 return out;
             } catch (Exception e) {
-                if(exceptionsToNotRetry.stream().anyMatch(exceptionToNotRetry -> e.getClass().equals(exceptionToNotRetry))) {
+                if(exceptionsToNotRetry.stream().anyMatch(exceptionToNotRetry -> exceptionToNotRetry.isInstance(e))) {
                     throw new RuntimeException(e);
                 }
-                log.info("Exception in main attempt {}, e", new Date().toString(), e);
                 lastError = e;
             }
 
             // if any of these returns cleanly then that's good enough
             for (Callable<Optional<R>> c : fallbackAttempts) {
-                log.info("Running fallback attempt {}", new Date().toString());
                 try {
                     Optional<R> result = c.call();
 
                     if (result.isPresent()) {
-                        R out = result.get();
-                        log.info("after fallback attempt {}", new Date().toString());
-                        return out;
+                        return result.get();
                     }
                 } catch (Exception e) {
                     log.warn("Error attempting fallback: {}", e.getMessage());

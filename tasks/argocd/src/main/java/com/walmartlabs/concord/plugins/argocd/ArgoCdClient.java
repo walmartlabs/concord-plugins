@@ -236,7 +236,7 @@ public class ArgoCdClient {
             return Optional.empty();
         };
 
-        return new CallRetry<>(mainAttempt, fallback, List.of(SocketTimeoutException.class) ).attemptWithRetry(RETRY_LIMIT);
+        return new CallRetry<>(mainAttempt, fallback, Set.of(SocketTimeoutException.class) ).attemptWithRetry(RETRY_LIMIT);
     }
 
     private static String healthStatus(V1alpha1Application app) {

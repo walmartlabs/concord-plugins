@@ -31,6 +31,7 @@ import java.net.SocketTimeoutException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Callable;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -50,7 +51,7 @@ class CallRetryTest {
     void test() throws Exception {
         when(primaryResp.call()).thenReturn("a");
 
-        String result = new CallRetry<>(primaryResp, fallbackResp, Collections.emptyList()).attemptWithRetry(2);
+        String result = new CallRetry<>(primaryResp, fallbackResp, Collections.emptySet()).attemptWithRetry(2);
 
         assertEquals("a", result);
         verify(primaryResp, times(1)).call();
@@ -62,7 +63,7 @@ class CallRetryTest {
         when(primaryResp.call()).thenThrow(new IllegalStateException("forced exception"));
         when(fallbackResp.call()).thenReturn(Optional.of("b"));
 
-        String result = new CallRetry<>(primaryResp, fallbackResp, Collections.emptyList()).attemptWithRetry(2);
+        String result = new CallRetry<>(primaryResp, fallbackResp, Collections.emptySet()).attemptWithRetry(2);
 
         assertEquals("b", result);
         verify(primaryResp, times(1)).call();
@@ -72,7 +73,7 @@ class CallRetryTest {
     @Test
     void testPrimaryFailWithExpectedException() throws Exception {
         when(primaryResp.call()).thenThrow(new SocketTimeoutException("forced exception"));
-        CallRetry<String> callRetry = new CallRetry<>(primaryResp, fallbackResp, List.of(SocketTimeoutException.class));
+        CallRetry<String> callRetry = new CallRetry<>(primaryResp, fallbackResp, Set.of(SocketTimeoutException.class));
         Exception e = assertThrows(RuntimeException.class, () -> callRetry.attemptWithRetry(2));
         assertEquals(e.getMessage(), "java.net.SocketTimeoutException: forced exception");
         verify(primaryResp, times(1)).call();
@@ -94,7 +95,7 @@ class CallRetryTest {
         });
         when(fallbackResp.call()).thenReturn(Optional.empty());
 
-        String result = new CallRetry<>(primaryResp, fallbackResp, Collections.emptyList()).attemptWithRetry(2);
+        String result = new CallRetry<>(primaryResp, fallbackResp, Collections.emptySet()).attemptWithRetry(2);
 
         assertEquals("a", result);
         verify(primaryResp, times(2)).call();
