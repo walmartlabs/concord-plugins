@@ -56,12 +56,15 @@ public class CallRetry<R> {
         int attemptsMade = 0;
         while (attemptsMade++ < maxTries) {
             try {
-                R out = mainAttempt.call();
-                return out;
+                return mainAttempt.call();
             } catch (Exception e) {
-                if(exceptionsToNotRetry.stream().anyMatch(exceptionToNotRetry -> exceptionToNotRetry.isInstance(e))) {
+                boolean isNotRetryable = exceptionsToNotRetry.stream()
+                        .anyMatch(clazz -> clazz.isInstance(e));
+
+                if (isNotRetryable) {
                     throw new RuntimeException(e);
                 }
+
                 lastError = e;
             }
 

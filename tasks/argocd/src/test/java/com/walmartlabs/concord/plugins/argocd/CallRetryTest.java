@@ -75,7 +75,7 @@ class CallRetryTest {
         when(primaryResp.call()).thenThrow(new SocketTimeoutException("forced exception"));
         CallRetry<String> callRetry = new CallRetry<>(primaryResp, fallbackResp, Set.of(SocketTimeoutException.class));
         Exception e = assertThrows(RuntimeException.class, () -> callRetry.attemptWithRetry(2));
-        assertEquals(e.getMessage(), "java.net.SocketTimeoutException: forced exception");
+        assertEquals("java.net.SocketTimeoutException: forced exception", e.getMessage());
         verify(primaryResp, times(1)).call();
         verify(fallbackResp, times(0)).call();
     }
