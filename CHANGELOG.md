@@ -1,5 +1,12 @@
 # Change log
 
+## [2.2.0] - TBD
+
+### Changed
+
+- argocd: new params for UpdateSpec and CreateUpdate actions. fix timeout issues
+  ([#151](https://github.com/walmartlabs/concord-plugins/pull/151)).
+
 ## [2.1.0] - 2024-05-23
 
 ### Changed
