@@ -23,6 +23,7 @@ package com.walmartlabs.concord.plugins.argocd;
 import com.walmartlabs.concord.runtime.v2.sdk.MapBackedVariables;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -89,4 +90,37 @@ public class TaskParamsImplTest {
         assertEquals("https://login.azure.com/cleint-1", ((TaskParams.AzureAuth)in.auth()).authority());
         assertTrue(((TaskParams.AzureAuth)in.auth()).scope().contains("user.read"));
     }
+
+
+    @Test
+    public void testUpdateSpecParams() {
+        Map<String, Object> authParams = new HashMap<>();
+
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("action", TaskParams.Action.UPDATESPEC.name());
+        vars.put("auth", Collections.singletonMap("azure", authParams));
+        vars.put("syncTimeout", "PT5M");
+
+        TaskParams.UpdateSpecParams in = (TaskParams.UpdateSpecParams) TaskParamsImpl.of(new MapBackedVariables(vars), Collections.emptyMap());
+        assertFalse(in.waitForSync());
+        assertFalse(in.watchHealth());
+        assertEquals(in.syncTimeout(), Duration.parse("PT5M"));
+    }
+
+
+    @Test
+    public void testCreateSpecParams() {
+        Map<String, Object> authParams = new HashMap<>();
+
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("action", TaskParams.Action.CREATE.name());
+        vars.put("auth", Collections.singletonMap("azure", authParams));
+        vars.put("syncTimeout", "PT5M");
+
+        TaskParams.CreateUpdateParams in = (TaskParams.CreateUpdateParams) TaskParamsImpl.of(new MapBackedVariables(vars), Collections.emptyMap());
+        assertTrue(in.waitForSync());
+        assertFalse(in.watchHealth());
+        assertEquals(in.syncTimeout(), Duration.parse("PT5M"));
+    }
+
 }

@@ -181,7 +181,9 @@ public class ArgoCdTask implements Task {
             appSpec = ConfigurationUtils.deepMerge(appSpec, in.spec());
             V1alpha1ApplicationSpec specObject = objectMapper.mapToModel(appSpec, V1alpha1ApplicationSpec.class);
             V1alpha1ApplicationSpec result = client.updateAppSpec(in.app(), specObject);
-
+            if (in.waitForSync()) {
+               client.waitForSync(in.app(), app.getMetadata().getResourceVersion(), in.syncTimeout(), toWatchParams(in.watchHealth()));
+            }
             return TaskResult.success()
                     .value("spec", toMap(result));
         } finally {
@@ -261,8 +263,10 @@ public class ArgoCdTask implements Task {
             V1alpha1Application application = objectMapper.buildApplicationObject(in);
             ArgoCdClient client = new ArgoCdClient(in);
             V1alpha1Application app = client.createApp(application, in.upsert());
-            app = client.waitForSync(in.app(), app.getMetadata().getResourceVersion(), in.syncTimeout(),
-                    toWatchParams(false));
+            if (in.waitForSync()){
+                app = client.waitForSync(in.app(), app.getMetadata().getResourceVersion(), in.syncTimeout(),
+                        toWatchParams(in.watchHealth()));
+            }
             return TaskResult.success()
                     .value("app", toMap(app));
         } finally {

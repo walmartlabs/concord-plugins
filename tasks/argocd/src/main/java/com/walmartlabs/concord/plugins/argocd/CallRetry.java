@@ -23,23 +23,24 @@ package com.walmartlabs.concord.plugins.argocd;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.Callable;
 
 public class CallRetry<R> {
     private static final Logger log = LoggerFactory.getLogger(CallRetry.class);
     private final Callable<R> mainAttempt;
     private final Collection<Callable<Optional<R>>> fallbackAttempts;
+    private final Set<Class<? extends Exception>> exceptionsToNotRetry;
 
     /**
      * @param mainAttempt Primary call to attempt to execute
      * @param fallbackAttempt Fallback call which will be attempted if the main call throws an exception.
+     * @param exceptionsToNotRetry dont retry for these exceptions
      */
-    public CallRetry(Callable<R> mainAttempt, Callable<Optional<R>> fallbackAttempt) {
+    public CallRetry(Callable<R> mainAttempt, Callable<Optional<R>> fallbackAttempt, Set<Class<? extends Exception>> exceptionsToNotRetry) {
         this.mainAttempt = mainAttempt;
         this.fallbackAttempts = Collections.singleton(fallbackAttempt);
+        this.exceptionsToNotRetry = exceptionsToNotRetry;
     }
 
     /**
@@ -57,6 +58,13 @@ public class CallRetry<R> {
             try {
                 return mainAttempt.call();
             } catch (Exception e) {
+                boolean isNotRetryable = exceptionsToNotRetry.stream()
+                        .anyMatch(clazz -> clazz.isInstance(e));
+
+                if (isNotRetryable) {
+                    throw new RuntimeException(e);
+                }
+
                 lastError = e;
             }
 
