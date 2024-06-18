@@ -1,0 +1,14 @@
+configuration:
+  runtime: concord-v2
+  dependencies:
+    - mvn://com.walmartlabs.concord.plugins:aws-tasks:2.3.0
+
+flows:
+  default:
+    - task: awsEcr
+      in:
+        action: describe-images
+        region: us-east-1
+        repositoryName: foo
+      out: result
+    - log: "Image Details: ${resource.prettyPrintJson(result.imageDetails)}"
