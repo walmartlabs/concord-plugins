@@ -1,27 +1,34 @@
 # Change log
 
+## [2.3.0] - Unreleased
+
+- aws: add a basic ecr describe-images wrapper
+([#154](https://github.com/walmartlabs/concord-plugins/pull/154)).
+
+
+
 ## [2.2.0] - 2024-06-12
 
 ### Changed
 
 - argocd: new params for UpdateSpec and CreateUpdate actions. fix timeout issues
-  ([#151](https://github.com/walmartlabs/concord-plugins/pull/151)).
+([#151](https://github.com/walmartlabs/concord-plugins/pull/151)).
 
 ## [2.1.0] - 2024-05-23
 
 ### Changed
 
 - project: rollback to client1 until wider support for 2.6.0 exists
-  ([#146](https://github.com/walmartlabs/concord-plugins/pull/146))
+([#146](https://github.com/walmartlabs/concord-plugins/pull/146))
 - confluence: handle page IDs as long values
-  ([#147](https://github.com/walmartlabs/concord-plugins/pull/147)).
+([#147](https://github.com/walmartlabs/concord-plugins/pull/147)).
 
 ## [2.0.0] - 2024-02-07
 
 ### Added
 
 - argocd: Add retry logic for waitForSync operation to support for new version of argocd (2.8.0+)
-  ([#143](https://github.com/walmartlabs/concord-plugins/pull/143)).
+([#143](https://github.com/walmartlabs/concord-plugins/pull/143)).
 
 ### Changed
 
