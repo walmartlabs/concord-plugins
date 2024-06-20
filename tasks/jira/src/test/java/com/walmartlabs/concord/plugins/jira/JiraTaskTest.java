@@ -20,196 +20,94 @@ package com.walmartlabs.concord.plugins.jira;
  * =====
  */
 
-import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
-import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
 import com.walmartlabs.concord.sdk.Context;
+import com.walmartlabs.concord.sdk.MockContext;
 import com.walmartlabs.concord.sdk.SecretService;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
-import org.mockito.ArgumentMatchers;
-import org.mockito.Mockito;
-import org.mockito.stubbing.Answer;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
+import org.mockito.Mock;
+import org.mockito.Spy;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.nullable;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-public class JiraTaskTest {
+@ExtendWith(MockitoExtension.class)
+class JiraTaskTest {
 
-    @RegisterExtension
-    static WireMockExtension rule = WireMockExtension.newInstance()
-            .options(wireMockConfig()
-                    .dynamicPort()
-                    .notifier(new ConsoleNotifier(true)))
-            .build();
+    @TempDir
+    Path workDir;
 
-    private JiraTask task;
-    private final Context mockContext = mock(Context.class);
-    private final SecretService secretService = Mockito.mock(SecretService.class);
-    protected String response;
+    @Mock
+    private SecretService secretService;
+
+    @Mock
+    private JiraTaskCommon common;
+
+    @Spy
+    private JiraTask task = new JiraTask(secretService);
+
+    private Context mockContext;
 
     @BeforeEach
     public void setup() {
-        task = new JiraTask(secretService);
-        stubForBasicAuth();
-        stubForCurrentStatus();
-        stubForAddAttachment();
-    }
+        mockContext = new MockContext(new HashMap<>());
+        mockContext.setVariable("txId", UUID.randomUUID());
+        mockContext.setVariable("workDir", workDir.toString());
 
-    @AfterEach
-    public void tearDown() {
-        response = null;
     }
 
     @Test
-    public void testCreateIssueWithBasicAuth() throws Exception {
-        Map<String, Object> auth = new HashMap<>();
-        Map<String, Object> basic = new HashMap<>();
-        basic.put("username", "user");
-        basic.put("password", "pass");
+    void testExecute() {
+        mockContext.setVariable("action", "deleteIssue");
 
-        auth.put("basic", basic);
-        String url = rule.baseUrl() + "/";
-        initCxtForRequest(mockContext, "CREATEISSUE", url, "projKey", "summary", "description",
-                "requestorUid", "bug", auth);
+        when(task.delegate(any())).thenReturn(common);
+        when(common.execute(any(TaskParams.DeleteIssueParams.class))).thenReturn(Map.of("ok", true));
 
-        task.execute(mockContext);
+        assertDoesNotThrow(() -> task.execute(mockContext));
+
+        var ok = assertInstanceOf(Boolean.class, mockContext.getVariable("ok"));
+        assertTrue(ok);
     }
 
     @Test
-    public void testCreateIssueWithSecret() throws Exception {
-        Map<String, Object> auth = new HashMap<>();
-        Map<String, Object> secret = new HashMap<>();
-        secret.put("name", "secret");
-        secret.put("org", "organization");
+    void testGetStatus() {
+        when(task.delegate(any())).thenReturn(common);
+        when(common.execute(any(TaskParams.CurrentStatusParams.class))).thenReturn(Map.of("issueStatus", "Open"));
 
-        auth.put("secret", secret);
+        var status = assertDoesNotThrow(() -> task.getStatus(mockContext, "issue-123"));
 
-        String url = rule.baseUrl() + "/";
-        initCxtForRequest(mockContext, "CREATEISSUE", url, "projKey", "summary", "description",
-                "requestorUid", "bug", auth);
-        task.execute(mockContext);
+        assertEquals("Open", status);
     }
 
     @Test
-    public void testAddAttachment() {
-        when(mockContext.getVariable("apiUrl")).thenReturn(rule.baseUrl() + "/");
-        when(mockContext.getVariable("action")).thenReturn("addAttachment");
-        when(mockContext.getVariable("issueKey")).thenReturn("issueId");
-        when(mockContext.getVariable("userId")).thenReturn("userId");
-        when(mockContext.getVariable("password")).thenReturn("password");
-        when(mockContext.getVariable("filePath")).thenReturn("src/test/resources/sample.txt");
+    void testGetSecretService() throws Exception {
+        when(secretService.exportCredentials(any(Context.class), anyString(), anyString(), anyString(), anyString(), nullable(String.class)))
+                .thenReturn(Map.of("username", "foo", "password", "bar"));
 
-        task.execute(mockContext);
+        var v1SecretService = new JiraTask.V1SecretService(secretService, mockContext);
+
+        var creds = v1SecretService.exportCredentials("org", "name", null);
+
+        assertEquals("foo", creds.username());
+        assertEquals("bar", creds.password());
+
+        verify(secretService, times(1)).exportCredentials(any(Context.class), anyString(), anyString(), anyString(), anyString(), nullable(String.class));
     }
 
-    @Test
-    public void testCurrentStatus() {
-        when(mockContext.getVariable("action")).thenReturn("currentStatus");
-        when(mockContext.getVariable("apiUrl")).thenReturn(rule.baseUrl() + "/");
-        when(mockContext.getVariable("issueKey")).thenReturn("issueId");
-        when(mockContext.getVariable("userId")).thenReturn("userId");
-        when(mockContext.getVariable("password")).thenReturn("password");
-
-        doAnswer((Answer<Void>) invocation -> {
-            response = (String) invocation.getArguments()[1];
-            return null;
-        }).when(mockContext).setVariable(ArgumentMatchers.anyString(), ArgumentMatchers.any());
-
-        task.execute(mockContext);
-
-        assertNotNull(response);
-        assertEquals("Open1", response);
-    }
-
-
-    private void initCxtForRequest(Context ctx, Object action, Object apiUrl, Object projectKey, Object summary, Object description,
-                                   Object requestorUid, Object issueType, Object auth) throws Exception {
-
-        when(ctx.getVariable("action")).thenReturn(action);
-        when(ctx.getVariable("apiUrl")).thenReturn(apiUrl);
-        when(ctx.getVariable("projectKey")).thenReturn(projectKey);
-        when(ctx.getVariable("summary")).thenReturn(summary);
-        when(ctx.getVariable("description")).thenReturn(description);
-        when(ctx.getVariable("requestorUid")).thenReturn(requestorUid);
-        when(ctx.getVariable("issueType")).thenReturn(issueType);
-        when(ctx.getVariable("auth")).thenReturn(auth);
-
-        doAnswer((Answer<Void>) invocation -> {
-            response = (String) invocation.getArguments()[1];
-            return null;
-        }).when(ctx).setVariable(anyString(), any());
-
-        doReturn(getCredentials()).when(secretService)
-                .exportCredentials(any(), anyString(), anyString(), anyString(), anyString(), anyString());
-
-    }
-
-    private Map<String, String> getCredentials() {
-        Map<String, String> credentials = new HashMap<>();
-        credentials.put("username", "user");
-        credentials.put("password", "pwd");
-        return credentials;
-    }
-
-    private void stubForBasicAuth() {
-        rule.stubFor(post(urlEqualTo("/issue/"))
-                .willReturn(aResponse()
-                        .withStatus(201)
-                        .withHeader("Content-Type", "application/json")
-                        //.withHeader("Accept", "application/json")
-                        .withBody("{\n" +
-                                "  \"id\": \"123\",\n" +
-                                "  \"key\": \"key1\",\n" +
-                                "  \"self\": \"2\"\n" +
-                                "}"))
-        );
-    }
-
-    private void stubForAddAttachment() {
-        rule.stubFor(post(urlEqualTo("/issue/issueId/attachments"))
-                .willReturn(aResponse()
-                        .withStatus(200)
-                        .withHeader("Content-Type", "application/json")
-                        .withBody("[{\n" +
-                                "  \"id\": \"123\",\n" +
-                                "  \"key\": \"key1\",\n" +
-                                "  \"self\": \"2\"\n" +
-                                "}]"))
-        );
-    }
-
-    private void stubForCurrentStatus() {
-        JsonObject status = new JsonObject();
-        status.addProperty("name", "Open");
-
-        JsonObject fields = new JsonObject();
-        fields.add("status", status);
-
-        JsonObject response = new JsonObject();
-        response.add("fields", fields);
-
-        Gson gson = new GsonBuilder()
-                .setPrettyPrinting()
-                .create();
-
-        rule.stubFor(get(urlEqualTo("/issue/issueId?fields=status"))
-                .willReturn(aResponse()
-                        .withStatus(200)
-                        .withHeader("Content-Type", "application/json")
-                        .withBody(gson.toJson(response)))
-        );
-    }
 }

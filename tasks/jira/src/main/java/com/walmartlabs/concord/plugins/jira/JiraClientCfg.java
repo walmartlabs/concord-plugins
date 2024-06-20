@@ -33,4 +33,31 @@ public interface JiraClientCfg {
     default long writeTimeout() {
         return 30L;
     }
+
+    default HttpVersion httpProtocolVersion() {
+        return HttpVersion.DEFAULT;
+    }
+
+    enum HttpVersion {
+        HTTP_1_1("http/1.1"),
+        HTTP_2("http/2.0"),
+        DEFAULT("default");
+
+        private final String value;
+
+        HttpVersion(String value) {
+            this.value = value;
+        }
+
+        public static HttpVersion from(String val) {
+            for (HttpVersion version : HttpVersion.values()) {
+                if (version.value.equals(val)) {
+                    return version;
+                }
+            }
+
+            return DEFAULT;
+        }
+
+    }
 }

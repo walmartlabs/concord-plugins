@@ -21,7 +21,12 @@ package com.walmartlabs.concord.plugins.jira;
  */
 
 import com.walmartlabs.concord.runtime.v2.sdk.Variables;
-import com.walmartlabs.concord.sdk.*;
+import com.walmartlabs.concord.sdk.Context;
+import com.walmartlabs.concord.sdk.ContextUtils;
+import com.walmartlabs.concord.sdk.InjectVariable;
+import com.walmartlabs.concord.sdk.MapUtils;
+import com.walmartlabs.concord.sdk.SecretService;
+import com.walmartlabs.concord.sdk.Task;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -47,32 +52,53 @@ public class JiraTask implements Task {
 
     @Override
     public void execute(Context ctx) {
-        Map<String, Object> result = delegate(ctx).execute(TaskParams.of(new ContextVariables(ctx), defaults));
+        JiraSecretService jiraSecretService = getSecretService(ctx);
+        Map<String, Object> result = delegate(jiraSecretService)
+                .execute(TaskParams.of(new ContextVariables(ctx), defaults));
 
         result.forEach(ctx::setVariable);
     }
 
     public String getStatus(@InjectVariable("context") Context ctx, String issueKey) {
         Variables vars = TaskParams.merge(new ContextVariables(ctx), defaults);
-
-        Map<String, Object> result = delegate(ctx).execute(new TaskParams.CurrentStatusParams(vars) {
-            @Override
-            public String issueKey() {
-                return issueKey;
-            }
-        });
+        JiraSecretService jiraSecretService = getSecretService(ctx);
+        Map<String, Object> result = delegate(jiraSecretService)
+                .execute(new TaskParams.CurrentStatusParams(vars) {
+                    @Override
+                    public String issueKey() {
+                        return issueKey;
+                    }
+                });
 
         return MapUtils.getString(result, JIRA_ISSUE_STATUS_KEY);
     }
 
-    private JiraTaskCommon delegate(Context ctx) {
-        return new JiraTaskCommon((orgName, secretName, password) -> {
+    JiraTaskCommon delegate(JiraSecretService jiraSecretService) {
+        return new JiraTaskCommon(jiraSecretService);
+    }
+
+    private JiraSecretService getSecretService(Context ctx) {
+        return new V1SecretService(secretService, ctx);
+    }
+
+    static class V1SecretService implements JiraSecretService {
+        private final SecretService secretService;
+
+        public V1SecretService(SecretService secretService, Context ctx) {
+            this.secretService = secretService;
+            this.ctx = ctx;
+        }
+
+        private final Context ctx;
+
+        @Override
+        public JiraCredentials exportCredentials(String orgName, String secretName, String password) throws Exception {
             UUID txId = ContextUtils.getTxId(ctx);
             Path workDir = ContextUtils.getWorkDir(ctx);
 
             Map<String, String> result1 = secretService.exportCredentials(ctx, txId.toString(), workDir.toString(), orgName, secretName, password);
             return new JiraCredentials(result1.get("username"), result1.get("password"));
-        });
+        }
     }
 
     private static class ContextVariables implements Variables {
