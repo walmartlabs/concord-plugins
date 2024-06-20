@@ -30,6 +30,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ecr.EcrClient;
+import software.amazon.awssdk.services.ecr.model.DescribeImagesRequest;
+import software.amazon.awssdk.services.ecr.model.ImageDetail;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -48,7 +50,8 @@ public class EcrTask implements Task {
     public EcrTask(ObjectMapper objectMapper) {
         this.objectMapper = requireNonNull(objectMapper).copy()
                 .registerModule(new JavaTimeModule())
-                .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+                .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
+                .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
     }
 
     @Override
@@ -63,29 +66,38 @@ public class EcrTask implements Task {
     private TaskResult describeImages(Variables input) {
         var region = assertRegion(input, "region");
         var repositoryName = input.assertString("repositoryName");
+        var maxResults = input.getInt("maxResults", 100);
         var verbose = input.getBoolean("verbose", false);
 
-        // create the client
         if (verbose) {
-            log.info("Using region: {}", region);
+            log.info("Using region={}, maxResults={}", region, maxResults);
         }
-        var client = EcrClient.builder()
+
+        try (var client = EcrClient.builder()
                 .region(region)
-                .build();
+                .build()) {
 
-        // describe-images
-        if (verbose) {
-            log.info("Describing images in repository '{}'", repositoryName);
-        }
-        var result = client.describeImages(r -> r.repositoryName(repositoryName));
-        if (verbose) {
-            log.info("Done: {}", result.imageDetails().size());
-        }
+            if (verbose) {
+                log.info("Describing images in repository '{}'", repositoryName);
+            }
 
-        // serialize result into POJOs
-        var data = objectMapper.convertValue(result.toBuilder(), Map.class);
-        //noinspection unchecked
-        return TaskResult.success().values(data);
+            var request = DescribeImagesRequest.builder()
+                    .repositoryName(repositoryName)
+                    .maxResults(maxResults)
+                    .build();
+
+            var data = client.describeImagesPaginator(request).stream()
+                    .flatMap(response -> response.imageDetails().stream())
+                    .map(ImageDetail::toBuilder)
+                    .map(b -> (Map<?, ?>) objectMapper.convertValue(b, Map.class))
+                    .toList();
+
+            if (verbose) {
+                log.info("Done: {}", data.size());
+            }
+
+            return TaskResult.success().values(Map.of("imageDetails", data));
+        }
     }
 
     private static Region assertRegion(Variables input, String key) {

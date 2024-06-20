@@ -1,5 +1,14 @@
 # Change log
 
+## [2.3.1] - Unreleased
+
+### Changed
+
+- aws: use paginator API, fix timestamp serialization
+([#155](https://github.com/walmartlabs/concord-plugins/pull/155)).
+
+
+
 ## [2.3.0] - 2024-06-20
 
 - aws: add a basic ecr describe-images wrapper
