@@ -1,6 +1,6 @@
 # Change log
 
-## [2.3.0] - Unreleased
+## [2.3.0] - 2024-06-20
 
 - aws: add a basic ecr describe-images wrapper
 ([#154](https://github.com/walmartlabs/concord-plugins/pull/154)).
