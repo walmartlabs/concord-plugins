@@ -23,6 +23,7 @@ package com.walmartlabs.concord.plugins.aws;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.walmartlabs.concord.runtime.v2.sdk.Context;
 import com.walmartlabs.concord.runtime.v2.sdk.Task;
 import com.walmartlabs.concord.runtime.v2.sdk.TaskResult;
 import com.walmartlabs.concord.runtime.v2.sdk.Variables;
@@ -44,10 +45,12 @@ public class EcrTask implements Task {
 
     private static final Logger log = LoggerFactory.getLogger(EcrTask.class);
 
+    private final Context context;
     private final ObjectMapper objectMapper;
 
     @Inject
-    public EcrTask(ObjectMapper objectMapper) {
+    public EcrTask(Context context, ObjectMapper objectMapper) {
+        this.context = context;
         this.objectMapper = requireNonNull(objectMapper).copy()
                 .registerModule(new JavaTimeModule())
                 .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
@@ -67,7 +70,7 @@ public class EcrTask implements Task {
         var region = assertRegion(input, "region");
         var repositoryName = input.assertString("repositoryName");
         var maxResults = input.getInt("maxResults", 100);
-        var debug = input.getBoolean("debug", false);
+        var debug = input.getBoolean("debug", context.processConfiguration().debug());
 
         if (debug) {
             log.info("Using region={}, maxResults={}", region, maxResults);
