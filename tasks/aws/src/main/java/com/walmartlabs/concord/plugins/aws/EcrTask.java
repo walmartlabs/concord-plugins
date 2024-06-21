@@ -67,9 +67,9 @@ public class EcrTask implements Task {
         var region = assertRegion(input, "region");
         var repositoryName = input.assertString("repositoryName");
         var maxResults = input.getInt("maxResults", 100);
-        var verbose = input.getBoolean("verbose", false);
+        var debug = input.getBoolean("debug", false);
 
-        if (verbose) {
+        if (debug) {
             log.info("Using region={}, maxResults={}", region, maxResults);
         }
 
@@ -77,7 +77,7 @@ public class EcrTask implements Task {
                 .region(region)
                 .build()) {
 
-            if (verbose) {
+            if (debug) {
                 log.info("Describing images in repository '{}'", repositoryName);
             }
 
@@ -92,7 +92,7 @@ public class EcrTask implements Task {
                     .map(b -> (Map<?, ?>) objectMapper.convertValue(b, Map.class))
                     .toList();
 
-            if (verbose) {
+            if (debug) {
                 log.info("Done: {}", data.size());
             }
 
