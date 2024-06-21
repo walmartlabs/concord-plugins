@@ -31,7 +31,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-//@Disabled("requires AWS credentials")
+@Disabled("requires AWS credentials")
 public class EcrTaskTest {
 
     @Test
