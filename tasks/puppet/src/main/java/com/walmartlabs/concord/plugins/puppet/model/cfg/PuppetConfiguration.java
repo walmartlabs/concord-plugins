@@ -40,10 +40,29 @@ import java.nio.file.Path;
 import java.security.cert.Certificate;
 import java.text.NumberFormat;
 import java.text.ParseException;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
-import static com.walmartlabs.concord.plugins.puppet.Constants.Keys.*;
+import static com.walmartlabs.concord.plugins.puppet.Constants.Keys.CERTIFICATE_KEY;
+import static com.walmartlabs.concord.plugins.puppet.Constants.Keys.CERTIFICATE_NAME_KEY;
+import static com.walmartlabs.concord.plugins.puppet.Constants.Keys.CERTIFICATE_ORG_KEY;
+import static com.walmartlabs.concord.plugins.puppet.Constants.Keys.CERTIFICATE_PASSWORD_KEY;
+import static com.walmartlabs.concord.plugins.puppet.Constants.Keys.CERTIFICATE_PATH_KEY;
+import static com.walmartlabs.concord.plugins.puppet.Constants.Keys.CERTIFICATE_SECRET_KEY;
+import static com.walmartlabs.concord.plugins.puppet.Constants.Keys.CERTIFICATE_TEXT_KEY;
+import static com.walmartlabs.concord.plugins.puppet.Constants.Keys.CONNECT_TIMEOUT_KEY;
+import static com.walmartlabs.concord.plugins.puppet.Constants.Keys.DEBUG_KEY;
+import static com.walmartlabs.concord.plugins.puppet.Constants.Keys.HTTP_RETRIES_KEY;
+import static com.walmartlabs.concord.plugins.puppet.Constants.Keys.HTTP_VERSION_KEY;
+import static com.walmartlabs.concord.plugins.puppet.Constants.Keys.READ_TIMEOUT_KEY;
+import static com.walmartlabs.concord.plugins.puppet.Constants.Keys.VALIDATE_CERTS_KEY;
+import static com.walmartlabs.concord.plugins.puppet.Constants.Keys.VALIDATE_CERTS_NOT_AFTER_KEY;
+import static com.walmartlabs.concord.plugins.puppet.Constants.Keys.WRITE_TIMEOUT_KEY;
 
 public abstract class PuppetConfiguration {
     private static final Logger log = LoggerFactory.getLogger(PuppetConfiguration.class);
@@ -60,6 +79,12 @@ public abstract class PuppetConfiguration {
     private Number writeTimeout;
     @JsonProperty(value = VALIDATE_CERTS_KEY, defaultValue = "true")
     private Boolean validateCerts = true;
+    @JsonProperty(value = VALIDATE_CERTS_NOT_AFTER_KEY, defaultValue = "true")
+    Boolean validateCertsNotAfter = true;
+    @JsonProperty(value = HTTP_VERSION_KEY, defaultValue = "default")
+    private String httpVersion;
+    @JsonProperty(value = HTTP_RETRIES_KEY, defaultValue = "3")
+    private Number httpRetries;
     @JsonProperty(value = CERTIFICATE_KEY)
     private Map<String, Object> certificate;
 
@@ -90,12 +115,24 @@ public abstract class PuppetConfiguration {
         return readTimeout.intValue();
     }
 
+    public HttpVersion getHttpVersion() {
+        return HttpVersion.from(httpVersion);
+    }
+
+    public int getHttpRetries() {
+        return httpRetries.intValue();
+    }
+
     public boolean doDebug() {
         return debug;
     }
 
     public boolean validateCerts() {
         return validateCerts;
+    }
+
+    public boolean validateCertsNotAfter() {
+        return validateCertsNotAfter;
     }
 
     /**
@@ -246,7 +283,7 @@ public abstract class PuppetConfiguration {
         } else if (f.getType() == Boolean.class) {
             Utils.setField(target, f, Boolean.parseBoolean(val.toString()));
         } else if (f.getType() == String.class) {
-            // don't set empty strings (why isn't jackson's JsonInclude.Include.NON_EMPTY
+            // don't set empty strings (why isn't jackson's JsonInclude.Include.NON_EMPTY)
             // taking care of this??
             if (!((String) val).trim().isEmpty()) {
                 Utils.setField(target, f, val);
@@ -279,17 +316,17 @@ public abstract class PuppetConfiguration {
      * @param val  Object that should be a list
      * @return List value
      */
-    private static List coerceToList(String name, Object val) {
-        if (val instanceof String && ((String) val).trim().isEmpty()) {
+    private static List<?> coerceToList(String name, Object val) {
+        if (val instanceof List) {
+            return (List<?>) val;
+        }
+
+        if (val instanceof String && ((String) val).isBlank()) {
             // it was a default value
             return new ArrayList<>(0);
         }
-        try {
-            //noinspection ConstantConditions
-            return (List) val;
-        } catch (ClassCastException ex) {
-            throw new InvalidValueException(name, val, "Unable to convert to List");
-        }
+
+        throw new InvalidValueException(name, val, "Unable to convert to List");
     }
 
     /**
@@ -299,18 +336,17 @@ public abstract class PuppetConfiguration {
      * @param val  Object that should be a Map
      * @return Map value
      */
-    private static Map coerceToMap(String name, Object val) {
-        if (val instanceof String && ((String) val).trim().isEmpty()) {
+    private static Map<?, ?> coerceToMap(String name, Object val) {
+        if (val instanceof Map) {
+            return (Map<?, ?>) val;
+        }
+
+        if (val instanceof String && ((String) val).isBlank()) {
             // it was a default value
             return new HashMap<>(0);
         }
 
-        try {
-            //noinspection ConstantConditions
-            return (Map) val;
-        } catch (ClassCastException ex) {
-            throw new InvalidValueException(name, val, "Unable to convert to Map");
-        }
+        throw new InvalidValueException(name, val, "Unable to convert to Map");
     }
 
     /**
@@ -323,7 +359,7 @@ public abstract class PuppetConfiguration {
         T config;
 
         // get fields from the class and its parent
-        List<Field> fields = getJsonPropertyFields(clazz);
+        List<Field> fields = new LinkedList<>(getJsonPropertyFields(clazz));
         fields.addAll(getJsonPropertyFields(clazz.getSuperclass()));
 
         try {
@@ -347,11 +383,34 @@ public abstract class PuppetConfiguration {
      * Gets the fields with the {@link JsonProperty} annotation from a class.
      *
      * @param clazz Class from which to get the fields
-     * @return Array of fields
+     * @return List of fields
      */
-    private static List<Field> getJsonPropertyFields(Class clazz) {
+    private static List<Field> getJsonPropertyFields(Class<?> clazz) {
 
         return Arrays.stream(clazz.getDeclaredFields())
-                .filter(e -> e.getAnnotation(JsonProperty.class) != null).collect(Collectors.toList());
+                .filter(e -> e.getAnnotation(JsonProperty.class) != null)
+                .toList();
+    }
+
+    public enum HttpVersion {
+        HTTP_1_1("http/1.1"),
+        HTTP_2("http/2.0"),
+        DEFAULT("default");
+
+        private final String value;
+
+        HttpVersion(String value) {
+            this.value = value;
+        }
+
+        public static HttpVersion from(String val) {
+            for (HttpVersion version : HttpVersion.values()) {
+                if (version.value.equals(val)) {
+                    return version;
+                }
+            }
+
+            return DEFAULT;
+        }
     }
 }

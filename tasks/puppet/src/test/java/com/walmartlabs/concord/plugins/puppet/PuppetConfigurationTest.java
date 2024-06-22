@@ -30,12 +30,14 @@ import org.junit.jupiter.api.Test;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
-public class PuppetConfigurationTest {
+class PuppetConfigurationTest {
 
     MockContext ctx;
+
+    private static final Map<String, Object> DEFAULTS = Map.of();
 
     @BeforeEach
     public void setup() {
@@ -43,34 +45,23 @@ public class PuppetConfigurationTest {
     }
 
     @Test
-    public void testBadMap() {
+    void testBadMap() {
         // set map parameter to a non-map value
         ctx.setVariable("certificate", "not a map");
 
-        try {
-            Utils.createCfg(ctx, null, ctx.toMap(), RbacCfg.class);
-            fail("Exception should be thrown when expected map is not a map.");
-        } catch (InvalidValueException expected) {
-            assertTrue(expected.getMessage().contains("Unable to convert to Map"));
-        } catch (Exception ex) {
-            fail("Expected an InvalidValueException, not this one: " + ex.getMessage());
-        }
+        var expected = assertThrows(InvalidValueException.class,
+                () -> Utils.createCfg(ctx, null, DEFAULTS, RbacCfg.class));
+        assertTrue(expected.getMessage().contains("Unable to convert to Map"));
     }
 
     @Test
-    public void testNullRequiredValue() {
+    void testNullRequiredValue() {
         //
         ctx.setVariable("rbacUrl", null);
 
-        try {
-            Utils.createCfg(ctx, null, ctx.toMap(), RbacCfg.class);
-            fail("Exception should be thrown when required value is null.");
-        } catch (MissingParameterException expected) {
-            assertTrue(expected.getMessage().contains("Cannot find value for rbacUrl"));
-        } catch (Exception ex) {
-            fail("Expected an MissingParameterException, not this one: " + ex.getMessage());
-        }
-
+        var expected = assertThrows(MissingParameterException.class,
+                () -> Utils.createCfg(ctx, null, DEFAULTS, RbacCfg.class));
+        assertTrue(expected.getMessage().contains("Cannot find value for rbacUrl"));
     }
 
     private Map<String, Object> buildCfg() {

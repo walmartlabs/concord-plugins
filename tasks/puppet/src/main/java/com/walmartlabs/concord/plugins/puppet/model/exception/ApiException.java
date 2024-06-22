@@ -25,7 +25,7 @@ public class ApiException extends Exception {
     /**
      * HTTP status code
      **/
-    private int code = 0;
+    private final int code;
 
     public static ApiException buildException(int statusCode, String errMessage) {
         String message;
@@ -42,16 +42,17 @@ public class ApiException extends Exception {
 
     private ApiException(int statusCode, String errMessage) {
         super(errMessage);
-
         this.code = statusCode;
     }
 
     public ApiException(String message) {
         super(message);
+        this.code = 0;
     }
 
     public ApiException(Throwable t) {
         super(t);
+        this.code = 0;
     }
 
     /**

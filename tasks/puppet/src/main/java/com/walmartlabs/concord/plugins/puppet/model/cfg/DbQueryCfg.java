@@ -40,7 +40,7 @@ public class DbQueryCfg extends PuppetConfiguration {
     /**
      * API token for authorization
      */
-    @JsonProperty(value = Keys.API_TOKEN_KEY)
+    @JsonProperty(value = Keys.API_TOKEN_KEY, required = true)
     private String apiToken;
 
     /**
