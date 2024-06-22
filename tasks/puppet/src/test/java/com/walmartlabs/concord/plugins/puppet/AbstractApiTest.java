@@ -28,7 +28,12 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.*;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -37,10 +42,17 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.KeyFactory;
+import java.security.KeyStore;
+import java.security.PrivateKey;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.StringJoiner;
+import java.util.UUID;
 
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 
@@ -54,6 +66,8 @@ public abstract class AbstractApiTest {
     private Path certPath;
     private String certString;
 
+    private static final String WM_KEYSTORE_PASSWORD = UUID.randomUUID().toString();
+
     @RegisterExtension
     static WireMockExtension httpRule = WireMockExtension.newInstance()
             .options(wireMockConfig()
@@ -64,10 +78,13 @@ public abstract class AbstractApiTest {
     @RegisterExtension
     static WireMockExtension httpsRule = WireMockExtension.newInstance()
             .options(wireMockConfig()
-                    .dynamicPort()  // still binds to 8080 for an http port if not specified
+                    .dynamicPort()
                     .dynamicHttpsPort()
+                    .keystorePath(generateWireMockHttpsKeyStore().toString()) // Either a path to a file or a resource on the classpath
+                    .keystorePassword(WM_KEYSTORE_PASSWORD) // The password used to access the keystore. Defaults to "password" if omitted
+                    .keyManagerPassword(WM_KEYSTORE_PASSWORD) // The password used to access individual keys in the keystore. Defaults to "password" if omitted
                     .notifier(new ConsoleNotifier(false))) // set to true for verbose logging
-            .build();
+                    .build();
 
     AbstractApiTest() {
     }
@@ -85,6 +102,59 @@ public abstract class AbstractApiTest {
         d.put(Constants.Keys.API_TOKEN_KEY, "23w4der5f6tg7yh8uj9iko");
 
         return d;
+    }
+
+    private static Path generateWireMockHttpsKeyStore() {
+        var privKey = loadWireMockPrivateKey(Paths.get("wiremock_cert/server.key"));
+        var cert = loadWireMockCert(Paths.get("wiremock_cert/server.crt"));
+
+        try {
+            Path outFile = Files.createTempFile("wiremock_keystore", ".jks");
+            return saveKeyStore(cert, privKey, outFile);
+        } catch (IOException e) {
+            throw new IllegalStateException("Error creating keystore: " + e.getMessage(), e);
+        }
+    }
+
+    private static X509Certificate loadWireMockCert(Path certPath)  {
+        try (var is = Files.newInputStream(certPath)) {
+            CertificateFactory fact = CertificateFactory.getInstance("X.509");
+
+            return (X509Certificate) fact.generateCertificate(is);
+        } catch (Exception e) {
+            throw new IllegalStateException("Error loading cert from disk: " + e.getMessage(), e);
+        }
+    }
+
+    private static PrivateKey loadWireMockPrivateKey(Path keyPath) {
+        try {
+            // Read file to a byte array, remove newline characters
+            var b64Decode = Base64.getDecoder();
+            byte[] privKeyByteArray = b64Decode.decode(Files.readString(keyPath)
+                        .replace("-----BEGIN PRIVATE KEY-----", "")
+                        .replace("-----END PRIVATE KEY-----", "")
+                        .replace("\n", ""));
+
+            PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(privKeyByteArray);
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+
+            return keyFactory.generatePrivate(keySpec);
+        } catch (Exception e) {
+            throw new RuntimeException("Error loading load private key:" + e.getMessage());
+        }
+    }
+
+    private static Path saveKeyStore(X509Certificate cert, PrivateKey key, Path outFile) {
+        try (var os = Files.newOutputStream(outFile)) {
+            KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+            keyStore.load(null, null);
+            keyStore.setKeyEntry("wiremock_test_cert", key, WM_KEYSTORE_PASSWORD.toCharArray(), new java.security.cert.Certificate[]{cert});
+            keyStore.store(os, WM_KEYSTORE_PASSWORD.toCharArray());
+
+            return outFile;
+        } catch (Exception e) {
+            throw new IllegalStateException("Error saving keystore: " + e.getMessage(), e);
+        }
     }
 
     /**
@@ -159,7 +229,7 @@ public abstract class AbstractApiTest {
     String getWiremockCertString() throws Exception {
         if (certString != null) { return certString; }
 
-        certString = new String(Files.readAllBytes(getWiremockCertFile()), StandardCharsets.UTF_8);
+        certString = Files.readString(getWiremockCertFile());
         return certString;
     }
 

@@ -26,25 +26,27 @@ import com.walmartlabs.concord.plugins.puppet.model.exception.MissingParameterEx
 import com.walmartlabs.concord.plugins.puppet.model.token.TokenPayload;
 import com.walmartlabs.concord.sdk.MockContext;
 import com.walmartlabs.concord.sdk.SecretService;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import javax.net.ssl.*;
-import java.security.cert.CertificateException;
+import javax.net.ssl.SSLHandshakeException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.nullable;
 
-public class PuppetTaskTest extends AbstractApiTest {
+class PuppetTaskTest extends AbstractApiTest {
 
     private PuppetTask task;
 
@@ -65,7 +67,7 @@ public class PuppetTaskTest extends AbstractApiTest {
 
 
     @Test
-    public void testQuery() throws Exception {
+    void testQuery() throws Exception {
         MockContext ctx = new MockContext(buildDbQueryConfig());
 
         UtilsTest.injectVariable(task, "action", "pql");
@@ -73,15 +75,15 @@ public class PuppetTaskTest extends AbstractApiTest {
 
         task.execute(ctx);
 
-        Map result = (Map) ctx.getVariable("result");
+        var result = assertInstanceOf(Map.class, ctx.getVariable("result"));
         assertNotNull(result);
         assertTrue((boolean)result.get("ok"));
-        List data = (List) result.get("data");
+        List<?> data = (List<?>) result.get("data");
         assertEquals(10, data.size());
     }
 
     @Test
-    public void testBadUrl() {
+    void testBadUrl() {
         MockContext ctx = new MockContext(buildDbQueryConfig());
 
         UtilsTest.injectVariable(task, "action", "pql");
@@ -101,18 +103,12 @@ public class PuppetTaskTest extends AbstractApiTest {
 
         // Invalid URL
         ctx.setVariable("databaseUrl", "notaurl");
-        try {
-            task.execute(ctx);
-            fail("Bad url should cause an exception");
-        } catch(IllegalArgumentException expected) {
-            assert(expected.getMessage().contains("Invalid URL"));
-        } catch (Exception e) {
-            fail("Unexpected exception with bad URL: " + e.getMessage());
-        }
+        var expected = assertThrows(IllegalArgumentException.class, () -> task.execute(ctx));
+        assertTrue(expected.getMessage().contains("URI with undefined scheme"));
     }
 
     @Test
-    public void testIgnoreErrors() throws Exception {
+    void testIgnoreErrors() throws Exception {
         MockContext ctx = new MockContext(buildDbQueryConfig());
 
         // Set ignoreErrors = true
@@ -123,7 +119,7 @@ public class PuppetTaskTest extends AbstractApiTest {
         task.execute(ctx);
 
         // Make sure it failed gracefully and has an error message
-        Map result = (Map) ctx.getVariable("result");
+        var result = assertInstanceOf(Map.class, ctx.getVariable("result"));
         assertNotNull(result);
         assertFalse((Boolean)result.get("ok"));
         String error = (String) result.get("error");
@@ -131,24 +127,16 @@ public class PuppetTaskTest extends AbstractApiTest {
     }
 
     @Test
-    public void testMissingAction() {
+    void testMissingAction() {
         MockContext ctx = new MockContext(buildDbQueryConfig());
 
-        try {
-            UtilsTest.injectVariable(task, "action", null);
-            task.execute(ctx);
-            fail("Missing action value should cause exception");
-        } catch (MissingParameterException expected) {
-            // ok
-            assertTrue(expected.getMessage().contains("action"));
-        } catch (Exception e) {
-            fail("Unexpected exception: " + e.getMessage());
-        }
-
+        UtilsTest.injectVariable(task, "action", null);
+        var expected = assertThrows(MissingParameterException.class, () -> task.execute(ctx));
+        assertTrue(expected.getMessage().contains("action"));
     }
 
     @Test
-    public void testSelfSignedCertWithPath() throws Exception {
+    void testSelfSignedCertWithPath() throws Exception {
         MockContext ctx = new MockContext(buildDbQueryConfig());
 
         UtilsTest.injectVariable(task, "action", "pql");
@@ -175,15 +163,15 @@ public class PuppetTaskTest extends AbstractApiTest {
         // now it should work
         task.execute(ctx);
 
-        Map result = (Map) ctx.getVariable("result");
+        var result = assertInstanceOf(Map.class, ctx.getVariable("result"));
         assertNotNull(result);
         assertTrue((boolean)result.get("ok"));
-        List data = (List) result.get("data");
+        List<?> data = (List<?>) result.get("data");
         assertEquals(10, data.size());
     }
 
     @Test
-    public void testSelfSignedCertWithText() throws Exception {
+    void testSelfSignedCertWithText() throws Exception {
         MockContext ctx = new MockContext(buildDbQueryConfig());
 
         UtilsTest.injectVariable(task, "action", "pql");
@@ -210,15 +198,15 @@ public class PuppetTaskTest extends AbstractApiTest {
         // now it should work
         task.execute(ctx);
 
-        Map result = (Map) ctx.getVariable("result");
+        var result = assertInstanceOf(Map.class, ctx.getVariable("result"));
         assertNotNull(result);
         assertTrue((boolean)result.get("ok"));
-        List data = (List) result.get("data");
+        List<?> data = (List<?>) result.get("data");
         assertEquals(10, data.size());
     }
 
     @Test
-    public void testSelfSignedCertWithSecret() throws Exception {
+    void testSelfSignedCertWithSecret() throws Exception {
         MockContext ctx = new MockContext(buildDbQueryConfig());
 
         UtilsTest.injectVariable(task, "action", "pql");
@@ -250,15 +238,15 @@ public class PuppetTaskTest extends AbstractApiTest {
         // now it should work
         task.execute(ctx);
 
-        Map result = (Map) ctx.getVariable("result");
+        var result = assertInstanceOf(Map.class, ctx.getVariable("result"));
         assertNotNull(result);
         assertTrue((boolean)result.get("ok"));
-        List data = (List) result.get("data");
+        List<?> data = (List<?>) result.get("data");
         assertEquals(10, data.size());
     }
 
     @Test
-    public void testNoCertValidation() throws Exception {
+    void testNoCertValidation() throws Exception {
         MockContext ctx = new MockContext(buildDbQueryConfig());
 
         UtilsTest.injectVariable(task, "action", "pql");
@@ -283,28 +271,28 @@ public class PuppetTaskTest extends AbstractApiTest {
         // now it should work
         task.execute(ctx);
 
-        Map result = (Map) ctx.getVariable("result");
+        var result = assertInstanceOf(Map.class, ctx.getVariable("result"));
         assertNotNull(result);
         assertTrue((boolean)result.get("ok"));
-        List data = (List) result.get("data");
+        List<?> data = (List<?>) result.get("data");
         assertEquals(10, data.size());
     }
 
     @Test
-    public void testTokenCreate() throws Exception {
+    void testTokenCreate() throws Exception {
         MockContext ctx = new MockContext(buildRbacCfg());
 
         UtilsTest.injectVariable(task, "action", "createApiToken");
         task.execute(ctx);
 
-        Map result = (Map) ctx.getVariable("result");
+        var result = assertInstanceOf(Map.class, ctx.getVariable("result"));
         assertTrue((Boolean) result.get("ok"));
         String token = (String) result.get("data");
         assertNotNull(token);
     }
 
     @Test
-    public void testTokenCreateAllParams() throws Exception {
+    void testTokenCreateAllParams() throws Exception {
         MockContext ctx = new MockContext(buildRbacCfg());
 
         UtilsTest.injectVariable(task, "action", "createApiToken");
@@ -314,14 +302,14 @@ public class PuppetTaskTest extends AbstractApiTest {
 
         task.execute(ctx);
 
-        Map result = (Map) ctx.getVariable("result");
+        var result = assertInstanceOf(Map.class, ctx.getVariable("result"));
         assertTrue((Boolean) result.get("ok"));
         String token = (String) result.get("data");
         assertNotNull(token);
     }
 
     @Test
-    public void testTokenPayload() throws Exception {
+    void testTokenPayload() throws Exception {
         MockContext ctx = new MockContext(buildRbacCfg());
 
         ctx.setVariable("tokenDescription", "token description");
@@ -359,7 +347,7 @@ public class PuppetTaskTest extends AbstractApiTest {
     }
 
     @Test
-    public void test404() {
+    void test404() {
         stubFor404();
 
         MockContext ctx = new MockContext(buildDbQueryConfig());
@@ -382,7 +370,7 @@ public class PuppetTaskTest extends AbstractApiTest {
      * being reached, not the 503 error itself.
      */
     @Test
-    public void test503() {
+    void test503() {
         stubFor503();
 
         MockContext ctx = new MockContext(buildDbQueryConfig());
@@ -400,76 +388,4 @@ public class PuppetTaskTest extends AbstractApiTest {
         }
     }
 
-    /**
-     * Tests {@link PuppetHostnameVerifier} by executing a request with loopback
-     * address 'localhost' but configuring a hostname verifier to only trust
-     * '127.0.0.1'
-     */
-    @Test
-    public void testWrongHostName() throws Exception {
-        stubForOk();
-
-        OkHttpClient.Builder clientBuilder =  new OkHttpClient.Builder()
-                .connectTimeout(10000L, TimeUnit.SECONDS)
-                .readTimeout(10000L, TimeUnit.SECONDS)
-                .writeTimeout(10000L, TimeUnit.SECONDS);
-
-        // no certificate validation for wiremock
-        final TrustManager[] tms = new TrustManager[] {
-                new X509TrustManager() {
-                    @Override
-                    public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {
-                    }
-
-                    @Override
-                    public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {
-                    }
-
-                    @Override
-                    public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                        return new java.security.cert.X509Certificate[0];
-                    }
-                }
-        };
-        final SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
-        sslContext.init(null, tms, new java.security.SecureRandom());
-        final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
-
-        // Request to execute
-        Request.Builder rBuilder = new Request.Builder()
-                .url(httpsRule.baseUrl() + "/ok")
-                .post(RequestBody.create(MediaType.parse("application/json"), "{}"));
-        Request request = rBuilder.build();
-
-
-        // Create a hostname mismatch
-        clientBuilder
-                .sslSocketFactory(sslSocketFactory, (X509TrustManager)tms[0])
-                .hostnameVerifier(new PuppetHostnameVerifier("https://127.0.0.1"));
-        OkHttpClient client = clientBuilder.build();
-
-        try {
-            client.newCall(request).execute();
-            fail("Hostname mismatch should result in SSLPeerUnverifiedException");
-        } catch (SSLPeerUnverifiedException expected) {
-            // that's a good thing
-        } catch (Exception e) {
-            log.info("Hostname mismatch should result in SSLPeerUnverifiedException");
-            fail("Hostname mismatch should result in SSLPeerUnverifiedException");
-        }
-
-
-        // Do it again, but with the right hostname
-        clientBuilder
-                .sslSocketFactory(sslSocketFactory, (X509TrustManager)tms[0])
-                .hostnameVerifier(new PuppetHostnameVerifier("https://localhost"));
-
-        client = clientBuilder.build();
-
-        try {
-            client.newCall(request).execute();
-        } catch (Exception e) {
-            fail("Hostnames match but test still failed: " + e.getMessage());
-        }
-    }
 }

@@ -34,10 +34,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.doAnswer;
 
-public class PuppetTaskV2Test extends AbstractApiTest {
+class PuppetTaskV2Test extends AbstractApiTest {
     private PuppetTaskV2 task;
 
     private Map<String, Object> variables;
@@ -52,25 +61,26 @@ public class PuppetTaskV2Test extends AbstractApiTest {
         stubForDbQuery();
         stubForTokenCreate();
 
-        Mockito.doAnswer(invocationOnMock -> getWiremockCertFile())
+        doAnswer(invocationOnMock -> getWiremockCertFile())
                 .when(secretService)
                 .exportAsFile(anyString(), anyString(), nullable(String.class));
 
         variables = new HashMap<>();
         variables.put("puppetParams", getDefaults());
-        Mockito.doAnswer(invocationOnMock -> variables).when(input).toMap();
+        doAnswer(invocationOnMock -> variables).when(input).toMap();
         // Set global variables that are used by the task
         // Defaults use the http API URLs. HTTPs needs to be set in taskVars
         globals = new HashMap<>();
         globals.put("puppetParams", getDefaults());
-        Mockito.doAnswer(invocationOnMock -> defaults).when(taskContext).variables();
-        Mockito.doAnswer(invocationOnMock -> globals.get((String) invocationOnMock.getArgument(0))).when(defaults).getMap(anyString(), any());
+        doAnswer(invocationOnMock -> defaults).when(taskContext).variables();
+        doAnswer(invocationOnMock -> globals.get((String) invocationOnMock.getArgument(0)))
+                .when(defaults).getMap(anyString(), any());
 
         task = new PuppetTaskV2(secretService, taskContext);
     }
 
     @Test
-    public void testQuery() throws Exception {
+    void testQuery() throws Exception {
 
         // -- Task in-vars
 
@@ -85,12 +95,12 @@ public class PuppetTaskV2Test extends AbstractApiTest {
 
         assertNotNull(result);
         assertTrue(result.ok());
-        List data = (List) result.values().get("data");
+        List<?> data = (List<?>) result.values().get("data");
         assertEquals(10, data.size());
     }
 
     @Test
-    public void testBadUrl() {
+    void testBadUrl() {
 
         // -- Task in-vars
 
@@ -114,18 +124,13 @@ public class PuppetTaskV2Test extends AbstractApiTest {
 
         // Invalid URL
         variables.put("databaseUrl", "notaurl");
-        try {
-            task.execute(input);
-            fail("Bad url should cause an exception");
-        } catch (IllegalArgumentException expected) {
-            assert (expected.getMessage().contains("Invalid URL"));
-        } catch (Exception e) {
-            fail("Unexpected exception with bad URL: " + e.getMessage());
-        }
+
+        var expected = assertThrows(IllegalArgumentException.class, () -> task.execute(input));
+        assertTrue(expected.getMessage().contains("URI with undefined scheme"));
     }
 
     @Test
-    public void testIgnoreErrors() throws Exception {
+    void testIgnoreErrors() throws Exception {
 
         // -- Task in-vars
 
@@ -143,11 +148,12 @@ public class PuppetTaskV2Test extends AbstractApiTest {
         assertNotNull(result);
         assertFalse(result.ok());
         String error = result.error();
+        assertNotNull(error);
         assertTrue(error.contains("Not a supported action"));
     }
 
     @Test
-    public void testMissingAction() {
+    void testMissingAction() {
 
         // -- Task in-vars
 
@@ -181,12 +187,10 @@ public class PuppetTaskV2Test extends AbstractApiTest {
         } catch (Exception e) {
             fail("Unexpected exception: " + e.getMessage());
         }
-
-
     }
 
     @Test
-    public void testSelfSignedCertWithPath() throws Exception {
+    void testSelfSignedCertWithPath() throws Exception {
 
         // -- Task in-vars
 
@@ -220,12 +224,12 @@ public class PuppetTaskV2Test extends AbstractApiTest {
 
         assertNotNull(result);
         assertTrue(result.ok());
-        List data = (List) result.values().get("data");
+        List<?> data = (List<?>) result.values().get("data");
         assertEquals(10, data.size());
     }
 
     @Test
-    public void testSelfSignedCertWithText() throws Exception {
+    void testSelfSignedCertWithText() throws Exception {
 
         // -- Task in-vars
 
@@ -236,16 +240,11 @@ public class PuppetTaskV2Test extends AbstractApiTest {
         // -- Execute - this should fail
 
         // Self-signed cert will fail unless we provide a cert to trust
-        try {
-            task.execute(input);
-            fail("Task should fail when self-signed cert is used without a provided certificate to trust.");
-        } catch (SSLHandshakeException expected) {
-            // that's fine
-            log.info("hit expected ssl exception. Not a problem");
-        } catch (Exception e) {
-            log.error(e.getMessage());
-            throw e;
-        }
+        var ex = assertThrows(SSLHandshakeException.class, () -> task.execute(input));
+
+        assertInstanceOf(SSLHandshakeException.class, ex.getCause());
+        // that's fine
+
 
         // -- Task in-vars - add certificate info (text)
 
@@ -259,12 +258,12 @@ public class PuppetTaskV2Test extends AbstractApiTest {
 
         assertNotNull(result);
         assertTrue(result.ok());
-        List data = (List) result.values().get("data");
+        List<?> data = (List<?>) result.values().get("data");
         assertEquals(10, data.size());
     }
 
     @Test
-    public void testSelfSignedCertWithSecret() throws Exception {
+    void testSelfSignedCertWithSecret() throws Exception {
 
         // -- Task in-vars
 
@@ -303,12 +302,12 @@ public class PuppetTaskV2Test extends AbstractApiTest {
 
         assertNotNull(result);
         assertTrue(result.ok());
-        List data = (List) result.values().get("data");
+        List<?> data = (List<?>) result.values().get("data");
         assertEquals(10, data.size());
     }
 
     @Test
-    public void testNoCertValidation() throws Exception {
+    void testNoCertValidation() throws Exception {
 
         // -- Task in-vars
 
@@ -340,12 +339,12 @@ public class PuppetTaskV2Test extends AbstractApiTest {
 
         assertNotNull(result);
         assertTrue(result.ok());
-        List data = (List) result.values().get("data");
+        List<?> data = (List<?>) result.values().get("data");
         assertEquals(10, data.size());
     }
 
     @Test
-    public void testTokenCreate() throws Exception {
+    void testTokenCreate() throws Exception {
 
         // -- Task in-vars
 
