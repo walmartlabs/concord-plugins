@@ -491,7 +491,27 @@ public class JiraTaskCommon {
     }
 
     JiraHttpClient getClient(TaskParams in) {
-        return JiraHttpClientFactory.create(in);
+        try {
+            return getNativeClient(in);
+        } catch (NoClassDefFoundError e) {
+            // client2 may not exist
+            log.info("Falling back to okhttp client");
+        }
+
+        try {
+            return getOkHttpClient(in);
+        } catch (Exception | NoClassDefFoundError e) {
+            // that's very unexpected as long as okhttp is still allowed
+            throw new IllegalStateException("No jira http client found");
+        }
+    }
+
+    JiraHttpClient getNativeClient(TaskParams in) {
+        return new NativeJiraHttpClient(in);
+    }
+
+    JiraHttpClient getOkHttpClient(TaskParams in) {
+        return new JiraClient(in);
     }
 
     JiraSecretService getSecretService() {
