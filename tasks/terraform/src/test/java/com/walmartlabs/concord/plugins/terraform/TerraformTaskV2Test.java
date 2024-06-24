@@ -36,7 +36,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 
@@ -71,7 +70,7 @@ import static org.mockito.Mockito.*;
 // TODO: split test apart to prepare for testing OCI/GCP
 //
 @Disabled
-public class TerraformTaskV2Test extends AbstractTerraformTest {
+class TerraformTaskV2Test extends AbstractTerraformTest {
     private ApiClient apiClient;
     private SecretService secretService;
     private final LockService lockService = mock(LockService.class);
@@ -96,7 +95,7 @@ public class TerraformTaskV2Test extends AbstractTerraformTest {
     }
 
     @Test
-    public void test() throws Exception {
+    void test() throws Exception {
         Map<String, Object> args = baseArguments(workDir, dstDir, Action.PLAN.name());
         args.put(TaskConstants.VARS_FILES, varFiles());
         args.put(TaskConstants.EXTRA_VARS_KEY, extraVars());
