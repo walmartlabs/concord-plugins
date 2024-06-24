@@ -1,6 +1,6 @@
 # Change log
 
-## [2.3.1] - Unreleased
+## [2.3.1] - 2024-06-24
 
 ### Changed
 
