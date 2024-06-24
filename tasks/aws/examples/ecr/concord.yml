@@ -1,7 +1,7 @@
 configuration:
   runtime: concord-v2
   dependencies:
-    - mvn://com.walmartlabs.concord.plugins:aws-tasks:2.3.0
+    - mvn://com.walmartlabs.concord.plugins:aws-tasks:2.3.1
 
 flows:
   default:
@@ -10,5 +10,6 @@ flows:
         action: describe-images
         region: us-east-1
         repositoryName: foo
+        maxResults: 1
       out: result
     - log: "Image Details: ${resource.prettyPrintJson(result.imageDetails)}"

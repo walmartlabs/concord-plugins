@@ -36,7 +36,7 @@ public class EcrTaskTest {
 
     @Test
     public void testDescribeImages() {
-        var task = new EcrTask(new ObjectMapper());
+        var task = new EcrTask(new MockContext(), new ObjectMapper());
         var input = new MapBackedVariables(Map.of(
                 "action", "describe-images",
                 "region", "us-east-1",
