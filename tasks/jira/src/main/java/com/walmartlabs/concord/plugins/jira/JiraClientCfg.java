@@ -39,9 +39,9 @@ public interface JiraClientCfg {
     }
 
     enum HttpVersion {
-        HTTP_1_1("http/1.1"),
-        HTTP_2("http/2.0"),
-        DEFAULT("default");
+        HTTP_1_1("HTTP/1.1"),
+        HTTP_2("HTTP/2.0"),
+        DEFAULT("DEFAULT");
 
         private final String value;
 
@@ -50,14 +50,19 @@ public interface JiraClientCfg {
         }
 
         public static HttpVersion from(String val) {
+            if (val == null || val.isBlank()) {
+                return DEFAULT;
+            }
+
+            var sanitizedVal = val.toUpperCase();
+
             for (HttpVersion version : HttpVersion.values()) {
-                if (version.value.equals(val)) {
+                if (version.value.equals(sanitizedVal)) {
                     return version;
                 }
             }
 
-            return DEFAULT;
+            throw new IllegalArgumentException("Unsupported HTTP version: " + val);
         }
-
     }
 }

@@ -26,6 +26,8 @@ import org.junit.jupiter.api.Test;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TaskParamsTest {
 
@@ -54,10 +56,19 @@ class TaskParamsTest {
     }
 
     @Test
+    void testHttpVersionBlank() {
+        Map<String, Object> input = Map.of("httpClientProtocolVersion", " ");
+        var params = new TaskParams.DeleteIssueParams(new MapBackedVariables(input));
+
+        assertEquals(JiraClientCfg.HttpVersion.DEFAULT, params.httpProtocolVersion());
+    }
+
+    @Test
     void testHttpVersionUnknown() {
         Map<String, Object> input = Map.of("httpClientProtocolVersion", "invalidValue");
         var params = new TaskParams.DeleteIssueParams(new MapBackedVariables(input));
 
-        assertEquals(JiraClientCfg.HttpVersion.DEFAULT, params.httpProtocolVersion());
+        var expected = assertThrows(IllegalArgumentException.class, params::httpProtocolVersion);
+        assertTrue(expected.getMessage().contains("Unsupported HTTP version"));
     }
 }
