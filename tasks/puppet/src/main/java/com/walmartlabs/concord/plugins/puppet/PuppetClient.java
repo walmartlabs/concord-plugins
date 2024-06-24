@@ -204,7 +204,7 @@ class PuppetClient {
 
             // take a break
             log.info("retry after {} sec", retryInterval / 1000);
-            Utils.sleep(1000);
+            Utils.sleep(retryInterval);
 
             tryCount++;
         }
