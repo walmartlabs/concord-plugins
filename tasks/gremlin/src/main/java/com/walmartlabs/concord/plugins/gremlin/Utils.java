@@ -20,22 +20,35 @@ package com.walmartlabs.concord.plugins.gremlin;
  * =====
  */
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.walmartlabs.concord.common.ConfigurationUtils;
 import com.walmartlabs.concord.sdk.MapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.walmartlabs.concord.plugins.gremlin.TaskParams.AttackParams;
 import static com.walmartlabs.concord.plugins.gremlin.TaskParams.KubernetesParams;
-import static com.walmartlabs.concord.plugins.gremlin.Utils.K8S_TARGET_KIND.*;
-import static com.walmartlabs.concord.sdk.MapUtils.*;
+import static com.walmartlabs.concord.plugins.gremlin.Utils.K8S_TARGET_KIND.DAEMONSET;
+import static com.walmartlabs.concord.plugins.gremlin.Utils.K8S_TARGET_KIND.DEPLOYMENT;
+import static com.walmartlabs.concord.plugins.gremlin.Utils.K8S_TARGET_KIND.POD;
+import static com.walmartlabs.concord.plugins.gremlin.Utils.K8S_TARGET_KIND.STATEFULSET;
+import static com.walmartlabs.concord.sdk.MapUtils.assertList;
+import static com.walmartlabs.concord.sdk.MapUtils.getList;
+import static com.walmartlabs.concord.sdk.MapUtils.getString;
 
 public class Utils {
 
-    private static final Logger log = LoggerFactory.getLogger(GremlinTask.class);
+    private static final Logger log = LoggerFactory.getLogger(Utils.class);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private static final String ATTACK_GUID = "attackGuid";
     private static final String ATTACK_DETAILS = "attackDetails";
@@ -47,13 +60,17 @@ public class Utils {
         POD
     }
 
+    public static ObjectMapper objectMapper() {
+        return MAPPER;
+    }
+
     private static final Set<String> K8S_TARGET_KINDS = Arrays.stream(K8S_TARGET_KIND.values()).map(Enum::name).collect(Collectors.toSet());
 
     public static Map<String, Object> performAttack(AttackParams in, String type, List<String> params) {
         AttackResult attack = createAttack(in, type, params);
         String attackGuid = attack.id();
         String attackDetails = attack.details(in);
-        log.info("URL of Gremlin Attack report: {}", in.appUrl() + attackGuid);
+        log.info("URL of Gremlin Attack report: {}{}", in.appUrl(), attackGuid);
 
         Map<String, Object> result = new HashMap<>();
         result.put(ATTACK_DETAILS, attackDetails);

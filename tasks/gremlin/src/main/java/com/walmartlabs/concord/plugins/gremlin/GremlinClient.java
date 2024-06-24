@@ -20,26 +20,23 @@ package com.walmartlabs.concord.plugins.gremlin;
  * =====
  */
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.squareup.okhttp.*;
-import com.squareup.okhttp.logging.HttpLoggingInterceptor;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.Proxy;
+import java.net.ProxySelector;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 public class GremlinClient {
 
-    private static final OkHttpClient client = new OkHttpClient();
-    private static final Gson gson = new GsonBuilder().create();
+    private final HttpClient client;
 
     private final GremlinClientParams params;
 
@@ -48,10 +45,16 @@ public class GremlinClient {
 
     public GremlinClient(GremlinClientParams params) {
         this.params = params;
+        this.client = getClient(params);
     }
 
     public GremlinClient url(String url) {
-        this.url = params.apiUrl() + url;
+        if (url.endsWith("/")) {
+            this.url = url;
+        } else {
+            this.url = url + "/";
+        }
+
         return this;
     }
 
@@ -61,71 +64,88 @@ public class GremlinClient {
     }
 
     public Map<String, Object> post(Map<String, Object> data) throws IOException {
-        RequestBody body = RequestBody.create(
-                MediaType.parse("application/json; charset=utf-8"), gson.toJson(data));
-        Request request = requestBuilder()
-                .addHeader("Content-Type", "application/json")
-                .post(body)
+        HttpRequest request = requestBuilder()
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(Utils.objectMapper().writeValueAsString(data)))
                 .build();
 
         return call(request);
     }
 
     public Map<String, Object> get() throws IOException {
-        Request request = requestBuilder()
-                .get()
+        HttpRequest request = requestBuilder()
+                .GET()
                 .build();
+
         return call(request);
     }
 
-    public void delete() throws IOException {
-        Request request = requestBuilder()
-                .delete()
+    public void delete() {
+        HttpRequest request = requestBuilder()
+                .DELETE()
                 .build();
+
         deleteCall(request);
     }
 
-    private Request.Builder requestBuilder() {
-        HttpUrl.Builder urlBuilder = HttpUrl.parse(url).newBuilder();
-        if (params.teamId() != null) {
-            urlBuilder.addQueryParameter("teamId", params.teamId());
-        }
+    private HttpRequest.Builder requestBuilder() {
 
-        return new Request.Builder()
-                .addHeader("X-Gremlin-Agent", "concord/" + Version.getVersion())
-                .addHeader("Authorization", "Key " + params.apiKey())
-                .url(urlBuilder.build());
+        var rawUrl = params.teamId() == null
+                ? url
+                : url + toParameterString(Map.of("teamId", params.teamId()));
+
+        return HttpRequest.newBuilder(URI.create(rawUrl))
+                .timeout(Duration.ofSeconds(params.connectTimeout()))
+                .header("X-Gremlin-Agent", "concord/" + Version.getVersion())
+                .header("Authorization", "Key " + params.apiKey());
     }
 
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> call(Request request) throws IOException {
-        setupClientParams();
-
-        Response response = getClientResponse(request);
-        int statusCode = response.code();
-        try (ResponseBody responseBody = response.body()) {
-            String results = null;
-            if (responseBody != null) {
-                results = responseBody.string();
-            }
-            Map<String, Object> objResults = Collections.singletonMap("results", results);
-            assertResponseCode(statusCode, objResults.toString(), successCode);
-            return gson.fromJson(objResults.toString(), Map.class);
+    private static String toParameterString(Map<String, String> params) {
+        if (params.isEmpty()) {
+            return "";
         }
+
+        StringBuilder sb = new StringBuilder("?");
+        var paramQueue = new ArrayDeque<>(params.entrySet().stream().toList());
+
+        while (!paramQueue.isEmpty()) {
+            var param = paramQueue.poll();
+
+            sb.append(URLEncoder.encode(param.getKey(), StandardCharsets.UTF_8))
+                    .append("=")
+                    .append(URLEncoder.encode(param.getValue(), StandardCharsets.UTF_8));
+
+            if (!paramQueue.isEmpty()) {
+                sb.append("&");
+            }
+        }
+
+        return sb.toString();
     }
 
-    private void deleteCall(Request request) throws IOException {
-        setupClientParams();
-
-        Response response = getClientResponse(request);
-        int statusCode = response.code();
-        try (ResponseBody responseBody = response.body()) {
-            String results = null;
-            if (responseBody != null) {
-                results = responseBody.string();
-            }
-            assertResponseCode(statusCode, results, successCode);
+    private Map<String, Object> call(HttpRequest request) throws IOException {
+        String results = null;
+        var response = getClientResponse(request, HttpResponse.BodyHandlers.ofString());
+        var responseBody = response.body();
+        int statusCode = response.statusCode();
+        if (responseBody != null) {
+            results = responseBody;
         }
+        Map<String, Object> objResults = Collections.singletonMap("results", results);
+        assertResponseCode(statusCode, objResults.toString(), successCode);
+
+        return Map.of("results", Utils.objectMapper().readValue(responseBody, Map.class));
+    }
+
+    private void deleteCall(HttpRequest request) {
+        var response = getClientResponse(request, HttpResponse.BodyHandlers.ofString());
+        int statusCode = response.statusCode();
+        var responseBody = response.body();
+        String results = null;
+        if (responseBody != null) {
+            results = responseBody;
+        }
+        assertResponseCode(statusCode, results, successCode);
     }
 
     private static void assertResponseCode(int code, String result, int successCode) {
@@ -148,58 +168,26 @@ public class GremlinClient {
         }
     }
 
-    private Response getClientResponse(Request request) {
-        Response response;
+    private <T> HttpResponse<T> getClientResponse(HttpRequest request, HttpResponse.BodyHandler<T> bodyHandler) {
         try {
-            response = client.newCall(request).execute();
-        } catch (Exception e) {
+            return client.send(request, bodyHandler);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Thread interrupted", e);
+        } catch (IOException e) {
             throw new RuntimeException("Error: " + e);
         }
-        return response;
     }
 
+    private HttpClient getClient(GremlinClientParams params) {
+        var clientBuilder = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(params.connectTimeout()));
 
-    private void setupClientParams() {
-        try {
-            client.setConnectTimeout(params.connectTimeout(), TimeUnit.SECONDS);
-            client.setReadTimeout(params.readTimeout(), TimeUnit.SECONDS);
-            client.setWriteTimeout(params.writeTimeout(), TimeUnit.SECONDS);
-
-            if (params.debug()) {
-                client.interceptors().add(new HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BODY));
-            }
-
-            if (params.useProxy()) {
-                // Create a trust manager that does not validate certificate chains
-                final TrustManager[] trustAllCerts = new TrustManager[]{
-                        new X509TrustManager() {
-                            @Override
-                            public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) {
-                            }
-
-                            @Override
-                            public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) {
-                            }
-
-                            @Override
-                            public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                                return null;
-                            }
-                        }
-                };
-
-                // Install the all-trusting trust manager
-                final SSLContext sslContext = SSLContext.getInstance("SSL");
-                sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
-
-                // Create an ssl socket factory with our all-trusting manager
-                final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
-                client.setProxy(new Proxy(Proxy.Type.HTTP, new InetSocketAddress(params.proxyHost(), params.proxyPort())));
-                client.setSslSocketFactory(sslSocketFactory);
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Error: " + e);
+        if (params.useProxy()) {
+            clientBuilder.proxy(ProxySelector.of(new InetSocketAddress(params.proxyHost(), params.proxyPort())));
         }
+
+        return clientBuilder.build();
     }
 }
 

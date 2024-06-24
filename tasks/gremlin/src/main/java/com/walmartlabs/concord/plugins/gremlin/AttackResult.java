@@ -20,12 +20,7 @@ package com.walmartlabs.concord.plugins.gremlin;
  * =====
  */
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 public class AttackResult {
-
-    protected final Gson gson = new GsonBuilder().create();
 
     private final String id;
 
@@ -39,10 +34,12 @@ public class AttackResult {
 
     public String details(TaskParams.AttackParams in) {
         try {
-            return gson.toJson(new GremlinClient(in)
+            var map = new GremlinClient(in)
                     .url("attacks/" + id)
                     .successCode(200)
-                    .get());
+                    .get();
+
+            return Utils.objectMapper().writeValueAsString(map);
         } catch (Exception e) {
             throw new RuntimeException("Error occurred while getting attack details", e);
         }
