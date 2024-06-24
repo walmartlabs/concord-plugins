@@ -5,8 +5,7 @@
 ### Changed
 
 - aws: use paginator API, fix timestamp serialization
-([#155](https://github.com/walmartlabs/concord-plugins/pull/155)).
-
+([#156](https://github.com/walmartlabs/concord-plugins/pull/156)).
 
 
 ## [2.3.0] - 2024-06-20
