@@ -20,7 +20,6 @@ package com.walmartlabs.concord.plugins.terraform;
  * =====
  */
 
-import com.squareup.okhttp.OkHttpClient;
 import com.walmartlabs.concord.ApiClient;
 import com.walmartlabs.concord.client.ApiClientConfiguration;
 import com.walmartlabs.concord.client.ApiClientFactory;
@@ -234,7 +233,7 @@ class TerraformTaskV2Test extends AbstractTerraformTest {
 
     ApiClientFactory getApiClientFactory() {
         return cfg -> {
-            ApiClient apiClient = new ConcordApiClient(cfg.baseUrl(), new OkHttpClient());
+            ApiClient apiClient = new ConcordApiClient(cfg.baseUrl());
             apiClient.setReadTimeout(60000);
             apiClient.setConnectTimeout(10000);
             apiClient.setWriteTimeout(60000);
