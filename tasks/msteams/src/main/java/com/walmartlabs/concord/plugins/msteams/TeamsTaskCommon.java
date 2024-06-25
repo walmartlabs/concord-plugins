@@ -45,7 +45,7 @@ public class TeamsTaskCommon {
     }
 
     private Result sendMessage(SendMessageParams in) {
-        try (TeamsClient client = new TeamsClient(in)) {
+        try (TeamsClient client = getClient(in)) {
             Result r = client.message(in, in.title(), in.text(), in.themeColor(), in.sections(), in.potentialAction());
 
             if (!r.isOk()) {
@@ -62,5 +62,9 @@ public class TeamsTaskCommon {
                 throw new RuntimeException("'msteams' task error: " + e.getMessage());
             }
         }
+    }
+
+    TeamsClient getClient(TeamsTaskParams in) {
+        return new TeamsClient(in);
     }
 }
