@@ -4,6 +4,10 @@
 
 ### Changed
 
+- terraform: remove okhttp dependency (#161)
+([#161](https://github.com/walmartlabs/concord-plugins/pull/161));
+- jira: enable tests, remove Gson usage, prep for okhttp 2.X removal (#159)
+([#159](https://github.com/walmartlabs/concord-plugins/pull/159));
 - git: add gson to pom for egit support (#164)
 ([#164](https://github.com/walmartlabs/concord-plugins/pull/164));
 - puppet: remove okhttp dependency (#160)
