@@ -21,6 +21,7 @@ package com.walmartlabs.concord.plugins.jira.v2;
  */
 
 import com.walmartlabs.concord.plugins.jira.JiraCredentials;
+import com.walmartlabs.concord.plugins.jira.JiraSecretService;
 import com.walmartlabs.concord.plugins.jira.JiraTaskCommon;
 import com.walmartlabs.concord.plugins.jira.TaskParams;
 import com.walmartlabs.concord.runtime.v2.sdk.*;
@@ -38,16 +39,32 @@ public class JiraTaskV2 implements Task {
     @Inject
     public JiraTaskV2(Context context) {
         this.context = context;
-        this.delegate = new JiraTaskCommon((orgName, secretName, password) -> {
-            SecretService.UsernamePassword up = context.secretService().exportCredentials(orgName, secretName, password);
-            return new JiraCredentials(up.username(), up.password());
-        });
+        this.delegate = new JiraTaskCommon(new V2SecretService(context.secretService()));
     }
 
     @Override
     public TaskResult execute(Variables input) {
-        Map<String, Object> result = delegate.execute(TaskParams.of(input, context.defaultVariables().toMap()));
+        Map<String, Object> result = getDelegate().execute(TaskParams.of(input, context.defaultVariables().toMap()));
         return TaskResult.success()
                 .values(result);
     }
+
+    JiraTaskCommon getDelegate() {
+        return delegate;
+    }
+
+    static class V2SecretService implements JiraSecretService {
+        private final SecretService secretService;
+
+        public V2SecretService(SecretService secretService) {
+            this.secretService = secretService;
+        }
+
+        @Override
+        public JiraCredentials exportCredentials(String orgName, String secretName, String password) throws Exception {
+            SecretService.UsernamePassword up = secretService.exportCredentials(orgName, secretName, password);
+            return new JiraCredentials(up.username(), up.password());
+        }
+    }
+
 }

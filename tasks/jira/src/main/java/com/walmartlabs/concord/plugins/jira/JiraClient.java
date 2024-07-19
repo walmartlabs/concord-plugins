@@ -20,31 +20,39 @@ package com.walmartlabs.concord.plugins.jira;
  * =====
  */
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-import com.squareup.okhttp.*;
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.squareup.okhttp.Call;
+import com.squareup.okhttp.MediaType;
+import com.squareup.okhttp.MultipartBuilder;
+import com.squareup.okhttp.OkHttpClient;
+import com.squareup.okhttp.Request;
+import com.squareup.okhttp.RequestBody;
+import com.squareup.okhttp.Response;
+import com.squareup.okhttp.ResponseBody;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Type;
+import java.net.URI;
 import java.nio.file.Files;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-public class JiraClient {
+public class JiraClient implements JiraHttpClient {
+
+    private static final ObjectMapper MAPPER = new ObjectMapper()
+            .registerModule(new Jdk8Module());
+    static final JavaType MAP_TYPE = MAPPER.getTypeFactory()
+            .constructMapType(HashMap.class, String.class, Object.class);
+    private static final JavaType LIST_OF_MAPS_TYPE = MAPPER.getTypeFactory()
+            .constructCollectionType(List.class, MAP_TYPE);
 
     private static final OkHttpClient client = new OkHttpClient();
-    private static final Gson gson = new GsonBuilder().create();
-
-    private static final TypeToken<Map<String, Object>> MAP_TYPE_TOKEN = new TypeToken<Map<String, Object>>() {
-    };
-    private static final TypeToken<List<Map<String, Object>>> LIST_OF_MAPS_TYPE_TOKEN = new TypeToken<List<Map<String, Object>>>() {
-    };
-
     private final JiraClientCfg cfg;
-    private String url;
+    private URI uri;
     private int successCode;
     private String auth;
 
@@ -52,74 +60,82 @@ public class JiraClient {
         this.cfg = cfg;
     }
 
-    public JiraClient url(String url) {
-        this.url = url;
+    @Override
+    public JiraHttpClient url(String url) {
+        this.uri = URI.create(url);
         return this;
     }
 
-    public JiraClient successCode(int successCode) {
+    @Override
+    public JiraHttpClient successCode(int successCode) {
         this.successCode = successCode;
         return this;
     }
 
-    public JiraClient jiraAuth(String auth) {
+    @Override
+    public JiraHttpClient jiraAuth(String auth) {
         this.auth = auth;
         return this;
     }
 
+    @Override
     public Map<String, Object> get() throws IOException {
         Request request = requestBuilder(auth)
-                .url(url)
+                .url(uri.toURL())
                 .get()
                 .build();
 
-        return call(request, MAP_TYPE_TOKEN.getType());
+        return call(request, MAP_TYPE);
     }
 
+    @Override
     public Map<String, Object> post(Map<String, Object> data) throws IOException {
         RequestBody body = RequestBody.create(
-                MediaType.parse("application/json; charset=utf-8"), gson.toJson(data));
+                MediaType.parse("application/json; charset=utf-8"), MAPPER.writeValueAsString(data));
         Request request = requestBuilder(auth)
-                .url(url)
+                .url(uri.toURL())
                 .post(body)
                 .build();
 
-        return call(request, MAP_TYPE_TOKEN.getType());
+        return call(request, MAP_TYPE);
     }
 
+    @Override
     public void post(File file) throws IOException {
-        MultipartBuilder b = new MultipartBuilder().type(MultipartBuilder.FORM);
+        MultipartBuilder b = new MultipartBuilder(Constants.BOUNDARY).type(MultipartBuilder.FORM);
         b.addFormDataPart("file", file.getName(),
                 RequestBody.create(MediaType.parse("application/octet-stream"), Files.readAllBytes(file.toPath())));
 
         RequestBody body = b.build();
         Request request = requestBuilder(auth)
                 .header("X-Atlassian-Token", "nocheck")
-                .url(url)
+                .url(uri.toURL())
                 .post(body)
                 .build();
 
-        call(request, LIST_OF_MAPS_TYPE_TOKEN.getType());
+        call(request, LIST_OF_MAPS_TYPE);
     }
 
+    @Override
     public void put(Map<String, Object> data) throws IOException {
         RequestBody body = RequestBody.create(
-                MediaType.parse("application/json; charset=utf-8"), gson.toJson(data));
+                MediaType.parse("application/json; charset=utf-8"), MAPPER.writeValueAsString(data));
         Request request = requestBuilder(auth)
-                .url(url)
+                .url(uri.toURL())
                 .put(body)
                 .build();
 
-        call(request, MAP_TYPE_TOKEN.getType());
+        call(request, MAP_TYPE);
     }
 
+    @Override
     public void delete() throws IOException {
         Request request = requestBuilder(auth)
-                .url(url)
+                .url(uri.toURL())
                 .delete()
                 .build();
 
-        call(request, MAP_TYPE_TOKEN.getType());
+        call(request, MAP_TYPE);
     }
 
     private static Request.Builder requestBuilder(String auth) {
@@ -128,7 +144,8 @@ public class JiraClient {
                 .addHeader("Accept", "application/json");
     }
 
-    private <T> T call(Request request, Type returnType) throws IOException {
+
+    <T> T call(Request request, JavaType returnType) throws IOException {
         setClientTimeoutParams(cfg);
 
         Call call = client.newCall(request);
@@ -141,29 +158,13 @@ public class JiraClient {
             }
 
             int statusCode = response.code();
-            assertResponseCode(statusCode, results, successCode);
+            JiraHttpClient.assertResponseCode(statusCode, results, successCode);
 
-            return gson.fromJson(results, returnType);
-        }
-    }
-
-    private static void assertResponseCode(int code, String result, int successCode) {
-        if (code == successCode) {
-            return;
-        }
-
-        if (code == 400) {
-            throw new RuntimeException("input is invalid (e.g. missing required fields, invalid values). Here are the full error details: " + result);
-        } else if (code == 401) {
-            throw new RuntimeException("User is not authenticated. Here are the full error details: " + result);
-        } else if (code == 403) {
-            throw new RuntimeException("User does not have permission to perform request. Here are the full error details: " + result);
-        } else if (code == 404) {
-            throw new RuntimeException("Issue does not exist. Here are the full error details: " + result);
-        } else if (code == 500) {
-            throw new RuntimeException("Internal Server Error. Here are the full error details" + result);
-        } else {
-            throw new RuntimeException("Error: " + result);
+            if (results == null || statusCode == 204) {
+                return null;
+            } else {
+                return MAPPER.readValue(results, returnType);
+            }
         }
     }
 

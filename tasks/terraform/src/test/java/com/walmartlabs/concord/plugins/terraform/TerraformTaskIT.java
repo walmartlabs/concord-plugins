@@ -51,12 +51,12 @@ public class TerraformTaskIT {
     private static final String CURRENT_VERSION = getCurrentVersion();
 
     @Test
-    public void testWithRuntimeV1() throws Exception {
+    void testWithRuntimeV1() throws Exception {
         test("runtimeV1/concord.yml");
     }
 
     @Test
-    public void testWithRuntimeV2() throws Exception {
+    void testWithRuntimeV2() throws Exception {
         test("runtimeV2/concord.yml");
     }
 

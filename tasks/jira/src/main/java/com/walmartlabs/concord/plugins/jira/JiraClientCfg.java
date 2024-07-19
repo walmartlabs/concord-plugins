@@ -33,4 +33,36 @@ public interface JiraClientCfg {
     default long writeTimeout() {
         return 30L;
     }
+
+    default HttpVersion httpProtocolVersion() {
+        return HttpVersion.DEFAULT;
+    }
+
+    enum HttpVersion {
+        HTTP_1_1("HTTP/1.1"),
+        HTTP_2("HTTP/2.0"),
+        DEFAULT("DEFAULT");
+
+        private final String value;
+
+        HttpVersion(String value) {
+            this.value = value;
+        }
+
+        public static HttpVersion from(String val) {
+            if (val == null || val.isBlank()) {
+                return DEFAULT;
+            }
+
+            var sanitizedVal = val.toUpperCase();
+
+            for (HttpVersion version : HttpVersion.values()) {
+                if (version.value.equals(sanitizedVal)) {
+                    return version;
+                }
+            }
+
+            throw new IllegalArgumentException("Unsupported HTTP version: " + val);
+        }
+    }
 }

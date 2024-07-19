@@ -4,7 +4,7 @@ package com.walmartlabs.concord.plugins.jira;
  * *****
  * Concord
  * -----
- * Copyright (C) 2017 - 2020 Walmart Inc., Concord Authors
+ * Copyright (C) 2017 - 2024 Walmart Inc., Concord Authors
  * -----
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,27 +20,14 @@ package com.walmartlabs.concord.plugins.jira;
  * =====
  */
 
-import java.util.Base64;
+import java.util.UUID;
 
-public class JiraCredentials {
+public class Constants {
 
-    private final String username;
-    private final String password;
-
-    public JiraCredentials(String username, String password) {
-        this.username = username;
-        this.password = password;
+    private Constants() {
+        throw new IllegalStateException("instantiation is not allowed");
     }
 
-    public String username() {
-        return username;
-    }
+    static final String BOUNDARY = UUID.randomUUID().toString();
 
-    public String password() {
-        return password;
-    }
-
-    public String authHeaderValue() {
-        return "Basic " + Base64.getEncoder().encodeToString((username + ":" + password).getBytes());
-    }
 }

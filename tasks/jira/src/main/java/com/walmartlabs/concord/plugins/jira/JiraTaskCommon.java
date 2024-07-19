@@ -20,7 +20,6 @@ package com.walmartlabs.concord.plugins.jira;
  * =====
  */
 
-import com.squareup.okhttp.Credentials;
 import com.walmartlabs.concord.common.ConfigurationUtils;
 import com.walmartlabs.concord.sdk.MapUtils;
 import org.slf4j.Logger;
@@ -118,7 +117,7 @@ public class JiraTaskCommon {
     }
 
 
-    private Map<String, Object> createIssue(CreateIssueParams in) {
+    Map<String, Object> createIssue(CreateIssueParams in) {
         String projectKey = in.projectKey();
         String summary = in.summary();
         String description = in.description();
@@ -163,28 +162,20 @@ public class JiraTaskCommon {
                 objMain.put("assignee", assignee);
             }
 
-            if (customFieldsTypeKv != null && !customFieldsTypeKv.isEmpty()) {
-                for (Map.Entry<String, String> e : customFieldsTypeKv.entrySet()) {
-                    objMain.put(e.getKey(), String.valueOf(e.getValue()));
-                }
-            }
+            objMain.putAll(customFieldsTypeKv);
+            objMain.putAll(customFieldsTypeAtt);
 
-            if (customFieldsTypeAtt != null && !customFieldsTypeAtt.isEmpty()) {
-                for (Map.Entry<String, Object> e : customFieldsTypeAtt.entrySet()) {
-                    objMain.put(e.getKey(), e.getValue());
-                }
-            }
             Map<String, Object> objFields = Collections.singletonMap("fields", objMain);
 
             log.info("Creating new issue in '{}'...", projectKey);
 
-            Map<String, Object> results = new JiraClient(in)
+            Map<String, Object> results = getClient(in)
                     .url(in.jiraUrl() + "issue/")
                     .jiraAuth(buildAuth(in))
                     .successCode(201)
                     .post(objFields);
 
-            issueId = results.get("key").toString().replaceAll("\"", "");
+            issueId = results.get("key").toString().replace("\"", "");
             log.info("Issue #{} created in Project# '{}'", issueId, projectKey);
         } catch (Exception e) {
             throw new RuntimeException("Error occurred while creating an issue: " + e.getMessage(), e);
@@ -193,11 +184,11 @@ public class JiraTaskCommon {
         return Collections.singletonMap(JIRA_ISSUE_ID_KEY, issueId);
     }
 
-    private Map<String, Object> createSubTask(CreateSubTaskParams in) {
+    Map<String, Object> createSubTask(CreateSubTaskParams in) {
         return createIssue(in);
     }
 
-    private Map<String, Object> createComponent(CreateComponentParams in) {
+    Map<String, Object> createComponent(CreateComponentParams in) {
         String projectKey = in.projectKey();
         String componentName = in.componentName();
 
@@ -206,14 +197,14 @@ public class JiraTaskCommon {
             m.put("name", componentName);
             m.put("project", projectKey);
 
-            Map<String, Object> results = new JiraClient(in)
+            Map<String, Object> results = getClient(in)
                     .url(in.jiraUrl() + "component/")
                     .jiraAuth(buildAuth(in))
                     .successCode(201)
                     .post(m);
 
             String componentId = results.get("id").toString();
-            componentId = componentId.replaceAll("\"", "");
+            componentId = componentId.replace("\"", "");
             log.info("Component '{}' created successfully and its Id is '{}'", componentName, componentId);
             return Collections.singletonMap(JIRA_COMPONENT_ID_KEY, componentId);
         } catch (Exception e) {
@@ -221,11 +212,11 @@ public class JiraTaskCommon {
         }
     }
 
-    private void deleteComponent(DeleteComponentParams in) {
+    void deleteComponent(DeleteComponentParams in) {
         int componentId = in.componentId();
 
         try {
-            new JiraClient(in)
+            getClient(in)
                     .url(in.jiraUrl() + "component/" + componentId)
                     .jiraAuth(buildAuth(in))
                     .successCode(204)
@@ -237,7 +228,7 @@ public class JiraTaskCommon {
         }
     }
 
-    private void addAttachment(AddAttachmentParams in) {
+    void addAttachment(AddAttachmentParams in) {
         String issueKey = in.issueKey();
         String filePath = in.filePath();
 
@@ -247,7 +238,7 @@ public class JiraTaskCommon {
         }
 
         try {
-            new JiraClient(in)
+            getClient(in)
                     .url(in.jiraUrl() + "issue/" + issueKey + "/attachments")
                     .successCode(200)
                     .jiraAuth(buildAuth(in))
@@ -257,7 +248,7 @@ public class JiraTaskCommon {
         }
     }
 
-    private void addComment(AddCommentParams in) {
+    void addComment(AddCommentParams in) {
         String issueKey = in.issueKey();
         String comment = in.comment();
         boolean debug = in.debug();
@@ -265,7 +256,7 @@ public class JiraTaskCommon {
         try {
             Map<String, Object> m = Collections.singletonMap("body", comment);
 
-            new JiraClient(in)
+            getClient(in)
                     .url(in.jiraUrl() + "issue/" + issueKey + "/comment")
                     .jiraAuth(buildAuth(in))
                     .successCode(201)
@@ -281,7 +272,7 @@ public class JiraTaskCommon {
         }
     }
 
-    private void transition(TransitionParams in) {
+    void transition(TransitionParams in) {
         String issueKey = in.issueKey();
         String transitionId = Integer.toString(in.transitionId(-1));
         String transitionComment = in.transitionComment();
@@ -300,22 +291,13 @@ public class JiraTaskCommon {
             Map<String, Object> objupdate = Collections.singletonMap("update", objComment);
 
             Map<String, Object> objMain = new HashMap<>();
-            if (transitionFieldsTypeKv != null && !transitionFieldsTypeKv.isEmpty()) {
-                for (Map.Entry<String, String> e : transitionFieldsTypeKv.entrySet()) {
-                    objMain.put(e.getKey(), String.valueOf(e.getValue()));
-                }
-            }
-
-            if (transitionFieldsTypeAtt != null && !transitionFieldsTypeAtt.isEmpty()) {
-                for (Map.Entry<String, String> e : transitionFieldsTypeAtt.entrySet()) {
-                    objMain.put(e.getKey(), e.getValue());
-                }
-            }
+            transitionFieldsTypeKv.forEach((k, v) -> objMain.put(k, String.valueOf(v)));
+            objMain.putAll(transitionFieldsTypeAtt);
 
             Map<String, Object> objFields = Collections.singletonMap("fields", objMain);
             objupdate = ConfigurationUtils.deepMerge(objFields, ConfigurationUtils.deepMerge(objTransition, objupdate));
 
-            new JiraClient(in)
+            getClient(in)
                     .url(in.jiraUrl() + "issue/" + issueKey + "/transitions")
                     .jiraAuth(buildAuth(in))
                     .successCode(204)
@@ -327,11 +309,11 @@ public class JiraTaskCommon {
         }
     }
 
-    private void deleteIssue(DeleteIssueParams in) {
+    void deleteIssue(DeleteIssueParams in) {
         String issueKey = in.issueKey();
 
         try {
-            new JiraClient(in)
+            getClient(in)
                     .url(in.jiraUrl() + "issue/" + issueKey)
                     .jiraAuth(buildAuth(in))
                     .successCode(204)
@@ -343,18 +325,18 @@ public class JiraTaskCommon {
         }
     }
 
-    private void updateIssue(UpdateIssueParams in) {
+    void updateIssue(UpdateIssueParams in) {
         String issueKey = in.issueKey();
         Map<String, Object> fields = in.fields();
 
         log.info("Updating {} fields for issue #{}", fields, issueKey);
 
         try {
-            new JiraClient(in)
+            getClient(in)
                     .url(in.jiraUrl() + "issue/" + issueKey)
                     .jiraAuth(buildAuth(in))
                     .successCode(204)
-                    .put(Collections.singletonMap("fields", fields));
+                    .put(Map.of("fields", fields));
 
             log.info("Issue #{} updated successfully.", issueKey);
         } catch (Exception e) {
@@ -363,7 +345,7 @@ public class JiraTaskCommon {
     }
 
     @SuppressWarnings("unchecked")
-    private Map<String, Object> getIssues(GetIssuesParams in) {
+    Map<String, Object> getIssues(GetIssuesParams in) {
         String projectKey = in.projectKey();
         String issueType = in.issueType();
         String issueStatus = in.issueStatus();
@@ -389,7 +371,7 @@ public class JiraTaskCommon {
                 List<String> fieldList = Collections.singletonList("key");
                 objMain.put("fields", fieldList);
 
-                Map<String, Object> results = new JiraClient(in)
+                Map<String, Object> results = getClient(in)
                         .url(in.jiraUrl() + "search")
                         .jiraAuth(buildAuth(in))
                         .successCode(200)
@@ -423,7 +405,7 @@ public class JiraTaskCommon {
 
     private String buildAuth(TaskParams in) {
         JiraCredentials c = credentials(in);
-        return Credentials.basic(c.username(), c.password());
+        return c.authHeaderValue();
     }
 
     private JiraCredentials credentials(TaskParams in) {
@@ -453,7 +435,7 @@ public class JiraTaskCommon {
         String password = MapUtils.getString(input, JIRA_PASSWORD_KEY);
 
         try {
-            return secretService.exportCredentials(org, secretName, password);
+            return getSecretService().exportCredentials(org, secretName, password);
         } catch (Exception e) {
              throw new RuntimeException("Error export credentials: " + e.getMessage());
         }
@@ -461,7 +443,7 @@ public class JiraTaskCommon {
 
     private Map<String, Object> currentStatus(CurrentStatusParams in) {
         try {
-            Map<String, Object> results = new JiraClient(in)
+            Map<String, Object> results = getClient(in)
                     .url(formatUrl(in.jiraUrl()) + "issue/" + in.issueKey() + "?fields=status")
                     .jiraAuth(buildAuth(in))
                     .successCode(200)
@@ -506,6 +488,34 @@ public class JiraTaskCommon {
             }
         }
         return jqlQuery;
+    }
+
+    JiraHttpClient getClient(TaskParams in) {
+        try {
+            return getNativeClient(in);
+        } catch (NoClassDefFoundError e) {
+            // client2 may not exist
+            log.info("Falling back to okhttp client");
+        }
+
+        try {
+            return getOkHttpClient(in);
+        } catch (Exception | NoClassDefFoundError e) {
+            // that's very unexpected as long as okhttp is still allowed
+            throw new IllegalStateException("No jira http client found");
+        }
+    }
+
+    JiraHttpClient getNativeClient(TaskParams in) {
+        return new NativeJiraHttpClient(in);
+    }
+
+    JiraHttpClient getOkHttpClient(TaskParams in) {
+        return new JiraClient(in);
+    }
+
+    JiraSecretService getSecretService() {
+        return secretService;
     }
 
 }

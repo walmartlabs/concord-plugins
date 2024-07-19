@@ -26,19 +26,18 @@ import com.github.tomakehurst.wiremock.extension.ResponseTransformer;
 import com.github.tomakehurst.wiremock.http.HttpHeader;
 import com.github.tomakehurst.wiremock.http.RequestMethod;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
-import com.squareup.okhttp.Call;
-import com.squareup.okhttp.OkHttpClient;
-import com.squareup.okhttp.Request;
-import com.squareup.okhttp.Response;
-import com.walmartlabs.concord.common.IOUtils;
 import com.walmartlabs.concord.plugins.terraform.backend.BackendFactoryV1;
 import com.walmartlabs.concord.plugins.terraform.docker.DockerService;
 import com.walmartlabs.concord.sdk.*;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.*;
 import java.lang.reflect.Field;
 import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -60,6 +59,7 @@ public abstract class AbstractTerraformTest {
     private String basedir;
 
     private AWSCredentials awsCredentials;
+    @TempDir
     protected Path workDir;
     protected Path dstDir;
     private Path testFile;
@@ -67,7 +67,7 @@ public abstract class AbstractTerraformTest {
     protected LockService lockService;
     protected ObjectStorage objectStorage;
     protected BackendFactoryV1 backendManager;
-    protected OKHttpDownloadManager dependencyManager;
+    protected HttpClientDownloadManager dependencyManager;
     protected DockerService dockerService;
 
     @RegisterExtension
@@ -100,7 +100,7 @@ public abstract class AbstractTerraformTest {
         Files.copy(testFile, dstDir.resolve("main.tf"));
 
         lockService = mock(LockService.class);
-        dependencyManager = new OKHttpDownloadManager("terraform");
+        dependencyManager = new HttpClientDownloadManager("terraform");
         dockerService = new DockerService(workDir, Collections.emptyList());
     }
 
@@ -297,14 +297,8 @@ public abstract class AbstractTerraformTest {
     //
 
     private Path workDir() throws Exception {
-        String concordTmpDir = System.getenv(CONCORD_TMP_DIR_KEY);
-        if (concordTmpDir == null) {
-            // Grab the old environment and add the CONCORD_TMP_DIR value to it and reset it
-            Map<String, String> newEnvironment = new HashMap<>(System.getenv());
-            newEnvironment.put(CONCORD_TMP_DIR_KEY, CONCORD_TMP_DIR_VALUE);
-            setNewEnvironment(newEnvironment);
-        }
-        return IOUtils.createTempDir("test");
+
+        return Files.createDirectories(workDir.resolve("test"));
     }
 
     private Path terraformTestFile() {
@@ -361,11 +355,11 @@ public abstract class AbstractTerraformTest {
         }
     }
 
-    static class OKHttpDownloadManager implements DependencyManager, com.walmartlabs.concord.runtime.v2.sdk.DependencyManager {
+    protected static class HttpClientDownloadManager implements DependencyManager, com.walmartlabs.concord.runtime.v2.sdk.DependencyManager {
 
         private final Path toolDir;
 
-        public OKHttpDownloadManager(String tool) {
+        public HttpClientDownloadManager(String tool) {
             this.toolDir = Paths.get(System.getProperty("user.home"), ".m2/tools/", tool);
 
             if (Files.exists(toolDir)) {
@@ -395,11 +389,17 @@ public abstract class AbstractTerraformTest {
             String fileName = urlString.substring(urlString.lastIndexOf('/') + 1);
             Path target = toolDir.resolve(fileName);
             if (!Files.exists(target)) {
-                OkHttpClient client = new OkHttpClient();
-                Request request = new Request.Builder().url(urlString).build();
-                Call call = client.newCall(request);
-                Response response = call.execute();
-                download(response.body().byteStream(), target.toFile());
+                HttpClient client = HttpClient.newHttpClient();
+                HttpRequest req = HttpRequest.newBuilder(URI.create(urlString))
+                        .GET()
+                        .build();
+
+                try {
+                    var response = client.send(req, HttpResponse.BodyHandlers.ofInputStream());
+                    download(response.body(), target.toFile());
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
             }
             return target;
         }
