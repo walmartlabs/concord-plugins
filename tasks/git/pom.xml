@@ -14,7 +14,7 @@
     <packaging>takari-jar</packaging>
 
     <properties>
-        <jgit.version>6.5.0.202303070854-r</jgit.version>
+        <jgit.version>6.6.1.202309021850-r</jgit.version>
         <egit.github.version>6.1.0.202203080745-r</egit.github.version>
     </properties>
 
