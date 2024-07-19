@@ -29,10 +29,12 @@ public class K8SAttackResult extends AttackResult {
     @Override
     public String details(TaskParams.AttackParams in) {
         try {
-            return gson.toJson(new GremlinClient(in)
+            var map = new GremlinClient(in)
                     .url("kubernetes/attacks/" + id())
                     .successCode(200)
-                    .get());
+                    .get();
+
+            return Utils.objectMapper().writeValueAsString(map);
         } catch (Exception e) {
             throw new RuntimeException("Error occurred while getting attack details", e);
         }
