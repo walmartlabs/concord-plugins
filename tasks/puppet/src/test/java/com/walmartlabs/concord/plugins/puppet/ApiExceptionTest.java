@@ -25,10 +25,10 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class ApiExceptionTest {
+class ApiExceptionTest {
 
     @Test
-    public void testWithStatusCode() {
+    void testWithStatusCode() {
         ApiException ex = ApiException.buildException(404, "not found");
         assertEquals(404, ex.getCode());
         assert(ex.getMessage().contains("404") && ex.getMessage().contains("not found"));
@@ -44,7 +44,7 @@ public class ApiExceptionTest {
 
 
     @Test
-    public void testMessage() {
+    void testMessage() {
         ApiException ex = new ApiException("error occurred");
         assertEquals("error occurred", ex.getMessage());
     }

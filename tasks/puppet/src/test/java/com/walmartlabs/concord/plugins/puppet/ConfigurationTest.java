@@ -28,18 +28,19 @@ import com.walmartlabs.concord.sdk.SecretService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
-public class ConfigurationTest {
-    private static final Logger log = LoggerFactory.getLogger(ConfigurationTest.class);
+class ConfigurationTest {
+    private static final Map<String, Object> EMPTY_MAP = Map.of();
 
     private MockContext ctx;
 
@@ -55,45 +56,34 @@ public class ConfigurationTest {
     }
 
     @Test
-    public void testReadCertFileError() {
+     void testReadCertFileError() {
 
         Map<String, Object> certificate = new HashMap<>();
-        certificate.put("path", "does/not/exit");
+        certificate.put("path", "does/not/exist");
 
         ctx.setVariable("queryString", "test query");
         ctx.setVariable("certificate", certificate);
 
-        try {
-            Utils.createCfg(ctx, null, ctx.toMap(), DbQueryCfg.class);
-            fail("Missing certificate file should cause an exception.");
-        } catch (ConfigException expected) {
-            log.info("Hit expected exception with missing cert file.");
-        } catch (Exception e) {
-            fail("Missing certificate file should cause an exception, not this one: " + e.getMessage());
-        }
+        var expected = assertThrows(ConfigException.class,
+                () -> Utils.createCfg(ctx, null, EMPTY_MAP, DbQueryCfg.class));
+        assertTrue(expected.getMessage().contains("Certificate file 'does/not/exist' does not exist"));
     }
 
     @Test
-    public void testBadCertText() {
+    void testBadCertText() {
         Map<String, Object> certificate = new HashMap<>();
         certificate.put("text", "not really a cert");
 
         ctx.setVariable("queryString", "test query");
         ctx.setVariable("certificate", certificate);
 
-        try {
-            Utils.createCfg(ctx, null, ctx.toMap(), DbQueryCfg.class);
-            fail("Bad certificate text should cause an exception.");
-        } catch (ConfigException expected) {
-            log.info("Hit expected exception with missing cert file.");
-        } catch (Exception e) {
-            fail("Bad certificate text should cause an exception, but not this one: " + e.getMessage());
-        }
-
+        var expected = assertThrows(ConfigException.class,
+                () -> Utils.createCfg(ctx, null, EMPTY_MAP, DbQueryCfg.class));
+        assertTrue(expected.getMessage().contains("Could not parse certificate"));
     }
 
     @Test
-    public void testCertFromSecretError() throws Exception {
+    void testCertFromSecretError() throws Exception {
         Map<String, Object> secret = new HashMap<>();
         secret.put("org", "o");
         secret.put("name", "n");
@@ -111,18 +101,16 @@ public class ConfigurationTest {
         ctx.setVariable("queryString", "test query");
         ctx.setVariable("certificate", certificate);
 
-        try {
-            Utils.createCfg(ctx, sService, ctx.toMap(), DbQueryCfg.class);
-            fail("Bad certificate text should cause an exception.");
-        } catch (ConfigException expected) {
-            log.info("Hit expected exception with missing cert file.");
-        } catch (Exception e) {
-            fail("Bad certificate text should cause an exception, but not this one: " + e.getMessage());
-        }
+        var expected = assertThrows(ConfigException.class,
+                () -> Utils.createCfg(ctx, sService, EMPTY_MAP, DbQueryCfg.class));
+        assertTrue(expected.getMessage().contains("Certificate file 'not/a/good/path' does not exist"));
+
+        verify(sService, times(1))
+                .exportAsFile(any(), anyString(), anyString(), anyString(), anyString(), nullable(String.class));
     }
 
     @Test
-    public void payloadTest() {
+    void payloadTest() {
         ctx.setVariable("queryString", "test query");
 
         DbQueryCfg cfg = Utils.createCfg(ctx, null, ctx.toMap(), DbQueryCfg.class);

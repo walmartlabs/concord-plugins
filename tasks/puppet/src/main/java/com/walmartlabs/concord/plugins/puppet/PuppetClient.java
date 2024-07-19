@@ -29,32 +29,45 @@ import com.walmartlabs.concord.plugins.puppet.model.exception.ApiException;
 import com.walmartlabs.concord.plugins.puppet.model.exception.ConfigException;
 import com.walmartlabs.concord.plugins.puppet.model.token.TokenPayload;
 import com.walmartlabs.concord.plugins.puppet.model.token.TokenResult;
-import okhttp3.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.*;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
+import java.io.BufferedInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
 
 class PuppetClient {
 
     private static final Logger log = LoggerFactory.getLogger(PuppetClient.class);
+    private static final String KEYSTORE_PASS = UUID.randomUUID().toString();
 
-    private static final MediaType APPLICATION_JSON = MediaType.parse("application/json");
-
-    private final OkHttpClient client;
+    private final HttpClient client;
     private final PuppetConfiguration cfg;
-
     private final ObjectMapper objectMapper;
+
 
     PuppetClient(PuppetConfiguration configuration) throws Exception {
         this.cfg = configuration;
@@ -63,38 +76,43 @@ class PuppetClient {
                 .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     }
 
-    private <T> T post(HttpUrl url, String payload, JavaType valueType) throws Exception {
-        Request.Builder rBuilder = new Request.Builder()
-                .url(url)
-                .post(RequestBody.create(APPLICATION_JSON, payload));
-        for (Map.Entry<String, String> e : cfg.getHeaders().entrySet()) {
-            rBuilder.addHeader(e.getKey(), e.getValue());
-        }
+    private <T> T post(URI uri, String payload, JavaType valueType) throws ApiException, SSLHandshakeException {
+        var rBuilder = HttpRequest.newBuilder()
+                .POST(HttpRequest.BodyPublishers.ofString(payload))
+                .uri(uri)
+                .timeout(Duration.ofSeconds(cfg.getReadTimeout()))
+                .header("Content-Type", "application/json");
 
-        Request request = rBuilder.build();
+        cfg.getHeaders().forEach(rBuilder::header);
+
+        var request = rBuilder.build();
 
         return invokeRequest(request, valueType);
     }
 
     @SuppressWarnings("unchecked")
-    private <T> T invokeRequest(Request request, final JavaType valueType) throws Exception {
-        try (Response response = client.newCall(request).execute();
-             ResponseBody body = response.body()) {
+    private <T> T invokeRequest(HttpRequest request, final JavaType valueType) throws ApiException, SSLHandshakeException {
+        try {
+            var response = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
+            var statusCode = response.statusCode();
 
-            if (!response.isSuccessful()) {
-                throw ApiException.buildException(response.code(), response.message());
-            }
-
-            if (body == null) {
-                throw ApiException.buildException(response.code(), "No body returned.");
+            if (statusCode < 200 || statusCode >= 300) {
+                throw ApiException.buildException(statusCode, new String(new BufferedInputStream(response.body()).readAllBytes()));
             }
 
             if (valueType.equals(objectMapper.constructType(String.class))) {
                 // if it returns just a string and not JSON
-                return (T) body.string();
+                return (T) new String(new BufferedInputStream(response.body()).readAllBytes());
             } else {
-                return objectMapper.readValue(body.byteStream(), valueType);
+                return objectMapper.readValue(response.body(), valueType);
             }
+        } catch (SSLHandshakeException e) {
+            throw e;
+        } catch (IOException e) {
+            throw new ApiException("IO Exception calling API: " + e.getMessage());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("interrupted", e);
         }
     }
 
@@ -107,9 +125,9 @@ class PuppetClient {
      */
     List<Map<String, Object>> dbQuery(DbQueryPayload query) throws Exception {
         JavaType t = objectMapper.getTypeFactory().constructCollectionType(ArrayList.class, Map.class);
-        HttpUrl url = validateUrl(cfg.getBaseUrl(), "/pdb/query/v4");
+        var url = validateUrl(cfg.getBaseUrl(), "/pdb/query/v4");
 
-        return withRetry(3, 1000,
+        return withRetry(cfg.getHttpRetries(), 1000,
                 () -> post(url, objectMapper.writeValueAsString(query), t)
         );
     }
@@ -123,14 +141,10 @@ class PuppetClient {
      */
     String createToken(TokenPayload tp) throws Exception {
         JavaType t = objectMapper.constructType(TokenResult.class);
-        HttpUrl url = validateUrl(cfg.getBaseUrl(), "/rbac-api/v1/auth/token");
-        TokenResult r = withRetry(3, 1000,
-                () -> post(
-                        url,
-                        objectMapper.writeValueAsString(tp),
-                        t
-                )
-        );
+        URI url = validateUrl(cfg.getBaseUrl(), "/rbac-api/v1/auth/token");
+        String body = objectMapper.writeValueAsString(tp);
+
+        TokenResult r = withRetry(cfg.getHttpRetries(), 1000, () -> post(url, body, t));
 
         return r.getToken();
     }
@@ -142,18 +156,13 @@ class PuppetClient {
      * @param path API Path for execution, include leading forward-slash '/'
      * @return Full, encoded URL string
      */
-    private static HttpUrl validateUrl(String baseUrl, String path) {
+    private static URI validateUrl(String baseUrl, String path) {
         if (baseUrl == null || baseUrl.isEmpty()) {
             throw new IllegalArgumentException("No base url is set for HTTP requests.");
         }
         String url = String.format("%s%s", baseUrl, path);
 
-        HttpUrl urlObj = HttpUrl.parse(url);
-        if (urlObj == null) {
-            throw new IllegalArgumentException("Invalid URL: " + baseUrl);
-        }
-
-        return urlObj;
+        return URI.create(url);
     }
 
     /**
@@ -185,23 +194,26 @@ class PuppetClient {
                 // probably due to self-signed cert that isn't trusted
                 log.error("Error during SSL handshake. Likely due to untrusted self-signed certificate.");
                 throw e;
+            } catch (IllegalArgumentException e) {
+                // probably invalid url
+                throw e;
             } catch (Exception e) {
                 exception = e;
                 log.error("call error", e);
             }
 
-            if (tryCount < retryCount) {
-                // take a break
-                log.info("retry after {} sec", retryInterval / 1000);
-                Utils.sleep(1000);
+            // take a break
+            log.info("retry after {} sec", retryInterval / 1000);
+            Utils.sleep(retryInterval);
 
-                tryCount++;
-            }
+            tryCount++;
         }
 
         // too many attempts, time to give up
         if (tryCount == retryCount) {
-            throw new ApiException(String.format("Retry max reached: %s", exception.getMessage()));
+            var msg = Optional.ofNullable(exception).map(Exception::getMessage)
+                    .orElse("no exception message");
+            throw new ApiException(String.format("Retry max reached: %s", msg));
         }
 
         // Very unexpected exception
@@ -215,48 +227,31 @@ class PuppetClient {
      *
      * @param cfg config with certificate settings
      * @return http client with certificate settings from the config
-     * @throws Exception
      */
-    private OkHttpClient createClient(PuppetConfiguration cfg) throws Exception {
-        OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
-                .connectTimeout(cfg.getConnectTimeout(), TimeUnit.SECONDS)
-                .readTimeout(cfg.getReadTimeout(), TimeUnit.SECONDS)
-                .writeTimeout(cfg.getWriteTimeout(), TimeUnit.SECONDS);
+    private HttpClient createClient(PuppetConfiguration cfg) throws Exception {
+        var clientBuilder = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(cfg.getConnectTimeout()));
+
+        if (cfg.getHttpVersion() == PuppetConfiguration.HttpVersion.HTTP_1_1) {
+            clientBuilder.version(HttpClient.Version.HTTP_1_1);
+        } else if (cfg.getHttpVersion() == PuppetConfiguration.HttpVersion.HTTP_2) {
+            clientBuilder.version(HttpClient.Version.HTTP_2);
+        }
 
         if (!cfg.validateCerts()) {
             Utils.debug(log, cfg.doDebug(), "Disabling certificate verification.");
-            final TrustManager[] tms = new TrustManager[]{
-                    new X509TrustManager() {
-                        @Override
-                        public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {
-                        }
-
-                        @Override
-                        public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {
-                        }
-
-                        @Override
-                        public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                            return new java.security.cert.X509Certificate[0];
-                        }
-                    }
-            };
+            final TrustManager[] tms = IgnoringTrustManager.getManagers(cfg.validateCertsNotAfter());
             final SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
-            sslContext.init(null, tms, new java.security.SecureRandom());
-            final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+            sslContext.init(null, tms, new SecureRandom());
 
-            clientBuilder
-                    .sslSocketFactory(sslSocketFactory, (X509TrustManager) tms[0])
-                    .hostnameVerifier(new PuppetHostnameVerifier(cfg.getBaseUrl()));
+            clientBuilder.sslContext(sslContext);
         } else if (cfg.useCustomKeyStore()) {
             Utils.debug(log, cfg.doDebug(), "Adding master cert to trusted certs");
-            KeyStore keyStore = generateKeystore(cfg.getCertificates());
+            KeyStore keyStore = generateKeystore(cfg.getCertificates(), cfg.doDebug());
             X509TrustManager tm = getTrustManager(keyStore);
-            SSLContext sslContext = newGetSslContext(keyStore, tm);
+            SSLContext sslContext = getSslContext(keyStore, tm);
 
-            clientBuilder
-                    .sslSocketFactory(sslContext.getSocketFactory(), tm)
-                    .hostnameVerifier(new PuppetHostnameVerifier(cfg.getBaseUrl()));
+            clientBuilder.sslContext(sslContext);
         } else {
             Utils.debug(log, cfg.doDebug(), "Using default keystore and validating certificates");
         }
@@ -269,9 +264,9 @@ class PuppetClient {
      *
      * @param keyStore Keystore to use with the trust manager
      * @return TrustManager to validate ssl connections
-     * @throws Exception when default trust manager can't be obtained
+     * @throws NoSuchAlgorithmException KeyStoreException when default trust manager can't be obtained
      */
-    private static X509TrustManager getTrustManager(KeyStore keyStore) throws Exception {
+    private static X509TrustManager getTrustManager(KeyStore keyStore) throws NoSuchAlgorithmException, KeyStoreException {
         TrustManagerFactory tmf = TrustManagerFactory
                 .getInstance(TrustManagerFactory.getDefaultAlgorithm());
         tmf.init(keyStore);
@@ -290,14 +285,12 @@ class PuppetClient {
      * @param keyStore KeyStore to use for certificate validations
      * @param tm       for making trust decisions
      * @return SSL Context with the given keystore and trustmanager
-     * @throws Exception
      */
-    private static SSLContext newGetSslContext(KeyStore keyStore, X509TrustManager tm) throws Exception {
+    private static SSLContext getSslContext(KeyStore keyStore, X509TrustManager tm) throws Exception {
         SSLContext sslContext;
 
-
         KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-        keyManagerFactory.init(keyStore, "keystore_pass".toCharArray());
+        keyManagerFactory.init(keyStore, KEYSTORE_PASS.toCharArray());
 
         sslContext = SSLContext.getInstance("TLSv1.2");
         sslContext.init(null, new TrustManager[]{tm}, null);
@@ -311,10 +304,9 @@ class PuppetClient {
      * @param certificates list of Certificates to add to the keystore
      * @return Keystore used for ssl verification
      */
-    private KeyStore generateKeystore(List<Certificate> certificates) {
+    static KeyStore generateKeystore(List<Certificate> certificates, boolean debug) {
         KeyStore keyStore;
         try {
-
             keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
             keyStore.load(null, null);
 
@@ -322,7 +314,7 @@ class PuppetClient {
             for (Certificate c : certificates) {
                 keyStore.setCertificateEntry("custom-cert-" + i++, c);
             }
-            Utils.debug(log, cfg.doDebug(), String.format("Added %s custom cert(s) to keystore", i));
+            Utils.debug(log, debug, String.format("Added %s custom cert(s) to keystore", i));
         } catch (FileNotFoundException e) {
             throw new ConfigException("Error setting up keystore. Cannot find certificate file.");
         } catch (Exception ex) {

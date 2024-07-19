@@ -32,6 +32,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
@@ -75,14 +76,19 @@ public final class Utils {
      * Converts PEM-encoded certificate file into certificates and adds it to a
      * List of certificates
      *
-     * @param filePath Path to the PEM-encoded certificate file
-     * @param pCfg     PuppetConfiguration to add the certs
+     * @param file Path to the PEM-encoded certificate file
+     * @param pCfg PuppetConfiguration to add the certs
      */
-    public static void fileToCert(String filePath, PuppetConfiguration pCfg) {
-        try (
-                FileInputStream is = new FileInputStream(filePath);
-                BufferedInputStream bis = new BufferedInputStream(is)
-        ) {
+    public static void fileToCert(String file, PuppetConfiguration pCfg) {
+        var filePath = Paths.get(file);
+
+        if (!Files.exists(filePath)) {
+            throw new ConfigException("Certificate file '" + filePath + "' does not exist");
+        }
+
+        try (var is = Files.newInputStream(filePath);
+             var bis = new BufferedInputStream(is)) {
+
             streamToCerts(bis, pCfg);
         } catch (Exception e) {
             throw new ConfigException("Error reading certificates: " + e.getMessage());

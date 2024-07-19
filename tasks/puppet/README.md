@@ -159,3 +159,30 @@ connectivity from a process.
 ```
 docker network connect pupperware_default agent
 ```
+
+## Wiremock Certificate
+
+A certificate and private key are included in [`./wiremock_cert`](./wiremock_cert)
+for unit testing https termination. The tests depend on validation of connections
+to `localhost`.
+
+To recreate the cert and private key, if needed, execute:
+
+```shell
+# generate the private key to become a local CA
+$ openssl genrsa -des3 -out ca.key 2048
+
+# generate CA root cert
+$ openssl req -x509 -new -nodes -key ca.key -sha256 -days 99999 -out ca.pem
+
+# generate private key for server certificate
+$ openssl genrsa -out server.key 2048
+
+# create CSR
+$ openssl req -new -key server.key -out server.csr
+
+# generate server cert
+# cert.ext is also a resource in the project
+$ openssl x509 -req -in server.csr -CA ca.pem -CAkey ca.key \
+    -CAcreateserial -out server.crt -days 99999 -sha256 -extfile cert.ext
+```

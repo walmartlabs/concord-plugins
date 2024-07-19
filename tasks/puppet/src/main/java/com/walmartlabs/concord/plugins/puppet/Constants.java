@@ -48,13 +48,16 @@ public final class Constants {
         public static final String TOKEN_LABEL_KEY = "tokenLabel";
         public static final String TOKEN_DESCRIPTION_KEY = "tokenDescription";
 
-        // Connection Keys
+        // HTTP Connection Keys
         public static final String CONNECT_TIMEOUT_KEY = "connectTimeout";
         public static final String READ_TIMEOUT_KEY = "readTimeout";
         public static final String WRITE_TIMEOUT_KEY = "writeTimeout";
+        public static final String HTTP_VERSION_KEY = "httpVersion";
+        public static final String HTTP_RETRIES_KEY = "httpRetries";
 
         // Certificate info
         public static final String VALIDATE_CERTS_KEY = "validateCerts";
+        public static final String VALIDATE_CERTS_NOT_AFTER_KEY = "validateCertsNotAfter";
         public static final String CERTIFICATE_KEY = "certificate";
         public static final String CERTIFICATE_SECRET_KEY = "secret";
         public static final String CERTIFICATE_ORG_KEY = "org";

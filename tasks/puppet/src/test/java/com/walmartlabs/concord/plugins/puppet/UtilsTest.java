@@ -27,10 +27,10 @@ import java.lang.reflect.Field;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class UtilsTest {
+class UtilsTest {
 
     @Test
-    public void normalizeUrlTest() {
+    void normalizeUrlTest() {
         String normalizedUrl = "https://my-api.com";
         String normalizedUrlWithPort = "https://my-api.com:8080";
 
