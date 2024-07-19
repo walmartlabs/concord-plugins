@@ -20,7 +20,6 @@ package com.walmartlabs.concord.plugins.terraform;
  * =====
  */
 
-import com.squareup.okhttp.OkHttpClient;
 import com.walmartlabs.concord.ApiClient;
 import com.walmartlabs.concord.client.ApiClientConfiguration;
 import com.walmartlabs.concord.client.ApiClientFactory;
@@ -36,7 +35,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 
@@ -71,7 +69,7 @@ import static org.mockito.Mockito.*;
 // TODO: split test apart to prepare for testing OCI/GCP
 //
 @Disabled
-public class TerraformTaskV2Test extends AbstractTerraformTest {
+class TerraformTaskV2Test extends AbstractTerraformTest {
     private ApiClient apiClient;
     private SecretService secretService;
     private final LockService lockService = mock(LockService.class);
@@ -96,7 +94,7 @@ public class TerraformTaskV2Test extends AbstractTerraformTest {
     }
 
     @Test
-    public void test() throws Exception {
+    void test() throws Exception {
         Map<String, Object> args = baseArguments(workDir, dstDir, Action.PLAN.name());
         args.put(TaskConstants.VARS_FILES, varFiles());
         args.put(TaskConstants.EXTRA_VARS_KEY, extraVars());
@@ -235,7 +233,7 @@ public class TerraformTaskV2Test extends AbstractTerraformTest {
 
     ApiClientFactory getApiClientFactory() {
         return cfg -> {
-            ApiClient apiClient = new ConcordApiClient(cfg.baseUrl(), new OkHttpClient());
+            ApiClient apiClient = new ConcordApiClient(cfg.baseUrl());
             apiClient.setReadTimeout(60000);
             apiClient.setConnectTimeout(10000);
             apiClient.setWriteTimeout(60000);
