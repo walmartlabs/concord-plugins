@@ -1,5 +1,18 @@
 # Change log
 
+## [2.4.0] - 2024-07-19
+
+### Changed
+
+- terraform: remove okhttp dependency (#161)
+([#161](https://github.com/walmartlabs/concord-plugins/pull/161));
+- jira: enable tests, remove Gson usage, prep for okhttp 2.X removal (#159)
+([#159](https://github.com/walmartlabs/concord-plugins/pull/159));
+- git: add gson to pom for egit support (#164)
+([#164](https://github.com/walmartlabs/concord-plugins/pull/164));
+- puppet: remove okhttp dependency (#160)
+([#160](https://github.com/walmartlabs/concord-plugins/pull/160)).
+
 ## [2.3.1] - 2024-06-24
 
 ### Changed
