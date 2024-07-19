@@ -23,6 +23,7 @@ package com.walmartlabs.concord.plugins.jira;
 import com.walmartlabs.concord.runtime.v2.sdk.MapBackedVariables;
 import com.walmartlabs.concord.runtime.v2.sdk.Variables;
 
+import javax.annotation.Nonnull;
 import java.util.*;
 
 public class TaskParams implements JiraClientCfg {
@@ -75,6 +76,7 @@ public class TaskParams implements JiraClientCfg {
     private static final String JIRA_AUTH_KEY = "auth";
     private static final String JIRA_USER_ID_KEY = "userId";
     private static final String JIRA_PASSWORD_KEY = "password";
+    private static final String JIRA_HTTP_CLIENT_PROTOCOL_VERSION_KEY = "httpClientProtocolVersion";
     private static final String CLIENT_CONNECTTIMEOUT = "connectTimeout";
     private static final String CLIENT_READTIMEOUT = "readTimeout";
     private static final String CLIENT_WRITETIMEOUT = "writeTimeout";
@@ -90,7 +92,7 @@ public class TaskParams implements JiraClientCfg {
         try {
             return Action.valueOf(action.trim().toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new RuntimeException("Unknown action: '" + action + "'. Available actions: " + Arrays.toString(Action.values()));
+            throw new IllegalArgumentException("Unknown action: '" + action + "'. Available actions: " + Arrays.toString(Action.values()));
         }
     }
 
@@ -123,6 +125,13 @@ public class TaskParams implements JiraClientCfg {
 
     public String pwd() {
         return variables.assertString(JIRA_PASSWORD_KEY);
+    }
+
+    @Override
+    public HttpVersion httpProtocolVersion() {
+        return Optional.ofNullable(variables.getString(JIRA_HTTP_CLIENT_PROTOCOL_VERSION_KEY))
+                .map(HttpVersion::from)
+                .orElse(JiraClientCfg.super.httpProtocolVersion());
     }
 
     public static class CreateIssueParams extends TaskParams {
@@ -178,12 +187,12 @@ public class TaskParams implements JiraClientCfg {
             return variables.getList(JIRA_ISSUE_COMPONENTS_KEY, null);
         }
 
-        public Map<String, String> customFieldsTypeKv() {
-            return variables.getMap(JIRA_CUSTOM_FIELDS_KV_KEY, null);
+        public @Nonnull Map<String, String> customFieldsTypeKv() {
+            return variables.getMap(JIRA_CUSTOM_FIELDS_KV_KEY, Map.of());
         }
 
-        public Map<String, Object> customFieldsTypeAtt() {
-            return variables.getMap(JIRA_CUSTOM_FIELDS_ATTR_KEY, Collections.emptyMap());
+        public @Nonnull Map<String, Object> customFieldsTypeAtt() {
+            return variables.getMap(JIRA_CUSTOM_FIELDS_ATTR_KEY, Map.of());
         }
     }
 
@@ -283,12 +292,12 @@ public class TaskParams implements JiraClientCfg {
             return variables.assertString(JIRA_TRANSITION_COMMENT_KEY);
         }
 
-        public Map<String, String> transitionFieldsTypeKv() {
-            return variables.getMap(JIRA_CUSTOM_FIELDS_KV_KEY, null);
+        public @Nonnull Map<String, String> transitionFieldsTypeKv() {
+            return variables.getMap(JIRA_CUSTOM_FIELDS_KV_KEY, Map.of());
         }
 
-        public Map<String, String> transitionFieldsTypeAtt() {
-            return variables.getMap(JIRA_CUSTOM_FIELDS_ATTR_KEY, null);
+        public @Nonnull Map<String, String> transitionFieldsTypeAtt() {
+            return variables.getMap(JIRA_CUSTOM_FIELDS_ATTR_KEY, Map.of());
         }
     }
 
@@ -341,7 +350,7 @@ public class TaskParams implements JiraClientCfg {
         }
 
         @Override
-        public Map<String, Object> customFieldsTypeAtt() {
+        public @Nonnull Map<String, Object> customFieldsTypeAtt() {
             Map<String, Object> customFieldsTypeAtt = new HashMap<>(super.customFieldsTypeAtt());
             customFieldsTypeAtt.put("parent", Collections.singletonMap("key", parentKey()));
 
