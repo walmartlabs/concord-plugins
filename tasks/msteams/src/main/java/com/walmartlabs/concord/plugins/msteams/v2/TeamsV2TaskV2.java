@@ -36,11 +36,12 @@ public class TeamsV2TaskV2 implements Task {
 
     private final Context context;
 
-    private final TeamsV2TaskCommon delegate = new TeamsV2TaskCommon();
+    private final TeamsV2TaskCommon delegate;
 
     @Inject
-    public TeamsV2TaskV2(Context context) {
+    public TeamsV2TaskV2(Context context, TeamsV2TaskCommon delegate) {
         this.context = context;
+        this.delegate = delegate;
     }
 
     @Override
