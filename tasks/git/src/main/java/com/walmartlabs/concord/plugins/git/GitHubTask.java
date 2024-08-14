@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -196,7 +197,7 @@ public class GitHubTask {
 
         log.info("Creating PR in {}/{} from {} to {}", gitHubOrgName, gitHubRepoName, gitHubPRHead, gitHubPRBase);
 
-        GitHubClient client = GitHubClient.createClient(gitHubUri);
+        GitHubClient client = createClient(gitHubUri);
         try {
             //Connect to GitHub
             client.setOAuth2Token(gitHubAccessToken);
@@ -228,7 +229,7 @@ public class GitHubTask {
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
         int gitHubPRID = assertInt(in, GITHUB_PRID);
 
-        GitHubClient client = GitHubClient.createClient(gitHubUri);
+        GitHubClient client = createClient(gitHubUri);
         client.setOAuth2Token(gitHubAccessToken);
 
         IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
@@ -251,7 +252,7 @@ public class GitHubTask {
         String gitHubPRComment = assertString(in, GITHUB_PRCOMMENT);
         int gitHubPRID = assertInt(in, GITHUB_PRID);
 
-        GitHubClient client = GitHubClient.createClient(gitHubUri);
+        GitHubClient client = createClient(gitHubUri);
         client.setOAuth2Token(gitHubAccessToken);
         IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
 
@@ -278,7 +279,7 @@ public class GitHubTask {
         int gitHubPRID = assertInt(in, GITHUB_PRID);
         String commitMessage = getString(in, GITHUB_MERGECOMMITMSG, "GitHub PR Merge");
         String mergeMethod = getString(in, GITHUB_MERGE_METHOD);
-        GitHubClient client = GitHubClient.createClient(gitHubUri);
+        GitHubClient client = createClient(gitHubUri);
         client.setOAuth2Token(gitHubAccessToken);
         IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
 
@@ -307,7 +308,7 @@ public class GitHubTask {
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
         int gitHubPRID = assertInt(in, GITHUB_PRID);
 
-        GitHubClient client = GitHubClient.createClient(gitHubUri);
+        GitHubClient client = createClient(gitHubUri);
         client.setOAuth2Token(gitHubAccessToken);
         IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
 
@@ -335,7 +336,7 @@ public class GitHubTask {
         String base = assertString(in, GITHUB_MERGEBASE);
         String commitMessage = assertString(in, GITHUB_MERGECOMMITMSG);
 
-        GitHubClient client = GitHubClient.createClient(gitHubUri);
+        GitHubClient client = createClient(gitHubUri);
         //Connect to GitHub
         client.setOAuth2Token(gitHubAccessToken);
         IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
@@ -366,7 +367,7 @@ public class GitHubTask {
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
         String gitHubCommitSha = assertString(in, GITHUB_COMMIT_SHA);
 
-        GitHubClient client = GitHubClient.createClient(gitHubUri);
+        GitHubClient client = createClient(gitHubUri);
         client.setOAuth2Token(gitHubAccessToken);
         IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
 
@@ -402,7 +403,7 @@ public class GitHubTask {
         String gitHubBranchSHA = assertString(in, GITHUB_COMMIT_SHA);
 
         //Initiate the client
-        GitHubClient client = GitHubClient.createClient(gitHubUri);
+        GitHubClient client = createClient(gitHubUri);
         //Connect to GitHub
         client.setOAuth2Token(gitHubAccessToken);
         IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
@@ -456,7 +457,7 @@ public class GitHubTask {
         String gitHubTagName = assertString(in, GITHUB_TAGNAME);
 
         //Initiate the client
-        GitHubClient client = GitHubClient.createClient(gitHubUri);
+        GitHubClient client = createClient(gitHubUri);
         //Connect to GitHub
         client.setOAuth2Token(gitHubAccessToken);
         IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
@@ -485,7 +486,7 @@ public class GitHubTask {
         String gitHubBranchName = assertString(in, GITHUB_BRANCH);
 
         //Initiate the client
-        GitHubClient client = GitHubClient.createClient(gitHubUri);
+        GitHubClient client = createClient(gitHubUri);
         //Connect to GitHub
         client.setOAuth2Token(gitHubAccessToken);
         IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
@@ -518,7 +519,7 @@ public class GitHubTask {
         log.info("Creating status check ({}) in {}/{} repo with sha '{}'",
                 state, gitHubOrgName, gitHubRepoName, commitSha);
 
-        GitHubClient client = GitHubClient.createClient(gitHubUri);
+        GitHubClient client = createClient(gitHubUri);
         client.setOAuth2Token(gitHubAccessToken);
         IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
 
@@ -555,7 +556,7 @@ public class GitHubTask {
         String commitSha = assertString(in, GITHUB_COMMIT_SHA);
 
         ObjectMapper objectMapper = new ObjectMapper();
-        GitHubClient client = GitHubClient.createClient(gitHubUri);
+        GitHubClient client = createClient(gitHubUri);
         client.setOAuth2Token(gitHubAccessToken);
         IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
 
@@ -576,7 +577,7 @@ public class GitHubTask {
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
         String targetOrg = getString(in, GITHUB_FORKTARGETORG);
 
-        GitHubClient client = GitHubClient.createClient(gitHubUri);
+        GitHubClient client = createClient(gitHubUri);
 
         try {
             //Connect to GitHub
@@ -606,7 +607,7 @@ public class GitHubTask {
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
 
-        GitHubClient client = GitHubClient.createClient(gitHubUri);
+        GitHubClient client = createClient(gitHubUri);
 
         try {
             //Connect to GitHub
@@ -636,7 +637,7 @@ public class GitHubTask {
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
 
-        GitHubClient client = GitHubClient.createClient(gitHubUri);
+        GitHubClient client = createClient(gitHubUri);
 
         try {
             //Connect to GitHub
@@ -667,7 +668,7 @@ public class GitHubTask {
         int gitHubPRNumber = assertInt(in, GITHUB_PRNUMBER);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
 
-        GitHubClient client = GitHubClient.createClient(gitHubUri);
+        GitHubClient client = createClient(gitHubUri);
 
         try {
             //Connect to GitHub
@@ -698,7 +699,7 @@ public class GitHubTask {
                     "'. Allowed values are only 'all', 'open', 'closed'.");
         }
 
-        GitHubClient client = GitHubClient.createClient(gitHubUri);
+        GitHubClient client = createClient(gitHubUri);
 
         try {
             //Connect to GitHub
@@ -727,7 +728,7 @@ public class GitHubTask {
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
         int gitHubPRNumber = assertInt(in, GITHUB_PRNUMBER);
 
-        GitHubClient client = GitHubClient.createClient(gitHubUri);
+        GitHubClient client = createClient(gitHubUri);
 
         try {
             client.setOAuth2Token(gitHubAccessToken);
@@ -767,7 +768,7 @@ public class GitHubTask {
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
 
-        GitHubClient client = GitHubClient.createClient(gitHubUri);
+        GitHubClient client = createClient(gitHubUri);
 
         log.info("Creating repository '{}' in '{}' organization", gitHubRepoName, gitHubOrgName);
 
@@ -805,7 +806,7 @@ public class GitHubTask {
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
 
-        GitHubClient client = GitHubClient.createClient(gitHubUri);
+        GitHubClient client = createClient(gitHubUri);
 
         log.info("Deleting repository '{}' from '{}' organization", gitHubRepoName, gitHubOrgName);
 
@@ -839,7 +840,7 @@ public class GitHubTask {
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
         String gitHubBranchName = getString(in, GITHUB_BRANCH, "master");
 
-        GitHubClient client = GitHubClient.createClient(gitHubUri);
+        GitHubClient client = createClient(gitHubUri);
 
         try {
             //Connect to GitHub
@@ -872,7 +873,7 @@ public class GitHubTask {
         String gitHubRef = getString(in, GITHUB_REF);
         String gitHubPath = assertString(in, GITHUB_PATH);
 
-        GitHubClient client = GitHubClient.createClient(gitHubUri);
+        GitHubClient client = createClient(gitHubUri);
         client.setOAuth2Token(gitHubAccessToken);
         IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
 
@@ -910,7 +911,7 @@ public class GitHubTask {
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
         String hookUrl = assertString(in, GITHUB_HOOK_URL).trim();
 
-        GitHubClient client = GitHubClient.createClient(gitHubUri);
+        GitHubClient client = createClient(gitHubUri);
         client.setOAuth2Token(gitHubAccessToken);
 
         RepositoryService service = new RepositoryService(client);
@@ -954,7 +955,7 @@ public class GitHubTask {
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
 
-        GitHubClient client = GitHubClient.createClient(gitHubUri);
+        GitHubClient client = createClient(gitHubUri);
         client.setOAuth2Token(gitHubAccessToken);
 
         IssueService issueService = new IssueService(client);
@@ -1020,6 +1021,59 @@ public class GitHubTask {
         m.put("ok", true);
         m.put("data", data);
         return m;
+    }
+
+    private static GitHubClient createClient(String url) {
+        String host;
+        try {
+            host = (new URL(url)).getHost();
+            if ("github.com".equals(host) || "gist.github.com".equals(host)) {
+                host = "api.github.com";
+            }
+        } catch (IOException e) {
+            throw new IllegalArgumentException(e);
+        }
+
+        return new GitHubClient(host) {
+            @Override
+            protected IOException createException(InputStream response, int code, String status) {
+                String responseBody = null;
+
+                if (this.isError(code)) {
+                    RequestError error;
+                    try {
+                        error = this.parseError(response);
+                    } catch (IOException e) {
+                        return e;
+                    }
+
+                    if (error != null) {
+                        return new RequestException(error, code);
+                    }
+                } else {
+                    try {
+                        responseBody = new String(response.readAllBytes());
+
+                        response.close();
+                    } catch (IOException e) {
+                        // ignore
+                    }
+                }
+
+                String message;
+                if (status != null && !status.isEmpty()) {
+                    message = status + " (" + code + ')';
+                } else {
+                    message = "Unknown error occurred (" + code + ')';
+                }
+
+                if (responseBody != null) {
+                    message += "\n response: " + responseBody;
+                }
+
+                return new IOException(message);
+            }
+        };
     }
 
     public enum Action {
