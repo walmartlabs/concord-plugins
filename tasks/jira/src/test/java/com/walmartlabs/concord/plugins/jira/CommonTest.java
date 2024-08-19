@@ -53,7 +53,7 @@ import static org.mockito.Mockito.when;
 class CommonTest {
 
     @Mock
-    JiraClient jiraClient;
+    JiraHttpClient jiraClient;
 
     @Mock
     JiraSecretService jiraSecretService;
