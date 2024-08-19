@@ -24,7 +24,7 @@ class JiraClientTest extends AbstractWiremockTest {
 
     @Override
     JiraHttpClient getClient(JiraClientCfg cfg) {
-        return new JiraClient(cfg);
+        return new NativeJiraHttpClient(cfg);
     }
 
 }
