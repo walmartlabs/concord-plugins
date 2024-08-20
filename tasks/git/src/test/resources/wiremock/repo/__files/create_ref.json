@@ -1,0 +1,10 @@
+{
+  "ref": "refs/heads/featureA",
+  "node_id": "MDM6UmVmcmVmcy9oZWFkcy9mZWF0dXJlQQ==",
+  "url": "https://api.github.com/repos/octocat/mock-repo/git/refs/heads/featureA",
+  "object": {
+    "type": "commit",
+    "sha": "c3d0be41ecbe669545ee3e94d31ed9a4bc91ee3c",
+    "url": "https://api.github.com/repos/octocat/mock-repo/git/commits/aa218f56b14c9653891f9e74264a383fa43fefbd"
+  }
+}
