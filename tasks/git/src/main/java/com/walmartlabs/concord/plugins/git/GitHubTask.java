@@ -32,7 +32,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -598,7 +599,7 @@ public class GitHubTask {
 
             return Collections.emptyMap();
         } catch (Exception e) {
-            throw new RuntimeException("Error occured during fork: " + e.getMessage());
+            throw new RuntimeException("Error occurred during fork: " + e.getMessage());
         }
     }
 
@@ -628,7 +629,7 @@ public class GitHubTask {
 
             return result;
         } catch (Exception e) {
-            throw new RuntimeException("Error occured while getting branch list: " + e.getMessage());
+            throw new RuntimeException("Error occurred while getting branch list: " + e.getMessage());
         }
     }
 
@@ -658,7 +659,7 @@ public class GitHubTask {
 
             return result;
         } catch (Exception e) {
-            throw new RuntimeException("Error occured while getting tag list: " + e.getMessage());
+            throw new RuntimeException("Error occurred while getting tag list: " + e.getMessage());
         }
     }
 
@@ -797,7 +798,7 @@ public class GitHubTask {
             result.put("scmUrl", repo.getUrl());
             return result;
         } catch (Exception e) {
-            throw new RuntimeException("Error occured while creating repository: ", e);
+            throw new RuntimeException("Error occurred while creating repository: ", e);
         }
     }
 
@@ -830,7 +831,7 @@ public class GitHubTask {
 
             return Collections.emptyMap();
         } catch (Exception e) {
-            throw new RuntimeException("Error occured while deleting repository: ", e);
+            throw new RuntimeException("Error occurred while deleting repository: ", e);
         }
     }
 
@@ -1023,18 +1024,25 @@ public class GitHubTask {
         return m;
     }
 
-    private static GitHubClient createClient(String url) {
+    static GitHubClient createClient(String rawUrl) {
         String host;
+        int port;
+        String scheme;
+
         try {
-            host = (new URL(url)).getHost();
+            URI uri = new URI(rawUrl);
+            host = uri.getHost();
             if ("github.com".equals(host) || "gist.github.com".equals(host)) {
                 host = "api.github.com";
             }
-        } catch (IOException e) {
+
+            scheme = uri.getScheme();
+            port = uri.getPort();
+        } catch (URISyntaxException e) {
             throw new IllegalArgumentException(e);
         }
 
-        return new GitHubClient(host) {
+        return new GitHubClient(host, port, scheme) {
             @Override
             protected IOException createException(InputStream response, int code, String status) {
                 String responseBody = null;

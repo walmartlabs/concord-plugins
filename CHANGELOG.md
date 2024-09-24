@@ -1,5 +1,16 @@
 # Change log
 
+## [2.5.0] - 2024-08-19
+
+### Changed
+
+- gremlin: remove okhttp and gson dependencies
+([#162](https://github.com/walmartlabs/concord-plugins/pull/162));
+- msteams: remove apache httpclient dependency, add unit and integration tests
+([#163](https://github.com/walmartlabs/concord-plugins/pull/163));
+- jira: remove okhttp2 dependency
+([#171](https://github.com/walmartlabs/concord-plugins/pull/171)).
+
 ## [2.4.0] - 2024-07-19
 
 ### Changed
