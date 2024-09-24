@@ -30,6 +30,7 @@ import org.eclipse.egit.github.core.service.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -1059,10 +1060,8 @@ public class GitHubTask {
                         return new RequestException(error, code);
                     }
                 } else {
-                    try {
-                        responseBody = new String(response.readAllBytes());
-
-                        response.close();
+                    try (BufferedInputStream reader = new BufferedInputStream(response)) {
+                        responseBody = new String(reader.readAllBytes());
                     } catch (IOException e) {
                         // ignore
                     }

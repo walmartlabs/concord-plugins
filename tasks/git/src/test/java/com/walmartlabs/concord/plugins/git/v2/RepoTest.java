@@ -38,6 +38,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RepoTest {
@@ -273,5 +274,23 @@ class RepoTest {
 
         httpRule.verify(1, getRequestedFor(urlEqualTo("/api/v3/repos/octocat/repo-to-delete")));
         httpRule.verify(1, deleteRequestedFor(urlEqualTo("/api/v3/repos/octocat/repo-to-delete")));
+    }
+
+    @Test
+    void testError() {
+        Map<String, Object> input = Map.of(
+                "action", "deleteRepo",
+                "accessToken", "mockToken",
+                "org", "octocat",
+                "repo", "error-repo",
+                "apiUrl", httpRule.baseUrl()
+        );
+
+        Exception ex = assertThrows(Exception.class, () -> new GitHubTask().execute(input, Map.of()));
+
+        assertTrue(ex.getCause().getMessage().contains("very unexpected error"));
+
+        httpRule.verify(1, getRequestedFor(urlEqualTo("/api/v3/repos/octocat/error-repo")));
+        httpRule.verify(0, deleteRequestedFor(urlEqualTo("/api/v3/repos/octocat/error-repo")));
     }
 }
