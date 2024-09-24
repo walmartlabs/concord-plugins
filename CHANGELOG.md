@@ -1,5 +1,14 @@
 # Change log
 
+## [2.6.0] - TBD
+
+### Changed
+
+- github: add github task unit tests
+([#172](https://github.com/walmartlabs/concord-plugins/pull/172));
+- awsEcr: allow delete images
+([#173](https://github.com/walmartlabs/concord-plugins/pull/173)).
+
 ## [2.5.0] - 2024-08-19
 
 ### Changed
