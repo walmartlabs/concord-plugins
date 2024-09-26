@@ -34,12 +34,13 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class XmlUtilsTaskV2Test {
+class XmlUtilsTaskV2Test {
 
     @Test
-    public void testXpathString() throws Exception {
+    void testXpathString() throws Exception {
         String file = "test.xml";
 
         URL src = ClassLoader.getSystemResource(file);
@@ -57,7 +58,7 @@ public class XmlUtilsTaskV2Test {
     }
 
     @Test
-    public void testMavenGav() throws Exception {
+    void testMavenGav() throws Exception {
         URL src = ClassLoader.getSystemResource("test.xml");
         Context ctx = new MockContextV2(Paths.get(src.toURI()).getParent().toAbsolutePath());
         XmlUtilsTaskV2 t = new XmlUtilsTaskV2(ctx);
@@ -73,6 +74,17 @@ public class XmlUtilsTaskV2Test {
         assertEquals("com.walmartlabs.concord.plugins", m.get("groupId"));
         assertEquals("xml-tasks", m.get("artifactId"));
         assertEquals("1.27.1-SNAPSHOT", m.get("version"));
+    }
+
+    @Test
+    void testExternalReference() throws Exception {
+        URL src = ClassLoader.getSystemResource("test_external.xml");
+        Context ctx = new MockContextV2(Paths.get(src.toURI()).getParent().toAbsolutePath());
+
+        XmlUtilsTaskV2 t = new XmlUtilsTaskV2(ctx);
+
+        Exception e = assertThrows(Exception.class, () -> t.xpathString("test_external.xml", "/foo"));
+        assertTrue(e.getMessage().contains("DOCTYPE is disallowed"));
     }
 
     private static class MockContextV2 implements Context {
