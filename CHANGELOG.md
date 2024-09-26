@@ -4,6 +4,8 @@
 
 ### Changed
 
+- xmlUtils: disable external entity handling
+([#175](https://github.com/walmartlabs/concord-plugins/pull/175));
 - github: add github task unit tests
 ([#172](https://github.com/walmartlabs/concord-plugins/pull/172));
 - awsEcr: allow delete images
