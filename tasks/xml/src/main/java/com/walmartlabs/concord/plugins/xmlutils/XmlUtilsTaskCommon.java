@@ -23,13 +23,17 @@ package com.walmartlabs.concord.plugins.xmlutils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import javax.xml.namespace.QName;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -48,7 +52,7 @@ public class XmlUtilsTaskCommon {
     /**
      * Evaluates the expression and returns a single {@link String} value.
      */
-    public String xpathString(String file, String expression) throws Exception {
+    public String xpathString(String file, String expression) throws XPathExpressionException, ParserConfigurationException, IOException, SAXException {
         Node n = (Node) eval(workDir, file, expression, XPathConstants.NODE);
 
         if (n == null) {
@@ -66,7 +70,7 @@ public class XmlUtilsTaskCommon {
     /**
      * Evaluates the expression and returns a list of {@link String} values.
      */
-    public List<String> xpathListOfStrings(String file, String expression) throws Exception {
+    public List<String> xpathListOfStrings(String file, String expression) throws XPathExpressionException, ParserConfigurationException, IOException, SAXException {
         NodeList l = (NodeList) eval(workDir, file, expression, XPathConstants.NODESET);
 
         if (l == null) {
@@ -91,7 +95,7 @@ public class XmlUtilsTaskCommon {
      * Uses XPath to return {@code groupId + artifactId + version} attributes from a Maven pom.xml file.
      * Knows how to handle the {@code <parent>} tag, i.e. parent GAV values are merged with the pom's own GAV.
      */
-    public Map<String, String> mavenGav(String file) throws Exception {
+    public Map<String, String> mavenGav(String file) throws ParserConfigurationException, IOException, SAXException, XPathExpressionException {
         Document document = assertDocument(workDir, file);
         XPath xpath = XPathFactory.newInstance().newXPath();
 
@@ -106,23 +110,29 @@ public class XmlUtilsTaskCommon {
         return result;
     }
 
-    private static Object eval(Path workDir, String file, String expression, QName returnType) throws Exception {
+    private static Object eval(Path workDir, String file, String expression, QName returnType) throws ParserConfigurationException, IOException, SAXException, XPathExpressionException {
         Document document = assertDocument(workDir, file);
         XPath xpath = XPathFactory.newInstance().newXPath();
         return xpath.evaluate(expression, document, returnType);
     }
 
-    private static Document assertDocument(Path workDir, String file) throws Exception {
+    private static Document assertDocument(Path workDir, String file) throws ParserConfigurationException, IOException, SAXException {
         Path src = workDir.resolve(file);
         if (!Files.exists(src)) {
             throw new IllegalArgumentException("File not found: " + file);
         }
 
-        DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        dbf.setFeature("http://apache.org/xml/features/disallow-doctype-decl",true);
+        dbf.setFeature("http://xml.org/sax/features/external-general-entities",false);
+        dbf.setFeature("http://xml.org/sax/features/external-parameter-entities",false);
+
+        DocumentBuilder builder = dbf.newDocumentBuilder();
+
         return builder.parse(src.toFile());
     }
 
-    private static Map<String, String> toGav(String file, XPath xpath, Document document, String expression) throws Exception {
+    private static Map<String, String> toGav(String file, XPath xpath, Document document, String expression) throws XPathExpressionException {
         NodeList l = (NodeList) xpath.evaluate(expression, document, XPathConstants.NODESET);
 
         Map<String, String> result = new HashMap<>(l.getLength());

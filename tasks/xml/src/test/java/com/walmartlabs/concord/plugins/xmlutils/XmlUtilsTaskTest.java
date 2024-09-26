@@ -28,12 +28,13 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class XmlUtilsTaskTest {
+class XmlUtilsTaskTest {
 
     @Test
-    public void testXpathString() throws Exception {
+    void testXpathString() throws Exception {
         String file = "test.xml";
 
         URL src = ClassLoader.getSystemResource(file);
@@ -52,7 +53,7 @@ public class XmlUtilsTaskTest {
     }
 
     @Test
-    public void testMavenGav() throws Exception {
+    void testMavenGav() throws Exception {
         URL src = ClassLoader.getSystemResource("test.xml");
         String workDir = Paths.get(src.toURI()).getParent().toAbsolutePath().toString();
 
@@ -70,4 +71,16 @@ public class XmlUtilsTaskTest {
         assertEquals("xml-tasks", m.get("artifactId"));
         assertEquals("1.27.1-SNAPSHOT", m.get("version"));
     }
+
+    @Test
+    void testExternalReference() throws Exception {
+        URL src = ClassLoader.getSystemResource("test_external.xml");
+        String workDir = Paths.get(src.toURI()).getParent().toAbsolutePath().toString();
+
+        XmlUtilsTask t = new XmlUtilsTask();
+
+        Exception e = assertThrows(Exception.class, () -> t.xpathString(workDir, "test_external.xml", "/foo"));
+        assertTrue(e.getMessage().contains("DOCTYPE is disallowed"));
+    }
+
 }
