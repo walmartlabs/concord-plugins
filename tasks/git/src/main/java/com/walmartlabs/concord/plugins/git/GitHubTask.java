@@ -30,9 +30,11 @@ import org.eclipse.egit.github.core.service.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -763,11 +765,6 @@ public class GitHubTask {
         }
     }
 
-    private static GitHubClient createClient(String gitHubUri) {
-        URI uri = URI.create(gitHubUri);
-        return new GitHubClient(uri.getHost(), uri.getPort(), uri.getScheme());
-    }
-
     private static Map<String, Object> createRepo(Map<String, Object> in, String gitHubUri) {
         String gitHubAccessToken = assertString(in, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
@@ -1026,6 +1023,64 @@ public class GitHubTask {
         m.put("ok", true);
         m.put("data", data);
         return m;
+    }
+
+    static GitHubClient createClient(String rawUrl) {
+        String host;
+        int port;
+        String scheme;
+
+        try {
+            URI uri = new URI(rawUrl);
+            host = uri.getHost();
+            if ("github.com".equals(host) || "gist.github.com".equals(host)) {
+                host = "api.github.com";
+            }
+
+            scheme = uri.getScheme();
+            port = uri.getPort();
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException(e);
+        }
+
+        return new GitHubClient(host, port, scheme) {
+            @Override
+            protected IOException createException(InputStream response, int code, String status) {
+                String responseBody = null;
+
+                if (this.isError(code)) {
+                    RequestError error;
+                    try {
+                        error = this.parseError(response);
+                    } catch (IOException e) {
+                        return e;
+                    }
+
+                    if (error != null) {
+                        return new RequestException(error, code);
+                    }
+                } else {
+                    try (BufferedInputStream reader = new BufferedInputStream(response)) {
+                        responseBody = new String(reader.readAllBytes());
+                    } catch (IOException e) {
+                        // ignore
+                    }
+                }
+
+                String message;
+                if (status != null && !status.isEmpty()) {
+                    message = status + " (" + code + ')';
+                } else {
+                    message = "Unknown error occurred (" + code + ')';
+                }
+
+                if (responseBody != null) {
+                    message += "\n response: " + responseBody;
+                }
+
+                return new IOException(message);
+            }
+        };
     }
 
     public enum Action {

@@ -29,7 +29,14 @@ class GitHubCommonTest {
 
     @Test
     void testCreateClient() {
-        GitHubClient client = GitHubClient.createClient("https://mock.github.local");
+        GitHubClient client = GitHubTask.createClient("https://mock.github.local");
+
+        assertNotNull(client);
+    }
+
+    @Test
+    void testCreateClientWithPort() {
+        GitHubClient client = GitHubTask.createClient("https://mock.github.local:8080");
 
         assertNotNull(client);
     }

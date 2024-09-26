@@ -1,0 +1,29 @@
+{
+  "id": "4bcaaca9-73fa-443d-a8ef-ebbe5b4e63fb",
+  "name": "github_task_test_repo_get_error",
+  "request": {
+    "url": "/api/v3/repos/octocat/error-repo",
+    "method": "GET",
+    "headers": {
+      "Accept": {
+        "equalTo": "application/vnd.github.v3.full+json"
+      }
+    }
+  },
+  "response": {
+    "status": 999,
+    "body": "very unexpected error",
+    "headers": {
+      "Date": "Thu, 03 Oct 2019 21:18:41 GMT",
+      "Content-Type": "application/json; charset=utf-8",
+      "Server": "GitHub.com",
+      "Status": "999 fake error",
+      "X-RateLimit-Limit": "5000",
+      "X-RateLimit-Remaining": "4907",
+      "X-RateLimit-Reset": "1570140015"
+    }
+  },
+  "uuid": "43cfd527-8dc8-4025-ab6f-41f6c45a86bd",
+  "persistent": true,
+  "insertionIndex": 4
+}
