@@ -4,6 +4,8 @@
 
 ### Changed
 
+- github: log the response from GH when error occurs
+([#170](https://github.com/walmartlabs/concord-plugins/pull/170));
 - xmlUtils: disable external entity handling
 ([#175](https://github.com/walmartlabs/concord-plugins/pull/175));
 - github: add github task unit tests
