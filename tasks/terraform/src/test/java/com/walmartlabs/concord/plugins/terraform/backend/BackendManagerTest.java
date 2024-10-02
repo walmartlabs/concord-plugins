@@ -53,8 +53,7 @@ public class BackendManagerTest {
 
     @RegisterExtension
     static WireMockExtension wireMockRule = WireMockExtension.newInstance()
-            .options(wireMockConfig()
-                    .port(12345))
+            .options(wireMockConfig().dynamicPort())
             .build();
 
     @BeforeEach
