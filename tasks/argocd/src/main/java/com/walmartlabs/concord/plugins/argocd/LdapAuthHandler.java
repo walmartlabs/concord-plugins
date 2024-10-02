@@ -20,7 +20,7 @@ package com.walmartlabs.concord.plugins.argocd;
  * =====
  */
 
-import com.walmartlabs.concord.ApiException;
+import com.walmartlabs.concord.plugins.argocd.openapi.ApiException;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.CookieStore;
