@@ -1,5 +1,12 @@
 # Change log
 
+## [2.7.0] - TBD
+
+### Changed
+
+- project: migrate to concord-client2 and target platform 2.14.0
+([#176](https://github.com/walmartlabs/concord-plugins/pull/176)).
+
 ## [2.6.0] - 2024-09-27
 
 ### Changed
