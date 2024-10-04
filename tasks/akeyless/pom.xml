@@ -26,7 +26,7 @@
         <maven-plugin-version>1.0.0</maven-plugin-version>
         <threetenbp-version>1.4.0</threetenbp-version>
 
-        <testcontainers.concord.version>0.0.40</testcontainers.concord.version>
+        <testcontainers.concord.version>2.0.1</testcontainers.concord.version>
     </properties>
 
     <dependencies>
@@ -55,6 +55,7 @@
         <dependency>
             <groupId>org.immutables</groupId>
             <artifactId>value</artifactId>
+            <scope>provided</scope>
         </dependency>
 
 
@@ -164,7 +165,7 @@
         </dependency>
         <dependency>
             <groupId>com.walmartlabs.concord</groupId>
-            <artifactId>concord-client</artifactId>
+            <artifactId>concord-client2</artifactId>
             <version>${concord.version}</version>
             <scope>test</scope>
         </dependency>

@@ -20,11 +20,10 @@ package com.walmartlabs.concord.plugins.argocd;
  * =====
  */
 
-import com.walmartlabs.concord.ApiClient;
-import com.walmartlabs.concord.client.ProcessEventsApi;
+import com.walmartlabs.concord.client2.ApiClient;
+import com.walmartlabs.concord.client2.ProcessEventsApi;
 import com.walmartlabs.concord.common.ConfigurationUtils;
 import com.walmartlabs.concord.plugins.argocd.model.EventStatus;
-import com.walmartlabs.concord.plugins.argocd.openapi.ApiException;
 import com.walmartlabs.concord.plugins.argocd.openapi.model.*;
 import com.walmartlabs.concord.runtime.v2.sdk.*;
 import org.slf4j.Logger;
@@ -39,7 +38,7 @@ import java.util.Map;
 @Named("argocd")
 public class ArgoCdTask implements Task {
 
-    private final static Logger log = LoggerFactory.getLogger(ArgoCdTask.class);
+    private static final Logger log = LoggerFactory.getLogger(ArgoCdTask.class);
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final Context context;

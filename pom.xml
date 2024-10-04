@@ -63,10 +63,10 @@
 
         <scm.connection>scm:git:https://github.com/walmartlabs/concord-plugins.git</scm.connection>
 
-        <concord.version>2.5.0</concord.version>
+        <concord.version>2.14.0</concord.version>
         <gson.version>2.10</gson.version>
         <okhttp3.version>3.14.9</okhttp3.version>
-        <wiremock.version>2.27.2</wiremock.version>
+        <wiremock.version>3.5.2</wiremock.version>
     </properties>
 
     <dependencyManagement>
@@ -79,9 +79,20 @@
                 <scope>import</scope>
             </dependency>
             <dependency>
-                <groupId>com.github.tomakehurst</groupId>
+                <groupId>org.wiremock</groupId>
                 <artifactId>wiremock</artifactId>
                 <version>${wiremock.version}</version>
+                <scope>compile</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.eclipse.jetty.http2</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.eclipse.jetty</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
         </dependencies>
     </dependencyManagement>

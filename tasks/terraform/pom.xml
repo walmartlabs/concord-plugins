@@ -15,7 +15,7 @@
 
     <properties>
         <skipTests>true</skipTests>
-        <testcontainers.concord.version>0.0.40</testcontainers.concord.version>
+        <testcontainers.concord.version>2.0.1</testcontainers.concord.version>
     </properties>
 
     <dependencies>
@@ -33,7 +33,7 @@
         </dependency>
         <dependency>
             <groupId>com.walmartlabs.concord</groupId>
-            <artifactId>concord-client</artifactId>
+            <artifactId>concord-client2</artifactId>
             <version>${concord.version}</version>
             <scope>provided</scope>
         </dependency>
@@ -90,8 +90,13 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.github.tomakehurst</groupId>
-            <artifactId>wiremock-jre8</artifactId>
+            <groupId>org.wiremock</groupId>
+            <artifactId>wiremock-jetty12</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.wiremock</groupId>
+            <artifactId>wiremock</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
