@@ -52,6 +52,7 @@
         <module>tasks/terraform</module>
         <module>tasks/xml</module>
         <module>tasks/zoom</module>
+        <module>tasks/opentelemetry</module>
     </modules>
 
     <properties>
