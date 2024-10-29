@@ -131,6 +131,22 @@
         </dependency>
         <dependency>
             <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-context</artifactId>
+            <version>${opentelemetry.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-exporter-otlp-trace</artifactId>
+            <version>${opentelemetry.exporter.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.jetbrains.kotlin</groupId>
+                    <artifactId>kotlin-stdlib-common</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-exporter-otlp-http-trace</artifactId>
             <version>${opentelemetry.exporter.version}</version>
             <exclusions>

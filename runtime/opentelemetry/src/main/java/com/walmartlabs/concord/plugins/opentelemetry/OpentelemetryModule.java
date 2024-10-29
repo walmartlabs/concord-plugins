@@ -32,6 +32,6 @@ public class OpentelemetryModule implements com.google.inject.Module {
     @Override
     public void configure (Binder binder){
         Multibinder<ExecutionListener> taskProviders = Multibinder.newSetBinder(binder, ExecutionListener.class);
-        taskProviders.addBinding().to(TelemetryCollector.class);
+        taskProviders.addBinding().to(TelemetryCollector2.class);
     }
 }
