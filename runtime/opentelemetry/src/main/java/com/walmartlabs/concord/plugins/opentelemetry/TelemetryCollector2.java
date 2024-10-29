@@ -106,16 +106,21 @@ public class TelemetryCollector2 implements ExecutionListener {
             currentSpan = processSpan;
         }
 
-        Scope currentScope = currentSpan.makeCurrent();
-        synchronized (openScopes) {
-            openScopes.computeIfAbsent(new ScopeKey(threadId, cmd), k -> new ArrayDeque<>()).push(currentScope);
-        }
+        var currentScope = currentSpan.makeCurrent();
+
 
         // TODO attrs
         synchronized (openSpans) {
             var span = tracer.spanBuilder("command")
                     .setAttribute("command", cmd.toString())
+                    .setAttribute("scopeDebug", currentScope.toString())
                     .startSpan();
+
+            var scope = span.makeCurrent();
+            synchronized (openScopes) {
+                openScopes.computeIfAbsent(new ScopeKey(threadId, cmd), k -> new ArrayDeque<>()).push(scope);
+            }
+
             openSpans.computeIfAbsent(threadId, k -> new ArrayDeque<>()).push(span);
         }
 
