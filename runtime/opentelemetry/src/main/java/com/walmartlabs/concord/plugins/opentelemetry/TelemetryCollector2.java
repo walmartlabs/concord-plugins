@@ -22,6 +22,8 @@ package com.walmartlabs.concord.plugins.opentelemetry;
 
 import com.google.inject.Inject;
 import com.walmartlabs.concord.runtime.common.injector.InstanceId;
+import com.walmartlabs.concord.runtime.v2.runner.DefaultTaskVariablesService;
+import com.walmartlabs.concord.runtime.v2.runner.vm.StepCommand;
 import com.walmartlabs.concord.svm.Runtime;
 import com.walmartlabs.concord.svm.*;
 import io.opentelemetry.api.common.AttributeKey;
@@ -47,8 +49,10 @@ public class TelemetryCollector2 implements ExecutionListener {
     private static final Logger log = LoggerFactory.getLogger(TelemetryCollector2.class);
 
     private final InstanceId instanceId;
+    private final TelemetryParams params;
     private final Map<ThreadId, Deque<Span>> openSpans = new HashMap<>();
     private final Map<ScopeKey, Deque<Scope>> openScopes = new HashMap<>();
+    private final Object mutex = new Object();
 
     private OtlpGrpcSpanExporter spanExporter;
     private OpenTelemetrySdk openTelemetry;
@@ -57,12 +61,19 @@ public class TelemetryCollector2 implements ExecutionListener {
     private Scope processScope;
 
     @Inject
-    public TelemetryCollector2(InstanceId instanceId) {
+    public TelemetryCollector2(InstanceId instanceId, DefaultTaskVariablesService defaultTaskVariables) {
         this.instanceId = instanceId;
+        this.params = new TelemetryParams(defaultTaskVariables.get("opentelemetry"));
     }
 
     @Override
     public void beforeProcessStart(Runtime runtime, State state) {
+        if (!params.enabled()) {
+            return;
+        }
+
+        // TODO other params
+
         var resource = Resource.getDefault()
                 .merge(Resource.create(Attributes.of(
                         AttributeKey.stringKey("service.name"), "Concord"
@@ -93,7 +104,16 @@ public class TelemetryCollector2 implements ExecutionListener {
     }
 
     @Override
+    @SuppressWarnings("resource")
     public Result beforeCommand(Runtime runtime, VM vm, State state, ThreadId threadId, Command cmd) {
+        if (!params.enabled()) {
+            return Result.CONTINUE;
+        }
+
+        if (!(cmd instanceof StepCommand<?> step)) {
+            return Result.CONTINUE;
+        }
+
         Span currentSpan = null;
         synchronized (openSpans) {
             var spans = openSpans.get(threadId);
@@ -106,22 +126,14 @@ public class TelemetryCollector2 implements ExecutionListener {
             currentSpan = processSpan;
         }
 
-        var currentScope = currentSpan.makeCurrent();
+        currentSpan.makeCurrent();
 
-
-        // TODO attrs
-        synchronized (openSpans) {
-            var span = tracer.spanBuilder("command")
-                    .setAttribute("command", cmd.toString())
-                    .setAttribute("scopeDebug", currentScope.toString())
-                    .startSpan();
+        synchronized (mutex) {
+            var span = Spans.startSpan(tracer, step);
+            openSpans.computeIfAbsent(threadId, k -> new ArrayDeque<>()).push(span);
 
             var scope = span.makeCurrent();
-            synchronized (openScopes) {
-                openScopes.computeIfAbsent(new ScopeKey(threadId, cmd), k -> new ArrayDeque<>()).push(scope);
-            }
-
-            openSpans.computeIfAbsent(threadId, k -> new ArrayDeque<>()).push(span);
+            openScopes.computeIfAbsent(new ScopeKey(threadId, cmd), k -> new ArrayDeque<>()).push(scope);
         }
 
         return Result.CONTINUE;
@@ -129,27 +141,46 @@ public class TelemetryCollector2 implements ExecutionListener {
 
     @Override
     public Result afterCommand(Runtime runtime, VM vm, State state, ThreadId threadId, Command cmd) {
-        synchronized (openSpans) {
+        if (!params.enabled()) {
+            return Result.CONTINUE;
+        }
+
+        synchronized (mutex) {
             var spans = openSpans.get(threadId);
-            if (spans != null && !spans.isEmpty()) {
-                var span = spans.pop();
-                span.end();
-
-                if (spans.isEmpty()) {
-                    openSpans.remove(threadId);
-                }
-
-                synchronized (openScopes) {
-                    var scopes = openScopes.get(new ScopeKey(threadId, cmd));
-                    if (scopes != null && !scopes.isEmpty()) {
-                        var scope = scopes.pop();
-                        scope.close();
-                    }
-                    if (scopes.isEmpty()) {
-                        openScopes.remove(new ScopeKey(threadId, cmd));
-                    }
-                }
+            if (spans == null) {
+                return Result.CONTINUE;
             }
+
+            if (spans.isEmpty()) {
+                // should not be a thing, but let's be safe
+                throw new IllegalStateException("Empty spans stack");
+            }
+
+            var span = spans.pop();
+            if (spans.isEmpty()) {
+                openSpans.remove(threadId);
+            }
+
+            if (cmd instanceof StepCommand<?> step) {
+                Spans.applyStepAttributes(span, step);
+            }
+
+            var scopeKey = new ScopeKey(threadId, cmd);
+            var scopes = openScopes.get(scopeKey);
+            if (scopes != null) {
+                if (scopes.isEmpty()) {
+                    // should not be a thing, but let's be safe
+                    throw new IllegalStateException("Empty scopes stack");
+                }
+
+                var scope = scopes.pop();
+                if (scopes.isEmpty()) {
+                    openScopes.remove(scopeKey);
+                }
+                scope.close();
+            }
+
+            span.end();
         }
 
         return Result.CONTINUE;
@@ -157,6 +188,10 @@ public class TelemetryCollector2 implements ExecutionListener {
 
     @Override
     public void afterProcessEnds(Runtime runtime, State state, Frame lastFrame) {
+        if (!params.enabled()) {
+            return;
+        }
+
         processScope.close();
         processSpan.end();
         if (!spanExporter.flush().isSuccess()) {
