@@ -20,7 +20,9 @@ package com.walmartlabs.concord.plugins.opentelemetry;
  * =====
  */
 
+import com.walmartlabs.concord.runtime.v2.model.FlowCallOptions;
 import com.walmartlabs.concord.runtime.v2.model.TaskCallOptions;
+import com.walmartlabs.concord.runtime.v2.runner.vm.FlowCallCommand;
 import com.walmartlabs.concord.runtime.v2.runner.vm.StepCommand;
 import com.walmartlabs.concord.runtime.v2.runner.vm.TaskCallCommand;
 import io.opentelemetry.api.trace.Span;
@@ -28,7 +30,7 @@ import io.opentelemetry.api.trace.Tracer;
 
 import static java.util.Objects.requireNonNullElse;
 
-public final class Spans {
+public class Spans {
 
     public static Span startSpan(Tracer tracer, StepCommand<?> cmd) {
         var span = tracer.spanBuilder(spanName(cmd))
@@ -43,6 +45,8 @@ public final class Spans {
     private static String spanName(StepCommand<?> cmd) {
         if (cmd instanceof TaskCallCommand) {
             return "task_call";
+        } else if (cmd instanceof FlowCallCommand) {
+            return "flow_call";
         }
 
         // TODO
@@ -62,6 +66,14 @@ public final class Spans {
             if (options != null) {
                 applyTaskCallOptionsAttributes(span, options);
             }
+        } else if (cmd instanceof FlowCallCommand fcc) {
+            var step = fcc.getStep();
+            span.setAttribute("flow.name", step.getFlowName());
+
+            var options = step.getOptions();
+            if (options != null) {
+                applyFlowCallOptionsAttributes(span, options);
+            }
         }
 
         // TODO
@@ -80,6 +92,15 @@ public final class Spans {
         var out = options.out();
         if (out != null) {
             span.setAttribute("task.options.out", out);
+        }
+
+        // TODO
+    }
+
+    private static void applyFlowCallOptionsAttributes(Span span, FlowCallOptions options) {
+        var out = options.out();
+        if (out != null) {
+            span.setAttribute("flow.options.out", "[\"" + String.join("\",\"", out) + "\"]");
         }
 
         // TODO
