@@ -23,10 +23,7 @@ package com.walmartlabs.concord.plugins.aws;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.walmartlabs.concord.runtime.v2.sdk.Context;
-import com.walmartlabs.concord.runtime.v2.sdk.Task;
-import com.walmartlabs.concord.runtime.v2.sdk.TaskResult;
-import com.walmartlabs.concord.runtime.v2.sdk.Variables;
+import com.walmartlabs.concord.runtime.v2.sdk.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.regions.Region;
@@ -42,6 +39,7 @@ import java.util.Map;
 import static java.util.Objects.requireNonNull;
 
 @Named("awsEcr")
+@DryRunReady
 public class EcrTask implements Task {
 
     private static final Logger log = LoggerFactory.getLogger(EcrTask.class);
@@ -112,6 +110,11 @@ public class EcrTask implements Task {
         var repositoryName = input.assertString("repositoryName");
         var imageIds = assertImageIds(input);
         var debug = input.getBoolean("debug", context.processConfiguration().debug());
+
+        if (context.processConfiguration().dryRun()) {
+            log.info("Dry-run mode enabled: Skipping deleting image");
+            return TaskResult.success();
+        }
 
         try (var client = EcrClient.builder()
                 .region(region)

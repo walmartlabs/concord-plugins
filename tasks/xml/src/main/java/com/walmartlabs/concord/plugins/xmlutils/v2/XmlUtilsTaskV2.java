@@ -22,6 +22,7 @@ package com.walmartlabs.concord.plugins.xmlutils.v2;
 
 import com.walmartlabs.concord.plugins.xmlutils.XmlUtilsTaskCommon;
 import com.walmartlabs.concord.runtime.v2.sdk.Context;
+import com.walmartlabs.concord.runtime.v2.sdk.DryRunReady;
 import com.walmartlabs.concord.runtime.v2.sdk.Task;
 
 import javax.inject.Inject;
@@ -31,6 +32,7 @@ import java.util.Map;
 
 @Named("xmlUtils")
 @SuppressWarnings("unused")
+@DryRunReady
 public class XmlUtilsTaskV2 implements Task {
 
     private final XmlUtilsTaskCommon delegate;

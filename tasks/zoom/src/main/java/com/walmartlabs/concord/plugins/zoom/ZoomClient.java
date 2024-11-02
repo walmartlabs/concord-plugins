@@ -63,9 +63,11 @@ public class ZoomClient implements AutoCloseable {
     private final CloseableHttpClient client;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final boolean dryRunMode;
 
-    public ZoomClient(ZoomConfiguration cfg) {
+    public ZoomClient(ZoomConfiguration cfg, boolean dryRunMode) {
         this.retryCount = cfg.retryCount();
+        this.dryRunMode = dryRunMode;
         this.connManager = createConnManager();
         this.client = createClient(cfg, connManager);
     }
@@ -100,6 +102,11 @@ public class ZoomClient implements AutoCloseable {
 
         } else {
             params.put("content", objHead);
+        }
+
+        if (dryRunMode) {
+            log.info("Dry-run mode enabled: Skipping sending message");
+            return new Result(true, null, null);
         }
 
         return exec(params, rootApi);

@@ -9,9 +9,9 @@ package com.walmartlabs.concord.plugins.zoom.v2;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,23 +23,22 @@ package com.walmartlabs.concord.plugins.zoom.v2;
 import com.walmartlabs.concord.plugins.zoom.Result;
 import com.walmartlabs.concord.plugins.zoom.TaskParams;
 import com.walmartlabs.concord.plugins.zoom.ZoomTaskCommon;
-import com.walmartlabs.concord.runtime.v2.sdk.Context;
-import com.walmartlabs.concord.runtime.v2.sdk.Task;
-import com.walmartlabs.concord.runtime.v2.sdk.TaskResult;
-import com.walmartlabs.concord.runtime.v2.sdk.Variables;
+import com.walmartlabs.concord.runtime.v2.sdk.*;
 
 import javax.inject.Inject;
 import javax.inject.Named;
 
 @Named("zoom")
+@DryRunReady
 public class ZoomTaskV2 implements Task {
 
     private final Context context;
-    private final ZoomTaskCommon delegate = new ZoomTaskCommon();
+    private final ZoomTaskCommon delegate;
 
     @Inject
     public ZoomTaskV2(Context context) {
         this.context = context;
+        this.delegate = new ZoomTaskCommon(context.processConfiguration().dryRun());
     }
 
     @Override
