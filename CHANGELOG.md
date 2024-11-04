@@ -2,10 +2,17 @@
 
 ## [2.7.0] - TBD
 
+### Added
+
+- opentelemetry: add initial support for tracing
+([#178](https://github.com/walmartlabs/concord-plugins/pull/178)).
+
 ### Changed
 
 - project: migrate to concord-client2 and target platform 2.14.0
 ([#176](https://github.com/walmartlabs/concord-plugins/pull/176)).
+
+
 
 ## [2.6.0] - 2024-09-27
 
@@ -20,6 +27,8 @@
 - awsEcr: allow delete images
 ([#173](https://github.com/walmartlabs/concord-plugins/pull/173)).
 
+
+
 ## [2.5.0] - 2024-08-19
 
 ### Changed
@@ -30,6 +39,8 @@
 ([#163](https://github.com/walmartlabs/concord-plugins/pull/163));
 - jira: remove okhttp2 dependency
 ([#171](https://github.com/walmartlabs/concord-plugins/pull/171)).
+
+
 
 ## [2.4.0] - 2024-07-19
 
@@ -43,6 +54,8 @@
 ([#164](https://github.com/walmartlabs/concord-plugins/pull/164));
 - puppet: remove okhttp dependency (#160)
 ([#160](https://github.com/walmartlabs/concord-plugins/pull/160)).
+
+
 
 ## [2.3.1] - 2024-06-24
 
