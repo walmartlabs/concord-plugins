@@ -112,7 +112,7 @@ public class EcrTask implements Task {
         var debug = input.getBoolean("debug", context.processConfiguration().debug());
 
         if (context.processConfiguration().dryRun()) {
-            log.info("Dry-run mode enabled: Skipping deleting image");
+            log.info("Dry-run mode enabled: Skipping image deletion");
             return TaskResult.success();
         }
 
