@@ -120,7 +120,7 @@ public class HashiVaultTaskCommon {
 
     private void writeValue(Vault vault, TaskParams params) {
         if (dryRunMode) {
-            log.info("Dry-run mode enabled: Skipping writing value to vault");
+            log.info("Dry-run mode enabled: Skipping write to vault");
             return;
         }
 
