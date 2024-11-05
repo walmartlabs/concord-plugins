@@ -173,7 +173,7 @@ public class AkeylessCommon {
             String accessToken = getAccessToken(api);
 
             if (dryRunMode) {
-                log.info("Dry-run mode enabled: Skipping creating secret");
+                log.info("Dry-run mode enabled: Skipping secret creation");
                 return AkeylessTaskResult.of(true, null, null);
             }
 
@@ -200,7 +200,7 @@ public class AkeylessCommon {
             String accessToken = getAccessToken(api);
 
             if (dryRunMode) {
-                log.info("Dry-run mode enabled: Skipping updating secret");
+                log.info("Dry-run mode enabled: Skipping secret update");
                 return AkeylessTaskResult.of(true, null, null);
             }
 
@@ -227,7 +227,7 @@ public class AkeylessCommon {
             String accessToken = getAccessToken(api);
 
             if (dryRunMode) {
-                log.info("Dry-run mode enabled: Skipping deleting item");
+                log.info("Dry-run mode enabled: Skipping item delete");
                 return AkeylessTaskResult.of(true, null, null);
             }
 
