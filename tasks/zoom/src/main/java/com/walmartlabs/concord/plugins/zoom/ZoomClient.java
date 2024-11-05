@@ -105,7 +105,7 @@ public class ZoomClient implements AutoCloseable {
         }
 
         if (dryRunMode) {
-            log.info("Dry-run mode enabled: Skipping sending message");
+            log.info("Dry-run mode enabled: Skipping sending of the message");
             return new Result(true, null, null);
         }
 
