@@ -5,7 +5,9 @@
 ### Added
 
 - opentelemetry: add initial support for tracing
-([#178](https://github.com/walmartlabs/concord-plugins/pull/178)).
+([#178](https://github.com/walmartlabs/concord-plugins/pull/178));
+- tasks: initial support for dry-run mode
+([#179](https://github.com/walmartlabs/concord-plugins/pull/179)).
 
 ### Changed
 
