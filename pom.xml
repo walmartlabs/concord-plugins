@@ -63,7 +63,7 @@
 
         <scm.connection>scm:git:https://github.com/walmartlabs/concord-plugins.git</scm.connection>
 
-        <concord.version>2.18.1-SNAPSHOT</concord.version>
+        <concord.version>2.19.0</concord.version>
         <gson.version>2.10</gson.version>
         <okhttp3.version>3.14.9</okhttp3.version>
         <wiremock.version>3.5.2</wiremock.version>
