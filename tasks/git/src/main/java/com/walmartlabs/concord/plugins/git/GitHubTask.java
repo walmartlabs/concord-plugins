@@ -225,7 +225,7 @@ public class GitHubTask {
             pr.setBase(new PullRequestMarker().setLabel(gitHubPRBase));
 
             if (dryRunMode) {
-                log.info("Dry-run mode enabled: Skipping creation PR");
+                log.info("Dry-run mode enabled: Skipping PR creation");
                 return Map.of();
             }
 
@@ -277,7 +277,7 @@ public class GitHubTask {
         PullRequestService prService = new PullRequestService(client);
 
         if (dryRunMode) {
-            log.info("Dry-run mode enabled: Skipping commenting PR #{} in {}/{}", gitHubPRID, gitHubOrgName, gitHubRepoName);
+            log.info("Dry-run mode enabled: Skipping comment on PR #{} in {}/{}", gitHubPRID, gitHubOrgName, gitHubRepoName);
             return Map.of();
         }
 
@@ -306,7 +306,7 @@ public class GitHubTask {
         IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
 
         if (dryRunMode) {
-            log.info("Dry-run mode enabled: Skipping merging PR #{} in {}/{}", gitHubPRID, gitHubOrgName, gitHubRepoName);
+            log.info("Dry-run mode enabled: Skipping merge in PR #{} in {}/{}", gitHubPRID, gitHubOrgName, gitHubRepoName);
             return Map.of();
         }
 
@@ -340,7 +340,7 @@ public class GitHubTask {
         IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
 
         if (dryRunMode) {
-            log.info("Dry-run mode enabled: Skipping closing PR #{} in {}/{}", gitHubPRID, gitHubOrgName, gitHubRepoName);
+            log.info("Dry-run mode enabled: Skipping closing of PR #{} in {}/{}", gitHubPRID, gitHubOrgName, gitHubRepoName);
             return Map.of();
         }
 
@@ -381,7 +381,7 @@ public class GitHubTask {
         params.put("commit_message", commitMessage);
 
         if (dryRunMode) {
-            log.info("Dry-run mode enabled: Skipping merging {} in {}/{}", head, gitHubOrgName, gitHubRepoName);
+            log.info("Dry-run mode enabled: Skipping merging of {} in {}/{}", head, gitHubOrgName, gitHubRepoName);
             return Map.of();
         }
 
@@ -462,7 +462,7 @@ public class GitHubTask {
         tag.setTagger(commitUser);
 
         if (dryRunMode) {
-            log.info("Dry-run mode enabled: Skipping creating tag '{}' for commit '{}' in {}/{}", gitHubTagVersion, gitHubBranchSHA,gitHubOrgName, gitHubRepoName);
+            log.info("Dry-run mode enabled: Skipping creation of tag '{}' for commit '{}' in {}/{}", gitHubTagVersion, gitHubBranchSHA,gitHubOrgName, gitHubRepoName);
             return Map.of();
         }
 
@@ -508,7 +508,7 @@ public class GitHubTask {
         tag.setTag(gitHubTagName);
 
         if (dryRunMode) {
-            log.info("Dry-run mode enabled: Skipping deleting tag '{}' in {}/{}", gitHubTagName, gitHubOrgName, gitHubRepoName);
+            log.info("Dry-run mode enabled: Skipping deletion of tag '{}' in {}/{}", gitHubTagName, gitHubOrgName, gitHubRepoName);
             return Map.of();
         }
 
@@ -539,7 +539,7 @@ public class GitHubTask {
         IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
 
         if (dryRunMode) {
-            log.info("Dry-run mode enabled: Skipping deleting branch '{}' in {}/{}", gitHubBranchName, gitHubOrgName, gitHubRepoName);
+            log.info("Dry-run mode enabled: Skipping deletion of branch '{}' in {}/{}", gitHubBranchName, gitHubOrgName, gitHubRepoName);
             return Map.of();
         }
 
@@ -569,12 +569,12 @@ public class GitHubTask {
         String context = getString(in, STATUS_CHECK_CONTEXT, "default");
 
         if (dryRunMode) {
-            log.info("Dry-run mode enabled: Skipping creating status check ({}) in {}/{} repo with sha '{}'",
+            log.info("Dry-run mode enabled: Skipping creation of a status check ({}) in {}/{} repository with sha '{}'",
                     state, gitHubOrgName, gitHubRepoName, commitSha);
             return Map.of();
         }
 
-        log.info("Creating status check ({}) in {}/{} repo with sha '{}'",
+        log.info("Creating a status check ({}) in {}/{} repository with sha '{}'",
                 state, gitHubOrgName, gitHubRepoName, commitSha);
 
         GitHubClient client = createClient(gitHubUri);
@@ -638,7 +638,7 @@ public class GitHubTask {
         GitHubClient client = createClient(gitHubUri);
 
         if (dryRunMode) {
-            log.info("Dry-run mode enabled: Skipping forking repo {}/{}", gitHubOrgName, gitHubRepoName);
+            log.info("Dry-run mode enabled: Skipping forking of repository {}/{}", gitHubOrgName, gitHubRepoName);
             return Map.of();
         }
 
@@ -654,7 +654,7 @@ public class GitHubTask {
                 repoService.forkRepository(repo, targetOrg);
                 log.info("Fork action completed");
             } else {
-                log.info("Forking '{}/{}' into your personal repo...", gitHubOrgName, gitHubRepoName);
+                log.info("Forking '{}/{}' into your personal repository...", gitHubOrgName, gitHubRepoName);
                 repoService.forkRepository(repo);
                 log.info("Fork action completed");
             }
@@ -834,7 +834,7 @@ public class GitHubTask {
         GitHubClient client = createClient(gitHubUri);
 
         if (dryRunMode) {
-            log.info("Dry-run mode enabled: Skipping creating repo in {}/{}", gitHubOrgName, gitHubRepoName);
+            log.info("Dry-run mode enabled: Skipping creation of a repository in {}/{}", gitHubOrgName, gitHubRepoName);
             return Map.of();
         }
 
@@ -877,7 +877,7 @@ public class GitHubTask {
         GitHubClient client = createClient(gitHubUri);
 
         if (dryRunMode) {
-            log.info("Dry-run mode enabled: Skipping deleting repo in {}/{}", gitHubOrgName, gitHubRepoName);
+            log.info("Dry-run mode enabled: Skipping deletion of repository {} in {}", gitHubRepoName, gitHubOrgName);
             return Map.of();
         }
 
@@ -1007,7 +1007,7 @@ public class GitHubTask {
                 .setConfig(config);
 
         if (dryRunMode) {
-            log.info("Dry-run mode enabled: Skipping creating hook in {}/{}", gitHubOrgName, gitHubRepoName);
+            log.info("Dry-run mode enabled: Skipping creation of a hook in {}/{}", gitHubOrgName, gitHubRepoName);
             return Map.of();
         }
 
@@ -1048,7 +1048,7 @@ public class GitHubTask {
                         .collect(Collectors.toList()));
 
         if (dryRunMode) {
-            log.info("Dry-run mode enabled: Skipping creating issue in {}/{}", gitHubOrgName, gitHubRepoName);
+            log.info("Dry-run mode enabled: Skipping creation of an issue in {}/{}", gitHubOrgName, gitHubRepoName);
             return Map.of();
         }
 
