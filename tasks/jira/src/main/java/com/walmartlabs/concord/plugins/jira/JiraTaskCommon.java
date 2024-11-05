@@ -174,7 +174,7 @@ public class JiraTaskCommon {
             Map<String, Object> objFields = Collections.singletonMap("fields", objMain);
 
             if (dryRunMode) {
-                log.info("Dry-run mode enabled: Skipping creating new issue in '{}'", projectKey);
+                log.info("Dry-run mode enabled: Skipping creation of a new issue in '{}'", projectKey);
                 return Map.of();
             }
 
@@ -204,7 +204,7 @@ public class JiraTaskCommon {
         String componentName = in.componentName();
 
         if (dryRunMode) {
-            log.info("Dry-run mode enabled: Skipping creating component '{}'", componentName);
+            log.info("Dry-run mode enabled: Skipping creation of component '{}'", componentName);
             return Map.of();
         }
 
@@ -232,7 +232,7 @@ public class JiraTaskCommon {
         int componentId = in.componentId();
 
         if (dryRunMode) {
-            log.info("Dry-run mode enabled: Skipping deleting component #{}", componentId);
+            log.info("Dry-run mode enabled: Skipping deletion of component #{}", componentId);
             return;
         }
 
@@ -259,7 +259,7 @@ public class JiraTaskCommon {
         }
 
         if (dryRunMode) {
-            log.info("Dry-run mode enabled: Skipping adding attachment to #{}", issueKey);
+            log.info("Dry-run mode enabled: Skipping attachment to #{}", issueKey);
             return;
         }
 
@@ -281,7 +281,7 @@ public class JiraTaskCommon {
         Map<String, Object> m = Collections.singletonMap("body", comment);
 
         if (dryRunMode) {
-            log.info("Dry-run mode enabled: Skipping adding comment {} to Issue #{}",comment, issueKey);
+            log.info("Dry-run mode enabled: Skipping issue #{} comment: '{}'", issueKey, comment);
             return;
         }
 
@@ -329,7 +329,7 @@ public class JiraTaskCommon {
             objupdate = ConfigurationUtils.deepMerge(objFields, ConfigurationUtils.deepMerge(objTransition, objupdate));
 
             if (dryRunMode) {
-                log.info("Dry-run mode enabled: Skipping transition onIssue #{}", issueKey);
+                log.info("Dry-run mode enabled: Skipping transition of issue #{}", issueKey);
                 return;
             }
 
@@ -349,7 +349,7 @@ public class JiraTaskCommon {
         String issueKey = in.issueKey();
 
         if (dryRunMode) {
-            log.info("Dry-run mode enabled: Skipping deleting Issue #{}", issueKey);
+            log.info("Dry-run mode enabled: Skipping deletion of issue #{}", issueKey);
             return;
         }
 
@@ -371,7 +371,7 @@ public class JiraTaskCommon {
         Map<String, Object> fields = in.fields();
 
         if (dryRunMode) {
-            log.info("Dry-run mode enabled: Skipping updating Issue #{}", issueKey);
+            log.info("Dry-run mode enabled: Skipping update for issue #{}", issueKey);
             return;
         }
 
