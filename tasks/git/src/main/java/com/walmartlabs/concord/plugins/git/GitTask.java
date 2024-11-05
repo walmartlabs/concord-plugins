@@ -376,7 +376,7 @@ public class GitTask {
         }
 
         if (dryRunMode) {
-            log.info("Dry-run mode enabled: Skipping creating new branch '{}'", newBranchName);
+            log.info("Dry-run mode enabled: Skipping creation of branch '{}'", newBranchName);
             return Map.of();
         }
 
@@ -420,7 +420,7 @@ public class GitTask {
         }
 
         if (dryRunMode) {
-            log.info("Dry-run mode enabled: Skipping merging '{}' with '{}'", sourceBranch, destinationBranch);
+            log.info("Dry-run mode enabled: Skipping merging of '{}' with '{}'", sourceBranch, destinationBranch);
             return Map.of();
         }
 
