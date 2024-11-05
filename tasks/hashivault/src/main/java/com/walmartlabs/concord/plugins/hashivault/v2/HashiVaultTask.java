@@ -9,9 +9,9 @@ package com.walmartlabs.concord.plugins.hashivault.v2;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -33,21 +33,24 @@ import java.util.Map;
 
 
 @Named("hashivault")
+@DryRunReady
 public class HashiVaultTask implements Task {
 
     private final Map<String, Object> defaults;
     private final SecretService secretService;
+    private final boolean dryRunMode;
 
     @Inject
     public HashiVaultTask(Context ctx, SecretService secretService) {
         this.secretService = secretService;
         this.defaults = ctx.variables().getMap(TaskParams.DEFAULT_PARAMS_KEY, Collections.emptyMap());
+        this.dryRunMode = ctx.processConfiguration().dryRun();
     }
 
     @Override
-    public TaskResult.SimpleResult execute(Variables input) throws Exception {
+    public TaskResult.SimpleResult execute(Variables input) {
         final TaskParams params = createParams(input);
-        final HashiVaultTaskCommon delegate = new HashiVaultTaskCommon();
+        final HashiVaultTaskCommon delegate = new HashiVaultTaskCommon(dryRunMode);
         final HashiVaultTaskResult result = delegate.execute(params);
         final Map<String, Object> data = new HashMap<>(1);
         data.put("data", result.data());

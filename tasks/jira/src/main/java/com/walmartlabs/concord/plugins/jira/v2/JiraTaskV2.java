@@ -9,9 +9,9 @@ package com.walmartlabs.concord.plugins.jira.v2;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -31,6 +31,7 @@ import javax.inject.Named;
 import java.util.Map;
 
 @Named("jira")
+@DryRunReady
 public class JiraTaskV2 implements Task {
 
     private final Context context;
@@ -39,7 +40,7 @@ public class JiraTaskV2 implements Task {
     @Inject
     public JiraTaskV2(Context context) {
         this.context = context;
-        this.delegate = new JiraTaskCommon(new V2SecretService(context.secretService()));
+        this.delegate = new JiraTaskCommon(new V2SecretService(context.secretService()), context.processConfiguration().dryRun());
     }
 
     @Override

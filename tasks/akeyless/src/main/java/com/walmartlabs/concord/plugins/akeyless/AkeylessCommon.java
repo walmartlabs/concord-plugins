@@ -9,9 +9,9 @@ package com.walmartlabs.concord.plugins.akeyless;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -41,9 +41,14 @@ public class AkeylessCommon {
     private ApiClient apiClient;
     private SecretExporter secretExporter;
     private static final Map<String, BiFunction<Variables, SecretExporter, Auth>> authBuilders = createAuthBuilders();
+    private final boolean dryRunMode;
 
     public AkeylessCommon() {
-        // empty default constructor
+        this(false);
+    }
+
+    public AkeylessCommon(boolean dryRunMode) {
+        this.dryRunMode = dryRunMode;
     }
 
     private static Map<String, BiFunction<Variables, SecretExporter, Auth>> createAuthBuilders() {
@@ -167,6 +172,11 @@ public class AkeylessCommon {
             V2Api api = getApi(params);
             String accessToken = getAccessToken(api);
 
+            if (dryRunMode) {
+                log.info("Dry-run mode enabled: Skipping secret creation");
+                return AkeylessTaskResult.of(true, null, null);
+            }
+
             api.createSecret(new CreateSecret()
                     .token(accessToken)
                     .name(params.path())
@@ -189,6 +199,11 @@ public class AkeylessCommon {
             V2Api api = getApi(params);
             String accessToken = getAccessToken(api);
 
+            if (dryRunMode) {
+                log.info("Dry-run mode enabled: Skipping secret update");
+                return AkeylessTaskResult.of(true, null, null);
+            }
+
             api.updateSecretVal(new UpdateSecretVal()
                     .token(accessToken)
                     .value(params.value())
@@ -210,6 +225,11 @@ public class AkeylessCommon {
         try {
             V2Api api = getApi(params);
             String accessToken = getAccessToken(api);
+
+            if (dryRunMode) {
+                log.info("Dry-run mode enabled: Skipping item delete");
+                return AkeylessTaskResult.of(true, null, null);
+            }
 
             api.deleteItem(new DeleteItem()
                     .token(accessToken)

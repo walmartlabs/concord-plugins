@@ -49,9 +49,15 @@ public class JiraTaskCommon {
     private static final String SECRET_KEY = "secret";
 
     private final JiraSecretService secretService;
+    private final boolean dryRunMode;
 
     public JiraTaskCommon(JiraSecretService secretService) {
+        this(secretService, false);
+    }
+
+    public JiraTaskCommon(JiraSecretService secretService, boolean dryRunMode) {
         this.secretService = secretService;
+        this.dryRunMode = dryRunMode;
     }
 
     public Map<String, Object> execute(TaskParams in) {
@@ -167,6 +173,11 @@ public class JiraTaskCommon {
 
             Map<String, Object> objFields = Collections.singletonMap("fields", objMain);
 
+            if (dryRunMode) {
+                log.info("Dry-run mode enabled: Skipping creation of a new issue in '{}'", projectKey);
+                return Map.of();
+            }
+
             log.info("Creating new issue in '{}'...", projectKey);
 
             Map<String, Object> results = getClient(in)
@@ -192,6 +203,11 @@ public class JiraTaskCommon {
         String projectKey = in.projectKey();
         String componentName = in.componentName();
 
+        if (dryRunMode) {
+            log.info("Dry-run mode enabled: Skipping creation of component '{}'", componentName);
+            return Map.of();
+        }
+
         try {
             Map<String, Object> m = new HashMap<>();
             m.put("name", componentName);
@@ -215,6 +231,11 @@ public class JiraTaskCommon {
     void deleteComponent(DeleteComponentParams in) {
         int componentId = in.componentId();
 
+        if (dryRunMode) {
+            log.info("Dry-run mode enabled: Skipping deletion of component #{}", componentId);
+            return;
+        }
+
         try {
             getClient(in)
                     .url(in.jiraUrl() + "component/" + componentId)
@@ -237,6 +258,11 @@ public class JiraTaskCommon {
             throw new IllegalArgumentException("File not found: " + filePath);
         }
 
+        if (dryRunMode) {
+            log.info("Dry-run mode enabled: Skipping attachment to #{}", issueKey);
+            return;
+        }
+
         try {
             getClient(in)
                     .url(in.jiraUrl() + "issue/" + issueKey + "/attachments")
@@ -252,9 +278,14 @@ public class JiraTaskCommon {
         String issueKey = in.issueKey();
         String comment = in.comment();
         boolean debug = in.debug();
+        Map<String, Object> m = Collections.singletonMap("body", comment);
+
+        if (dryRunMode) {
+            log.info("Dry-run mode enabled: Skipping issue #{} comment: '{}'", issueKey, comment);
+            return;
+        }
 
         try {
-            Map<String, Object> m = Collections.singletonMap("body", comment);
 
             getClient(in)
                     .url(in.jiraUrl() + "issue/" + issueKey + "/comment")
@@ -297,6 +328,11 @@ public class JiraTaskCommon {
             Map<String, Object> objFields = Collections.singletonMap("fields", objMain);
             objupdate = ConfigurationUtils.deepMerge(objFields, ConfigurationUtils.deepMerge(objTransition, objupdate));
 
+            if (dryRunMode) {
+                log.info("Dry-run mode enabled: Skipping transition of issue #{}", issueKey);
+                return;
+            }
+
             getClient(in)
                     .url(in.jiraUrl() + "issue/" + issueKey + "/transitions")
                     .jiraAuth(buildAuth(in))
@@ -311,6 +347,11 @@ public class JiraTaskCommon {
 
     void deleteIssue(DeleteIssueParams in) {
         String issueKey = in.issueKey();
+
+        if (dryRunMode) {
+            log.info("Dry-run mode enabled: Skipping deletion of issue #{}", issueKey);
+            return;
+        }
 
         try {
             getClient(in)
@@ -328,6 +369,11 @@ public class JiraTaskCommon {
     void updateIssue(UpdateIssueParams in) {
         String issueKey = in.issueKey();
         Map<String, Object> fields = in.fields();
+
+        if (dryRunMode) {
+            log.info("Dry-run mode enabled: Skipping update for issue #{}", issueKey);
+            return;
+        }
 
         log.info("Updating {} fields for issue #{}", fields, issueKey);
 

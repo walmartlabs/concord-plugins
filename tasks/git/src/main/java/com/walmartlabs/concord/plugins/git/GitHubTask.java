@@ -105,6 +105,16 @@ public class GitHubTask {
     private static final TypeReference<List<Map<String, Object>>> LIST_OF_OBJECT_TYPE = new TypeReference<List<Map<String, Object>>>() {
     };
 
+    private final boolean dryRunMode;
+
+    public GitHubTask() {
+        this(false);
+    }
+
+    public GitHubTask(boolean dryRunMode) {
+        this.dryRunMode = dryRunMode;
+    }
+
     public Map<String, Object> execute(Map<String, Object> in, Map<String, Object> defaults) {
         Action action = getAction(in);
         String gitHubUri = getUrl(defaults, in, API_URL_KEY);
@@ -188,7 +198,7 @@ public class GitHubTask {
         }
     }
 
-    private static Map<String, Object> createPR(Map<String, Object> in, String gitHubUri) {
+    private Map<String, Object> createPR(Map<String, Object> in, String gitHubUri) {
         String gitHubAccessToken = assertString(in, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
@@ -213,6 +223,11 @@ public class GitHubTask {
             pr.setBody(gitHubPRBody);
             pr.setHead(new PullRequestMarker().setLabel(gitHubPRHead));
             pr.setBase(new PullRequestMarker().setLabel(gitHubPRBase));
+
+            if (dryRunMode) {
+                log.info("Dry-run mode enabled: Skipping PR creation");
+                return Map.of();
+            }
 
             PullRequest result = prService.createPullRequest(repo, pr);
             if (result != null) {
@@ -247,7 +262,7 @@ public class GitHubTask {
         }
     }
 
-    private static Map<String, Object> commentPR(Map<String, Object> in, String gitHubUri) {
+    private Map<String, Object> commentPR(Map<String, Object> in, String gitHubUri) {
         String gitHubAccessToken = assertString(in, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
@@ -260,6 +275,11 @@ public class GitHubTask {
 
         IssueService issueService = new IssueService(client);
         PullRequestService prService = new PullRequestService(client);
+
+        if (dryRunMode) {
+            log.info("Dry-run mode enabled: Skipping comment on PR #{} in {}/{}", gitHubPRID, gitHubOrgName, gitHubRepoName);
+            return Map.of();
+        }
 
         log.info("Commenting PR #{} in {}/{}", gitHubPRID, gitHubOrgName, gitHubRepoName);
 
@@ -274,7 +294,7 @@ public class GitHubTask {
         }
     }
 
-    private static Map<String, Object> mergePR(Map<String, Object> in, String gitHubUri) {
+    private Map<String, Object> mergePR(Map<String, Object> in, String gitHubUri) {
         String gitHubAccessToken = assertString(in, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
@@ -284,6 +304,11 @@ public class GitHubTask {
         GitHubClient client = createClient(gitHubUri);
         client.setOAuth2Token(gitHubAccessToken);
         IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
+
+        if (dryRunMode) {
+            log.info("Dry-run mode enabled: Skipping merge in PR #{} in {}/{}", gitHubPRID, gitHubOrgName, gitHubRepoName);
+            return Map.of();
+        }
 
         try {
             log.info("Merging PR #{} in {}/{}", gitHubPRID, gitHubOrgName, gitHubRepoName);
@@ -304,7 +329,7 @@ public class GitHubTask {
         }
     }
 
-    private static Map<String, Object> closePR(Map<String, Object> in, String gitHubUri) {
+    private Map<String, Object> closePR(Map<String, Object> in, String gitHubUri) {
         String gitHubAccessToken = assertString(in, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
@@ -313,6 +338,11 @@ public class GitHubTask {
         GitHubClient client = createClient(gitHubUri);
         client.setOAuth2Token(gitHubAccessToken);
         IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
+
+        if (dryRunMode) {
+            log.info("Dry-run mode enabled: Skipping closing of PR #{} in {}/{}", gitHubPRID, gitHubOrgName, gitHubRepoName);
+            return Map.of();
+        }
 
         PullRequestService prService = new PullRequestService(client);
         try {
@@ -330,7 +360,7 @@ public class GitHubTask {
         }
     }
 
-    private static Map<String, Object> merge(Map<String, Object> in, String gitHubUri) {
+    private Map<String, Object> merge(Map<String, Object> in, String gitHubUri) {
         String gitHubAccessToken = assertString(in, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
@@ -349,6 +379,11 @@ public class GitHubTask {
         params.put("base", base);
         params.put("head", head);
         params.put("commit_message", commitMessage);
+
+        if (dryRunMode) {
+            log.info("Dry-run mode enabled: Skipping merging of {} in {}/{}", head, gitHubOrgName, gitHubRepoName);
+            return Map.of();
+        }
 
         log.info("Merging {} in {}/{}", head, gitHubOrgName, gitHubRepoName);
 
@@ -394,7 +429,7 @@ public class GitHubTask {
         }
     }
 
-    private static Map<String, Object> createTag(Map<String, Object> in, String gitHubUri) {
+    private Map<String, Object> createTag(Map<String, Object> in, String gitHubUri) {
         String gitHubAccessToken = assertString(in, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
@@ -426,6 +461,11 @@ public class GitHubTask {
         tag.setObject(typedResource);
         tag.setTagger(commitUser);
 
+        if (dryRunMode) {
+            log.info("Dry-run mode enabled: Skipping creation of tag '{}' for commit '{}' in {}/{}", gitHubTagVersion, gitHubBranchSHA,gitHubOrgName, gitHubRepoName);
+            return Map.of();
+        }
+
         log.info("Creating tag '{}' for commit '{}' in {}/{}", gitHubTagVersion, gitHubBranchSHA, gitHubOrgName, gitHubRepoName);
 
         DataService dataService = new DataService(client);
@@ -452,7 +492,7 @@ public class GitHubTask {
         }
     }
 
-    private static Map<String, Object> deleteTag(Map<String, Object> in, String gitHubUri) {
+    private Map<String, Object> deleteTag(Map<String, Object> in, String gitHubUri) {
         String gitHubAccessToken = assertString(in, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
@@ -466,6 +506,11 @@ public class GitHubTask {
 
         Tag tag = new Tag();
         tag.setTag(gitHubTagName);
+
+        if (dryRunMode) {
+            log.info("Dry-run mode enabled: Skipping deletion of tag '{}' in {}/{}", gitHubTagName, gitHubOrgName, gitHubRepoName);
+            return Map.of();
+        }
 
         log.info("Deleting tag '{}' in {}/{}", gitHubTagName, gitHubOrgName, gitHubRepoName);
 
@@ -481,7 +526,7 @@ public class GitHubTask {
         }
     }
 
-    private static Map<String, Object> deleteBranch(Map<String, Object> in, String gitHubUri) {
+    private Map<String, Object> deleteBranch(Map<String, Object> in, String gitHubUri) {
         String gitHubAccessToken = assertString(in, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
@@ -492,6 +537,11 @@ public class GitHubTask {
         //Connect to GitHub
         client.setOAuth2Token(gitHubAccessToken);
         IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
+
+        if (dryRunMode) {
+            log.info("Dry-run mode enabled: Skipping deletion of branch '{}' in {}/{}", gitHubBranchName, gitHubOrgName, gitHubRepoName);
+            return Map.of();
+        }
 
         log.info("Deleting branch '{}' in {}/{}", gitHubBranchName, gitHubOrgName, gitHubRepoName);
 
@@ -507,7 +557,7 @@ public class GitHubTask {
         }
     }
 
-    private static Map<String, Object> addStatus(Map<String, Object> in, String gitHubUri) {
+    private Map<String, Object> addStatus(Map<String, Object> in, String gitHubUri) {
         String gitHubAccessToken = assertString(in, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
@@ -518,7 +568,13 @@ public class GitHubTask {
         String description = getString(in, STATUS_CHECK_DESCRIPTION, null);
         String context = getString(in, STATUS_CHECK_CONTEXT, "default");
 
-        log.info("Creating status check ({}) in {}/{} repo with sha '{}'",
+        if (dryRunMode) {
+            log.info("Dry-run mode enabled: Skipping creation of a status check ({}) in {}/{} repository with sha '{}'",
+                    state, gitHubOrgName, gitHubRepoName, commitSha);
+            return Map.of();
+        }
+
+        log.info("Creating a status check ({}) in {}/{} repository with sha '{}'",
                 state, gitHubOrgName, gitHubRepoName, commitSha);
 
         GitHubClient client = createClient(gitHubUri);
@@ -573,13 +629,18 @@ public class GitHubTask {
         }
     }
 
-    private static Map<String, Object> forkRepo(Map<String, Object> in, String gitHubUri) {
+    private Map<String, Object> forkRepo(Map<String, Object> in, String gitHubUri) {
         String gitHubAccessToken = assertString(in, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
         String targetOrg = getString(in, GITHUB_FORKTARGETORG);
 
         GitHubClient client = createClient(gitHubUri);
+
+        if (dryRunMode) {
+            log.info("Dry-run mode enabled: Skipping forking of repository {}/{}", gitHubOrgName, gitHubRepoName);
+            return Map.of();
+        }
 
         try {
             //Connect to GitHub
@@ -593,7 +654,7 @@ public class GitHubTask {
                 repoService.forkRepository(repo, targetOrg);
                 log.info("Fork action completed");
             } else {
-                log.info("Forking '{}/{}' into your personal repo...", gitHubOrgName, gitHubRepoName);
+                log.info("Forking '{}/{}' into your personal repository...", gitHubOrgName, gitHubRepoName);
                 repoService.forkRepository(repo);
                 log.info("Fork action completed");
             }
@@ -765,12 +826,17 @@ public class GitHubTask {
         }
     }
 
-    private static Map<String, Object> createRepo(Map<String, Object> in, String gitHubUri) {
+    private Map<String, Object> createRepo(Map<String, Object> in, String gitHubUri) {
         String gitHubAccessToken = assertString(in, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
 
         GitHubClient client = createClient(gitHubUri);
+
+        if (dryRunMode) {
+            log.info("Dry-run mode enabled: Skipping creation of a repository in {}/{}", gitHubOrgName, gitHubRepoName);
+            return Map.of();
+        }
 
         log.info("Creating repository '{}' in '{}' organization", gitHubRepoName, gitHubOrgName);
 
@@ -803,12 +869,17 @@ public class GitHubTask {
         }
     }
 
-    private static Map<String, Object> deleteRepo(Map<String, Object> in, String gitHubUri) {
+    private Map<String, Object> deleteRepo(Map<String, Object> in, String gitHubUri) {
         String gitHubAccessToken = assertString(in, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
 
         GitHubClient client = createClient(gitHubUri);
+
+        if (dryRunMode) {
+            log.info("Dry-run mode enabled: Skipping deletion of repository {} in {}", gitHubRepoName, gitHubOrgName);
+            return Map.of();
+        }
 
         log.info("Deleting repository '{}' from '{}' organization", gitHubRepoName, gitHubOrgName);
 
@@ -907,7 +978,7 @@ public class GitHubTask {
         }
     }
 
-    private static Map<String, Object> createHook(Map<String, Object> in, String gitHubUri) {
+    private Map<String, Object> createHook(Map<String, Object> in, String gitHubUri) {
         String gitHubAccessToken = assertString(in, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
@@ -935,6 +1006,11 @@ public class GitHubTask {
                 .setEvents(assertList(in, GITHUB_HOOK_EVENTS))
                 .setConfig(config);
 
+        if (dryRunMode) {
+            log.info("Dry-run mode enabled: Skipping creation of a hook in {}/{}", gitHubOrgName, gitHubRepoName);
+            return Map.of();
+        }
+
         try {
             if (MapUtils.getBoolean(in, GITHUB_HOOK_REPLACE, false)) {
                 List<RepositoryHook> hooks = service.getHooks(repo);
@@ -952,7 +1028,7 @@ public class GitHubTask {
         }
     }
 
-    private static Map<String, Object> createIssue(Map<String, Object> in, String gitHubUri) {
+    private Map<String, Object> createIssue(Map<String, Object> in, String gitHubUri) {
         String gitHubAccessToken = assertString(in, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
@@ -970,6 +1046,12 @@ public class GitHubTask {
                 .setLabels(getList(in, ISSUE_LABELS, Collections.<String>emptyList()).stream()
                         .map(l -> new Label().setName(l))
                         .collect(Collectors.toList()));
+
+        if (dryRunMode) {
+            log.info("Dry-run mode enabled: Skipping creation of an issue in {}/{}", gitHubOrgName, gitHubRepoName);
+            return Map.of();
+        }
+
 
         log.info("Creating issue in {}/{}", gitHubOrgName, gitHubRepoName);
 
