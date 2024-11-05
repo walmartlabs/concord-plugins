@@ -93,7 +93,7 @@ public class S3TaskCommon {
         String key = in.key();
 
         if (dryRunMode) {
-            log.info("Dry-run mode enabled: Skipping putting object into {}/{}", bucketName, key);
+            log.info("Dry-run mode enabled: Skipping upload to bucket {}/{}", bucketName, key);
             return new PutObjectResult(null, null);
         }
 
