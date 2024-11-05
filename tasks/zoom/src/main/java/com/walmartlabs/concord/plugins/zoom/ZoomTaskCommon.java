@@ -31,6 +31,10 @@ public class ZoomTaskCommon {
 
     private final boolean dryRunMode;
 
+    public ZoomTaskCommon() {
+        this(false);
+    }
+
     public ZoomTaskCommon(boolean dryRunMode) {
         this.dryRunMode = dryRunMode;
     }
