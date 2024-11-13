@@ -94,7 +94,7 @@
         <plugins>
             <plugin>
                 <groupId>dev.ybrig.concord</groupId>
-                <artifactId>concord-maven-plugin-ng</artifactId>
+                <artifactId>concord-maven-plugin</artifactId>
             </plugin>
         </plugins>
     </build>
