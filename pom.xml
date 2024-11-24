@@ -102,6 +102,22 @@
         <pluginManagement>
             <plugins>
                 <plugin>
+                    <groupId>dev.ybrig.concord</groupId>
+                    <artifactId>concord-maven-plugin</artifactId>
+                    <version>0.0.30</version>
+                    <configuration>
+                        <concordVersion>${concord.version}</concordVersion>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>sisu-index</goal>
+                                <goal>verify</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-release-plugin</artifactId>
                     <version>3.0.0-M6</version>
@@ -111,19 +127,6 @@
                         <localCheckout>true</localCheckout>
                         <autoVersionSubmodules>true</autoVersionSubmodules>
                     </configuration>
-                </plugin>
-                <plugin>
-                    <groupId>org.eclipse.sisu</groupId>
-                    <artifactId>sisu-maven-plugin</artifactId>
-                    <version>0.3.5</version>
-                    <executions>
-                        <execution>
-                            <id>index</id>
-                            <goals>
-                                <goal>main-index</goal>
-                            </goals>
-                        </execution>
-                    </executions>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>

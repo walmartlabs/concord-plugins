@@ -140,8 +140,8 @@
 
         <plugins>
             <plugin>
-                <groupId>org.eclipse.sisu</groupId>
-                <artifactId>sisu-maven-plugin</artifactId>
+                <groupId>dev.ybrig.concord</groupId>
+                <artifactId>concord-maven-plugin</artifactId>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
