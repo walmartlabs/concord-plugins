@@ -137,17 +137,6 @@
                 <groupId>dev.ybrig.concord</groupId>
                 <artifactId>concord-maven-plugin</artifactId>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-            </plugin>
         </plugins>
     </build>
-
-    <repositories>
-        <repository>
-            <id>eclipse</id>
-            <url>https://repo.eclipse.org/content/groups/releases/</url>
-        </repository>
-    </repositories>
 </project>
