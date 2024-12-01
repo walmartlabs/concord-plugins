@@ -53,6 +53,7 @@
         <module>tasks/xml</module>
         <module>tasks/zoom</module>
         <module>runtime/opentelemetry</module>
+        <module>runtime/codecoverage</module>
     </modules>
 
     <properties>
