@@ -129,7 +129,6 @@ public class JiraTaskCommon {
         String description = in.description();
         String requestorUid = in.requestorUid();
         String issueType = in.issueType();
-        String issuePriority = in.issuePriority();
         Map<String, Object> assignee = in.assignee();
         List<String> labels = in.labels();
         List<String> components = in.components();
@@ -141,7 +140,6 @@ public class JiraTaskCommon {
         try {
             //Build JSON data
             Map<String, Object> objProj = Collections.singletonMap("key", projectKey);
-            Map<String, Object> objPriority = Collections.singletonMap("name", issuePriority);
             Map<String, Object> objIssueType = Collections.singletonMap("name", issueType);
 
             Map<String, Object> objMain = new HashMap<>();
@@ -153,7 +151,10 @@ public class JiraTaskCommon {
                 objMain.put("reporter", Collections.singletonMap("name", requestorUid));
             }
 
-            objMain.put("priority", objPriority);
+            if (in.issuePriority() != null) {
+                objMain.put("priority", Map.of("name", in.issuePriority()));
+            }
+
             objMain.put("issuetype", objIssueType);
 
             if (labels != null && !labels.isEmpty()) {
