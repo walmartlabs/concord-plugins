@@ -42,6 +42,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class CodeCoverage implements ExecutionListener {
 
@@ -150,18 +151,15 @@ public class CodeCoverage implements ExecutionListener {
     }
 
     private void saveFlows(ProcessDefinition processDefinition) {
+        var fileNames = processDefinition.flows().values().stream()
+                .map(v -> v.location().fileName())
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
         persistenceService.persistFile(FLOWS_FILENAME, out -> {
             try (ZipArchiveOutputStream zip = new ZipArchiveOutputStream(out)) {
 
-                for (var e : processDefinition.flows().entrySet()) {
-                    String flowName = e.getKey();
-                    String fileName = e.getValue().location().fileName();
-
-                    if (fileName == null) {
-                        log.warn("CodeCoverage: flow '{}' has no associated file name. Skipping...", flowName);
-                        continue;
-                    }
-
+                for (var fileName : fileNames) {
                     Path file = workDir.resolve(fileName);
                     if (Files.notExists(file)) {
                         log.warn("CodeCoverage: can't save flow '{}' -> file not exists. This is most likely a bug", fileName);
@@ -171,7 +169,7 @@ public class CodeCoverage implements ExecutionListener {
                     try {
                         IOUtils.zipFile(zip, file, fileName);
                     } catch (IOException ex) {
-                        log.error("CodeCoverage: failed to add file '{}' for flow '{}'. Error: {}", fileName, flowName, ex.getMessage());
+                        log.error("CodeCoverage: failed to add file '{}'. Error: {}", fileName, ex.getMessage());
                         throw ex;
                     }
                 }
