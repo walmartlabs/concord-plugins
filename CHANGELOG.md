@@ -13,8 +13,12 @@
 
 - jira-task: properly handle issue creation when no priority is specified
 ([#182](https://github.com/walmartlabs/concord-plugins/pull/182));
+- project: bump takari-lifecycle-plugin version
+([#183](https://github.com/walmartlabs/concord-plugins/pull/183));
 - project: migrate to concord-client2 and target platform 2.14.0
 ([#176](https://github.com/walmartlabs/concord-plugins/pull/176)).
+
+
 
 ## [2.6.0] - 2024-09-27
 
