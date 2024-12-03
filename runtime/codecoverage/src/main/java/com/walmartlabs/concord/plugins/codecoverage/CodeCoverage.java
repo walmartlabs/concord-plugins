@@ -126,8 +126,8 @@ public class CodeCoverage implements ExecutionListener {
 
         try {
             var reportProducer = new LcovReportProducer(runtime.getService(ProcessDefinition.class));
+            reportProducer.onSteps(steps.list());
 
-            steps.stream().forEach(reportProducer::onStep);
             steps.cleanup();
 
             persistenceService.persistFile(COVERAGE_INFO_FILENAME, reportProducer::produce, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);

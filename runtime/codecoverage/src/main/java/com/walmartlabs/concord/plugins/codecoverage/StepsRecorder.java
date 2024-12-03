@@ -62,12 +62,12 @@ public class StepsRecorder {
                 StandardOpenOption.CREATE, StandardOpenOption.APPEND);
     }
 
-    public synchronized Stream<StepInfo> stream() {
+    public List<StepInfo> list() {
         var result = persistenceService.loadPersistedFile(FILE_NAME, in -> objectMapper.readValue(in, STEPS_TYPE));
         if (result == null) {
-            return Stream.empty();
+            return List.of();
         }
-        return result.stream();
+        return result;
     }
 
     public synchronized void cleanup() {

@@ -33,6 +33,6 @@ public class CodecoverageModule implements Module {
     @Override
     public void configure (Binder binder){
         var executionListeners = Multibinder.newSetBinder(binder, ExecutionListener.class);
-        taskProviders.addBinding().to(CodeCoverage.class);
+        executionListeners.addBinding().to(CodeCoverage.class);
     }
 }

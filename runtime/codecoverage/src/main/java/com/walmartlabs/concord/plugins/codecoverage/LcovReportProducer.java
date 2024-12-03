@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class LcovReportProducer {
@@ -39,6 +40,10 @@ public class LcovReportProducer {
 
     public LcovReportProducer(ProcessDefinition processDefinition) {
         init(processDefinition);
+    }
+
+    public void onSteps(List<StepInfo> steps) {
+        steps.forEach(this::onStep);
     }
 
     public void onStep(StepInfo step) {
@@ -69,6 +74,7 @@ public class LcovReportProducer {
             }
         }
     }
+
 
     public void produce(OutputStream out) throws IOException {
         try (var writer = new BufferedWriter(new OutputStreamWriter(out))) {
