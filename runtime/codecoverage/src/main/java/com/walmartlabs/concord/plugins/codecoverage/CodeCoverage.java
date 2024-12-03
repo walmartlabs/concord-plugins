@@ -74,10 +74,10 @@ public class CodeCoverage implements ExecutionListener {
             return Result.CONTINUE;
         }
 
-        if (cmd instanceof ElementEventProducer) {
-            processStep(((ElementEventProducer) cmd).getStep(), runtime, state, threadId);
-        } else if (cmd instanceof TaskCallCommand) {
-            processStep(((TaskCallCommand) cmd).getStep(), runtime, state, threadId);
+        if (cmd instanceof ElementEventProducer eep) {
+            processStep(eep.getStep(), runtime, state, threadId);
+        } else if (cmd instanceof TaskCallCommand tcc) {
+            processStep(tcc.getStep(), runtime, state, threadId);
         }
 
         return Result.CONTINUE;
@@ -85,8 +85,8 @@ public class CodeCoverage implements ExecutionListener {
 
     @Override
     public Result afterCommand(Runtime runtime, VM vm, State state, ThreadId threadId, Command cmd) {
-        if (cmd instanceof FlowCallCommand) {
-            processStep(((FlowCallCommand) cmd).getStep(), runtime, state, threadId);
+        if (cmd instanceof FlowCallCommand fcc) {
+            processStep(fcc.getStep(), runtime, state, threadId);
         }
         return Result.CONTINUE;
     }
