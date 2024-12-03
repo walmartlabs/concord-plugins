@@ -160,7 +160,7 @@ public class CodeCoverage implements ExecutionListener {
             try (ZipArchiveOutputStream zip = new ZipArchiveOutputStream(out)) {
 
                 for (var fileName : fileNames) {
-                    Path file = workDir.resolve(fileName);
+                    var file = workDir.resolve(fileName);
                     if (Files.notExists(file)) {
                         log.warn("CodeCoverage: can't save flow '{}' -> file not exists. This is most likely a bug", fileName);
                         continue;
