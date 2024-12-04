@@ -175,6 +175,6 @@ public class CodeCoverage implements ExecutionListener {
                 }
             }
         });
-        log.info("CodeCoverage: flows saved as '{}' process attachment", FLOWS_FILENAME);
+        log.debug("CodeCoverage: flows saved as '{}' process attachment", FLOWS_FILENAME);
     }
 }
