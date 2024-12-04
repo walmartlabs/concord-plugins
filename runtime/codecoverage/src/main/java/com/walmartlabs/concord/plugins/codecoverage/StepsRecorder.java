@@ -43,7 +43,7 @@ public class StepsRecorder {
     private static final TypeReference<List<StepInfo>> STEPS_TYPE = new TypeReference<>() {
     };
 
-    private static final String FILE_NAME = "code-coverage/steps.yaml";
+    private static final String FILE_NAME = "code-coverage-steps.yaml";
 
     private final PersistenceService persistenceService;
     private final ObjectMapper objectMapper;
