@@ -1,4 +1,27 @@
-# Change log
+# Change Log
+
+## [2.7.0] - TBD
+
+### Added
+
+- opentelemetry: add initial support for tracing
+([#178](https://github.com/walmartlabs/concord-plugins/pull/178));
+- tasks: initial support for dry-run mode
+([#179](https://github.com/walmartlabs/concord-plugins/pull/179));
+- codecoverage: initial support for code coverage in LCOV format
+([#181](https://github.com/walmartlabs/concord-plugins/pull/181).
+
+### Changed
+
+- project: migrate to concord-client2 and target platform 2.14.0
+([#176](https://github.com/walmartlabs/concord-plugins/pull/176));
+- jira-task: properly handle issue creation when no priority is
+specified
+([#182](https://github.com/walmartlabs/concord-plugins/pull/182));
+- project: bump takari-lifecycle-plugin version
+([#183](https://github.com/walmartlabs/concord-plugins/pull/183));
+
+
 
 ## [2.6.0] - 2024-09-27
 
@@ -13,6 +36,8 @@
 - awsEcr: allow delete images
 ([#173](https://github.com/walmartlabs/concord-plugins/pull/173)).
 
+
+
 ## [2.5.0] - 2024-08-19
 
 ### Changed
@@ -23,6 +48,8 @@
 ([#163](https://github.com/walmartlabs/concord-plugins/pull/163));
 - jira: remove okhttp2 dependency
 ([#171](https://github.com/walmartlabs/concord-plugins/pull/171)).
+
+
 
 ## [2.4.0] - 2024-07-19
 
@@ -36,6 +63,8 @@
 ([#164](https://github.com/walmartlabs/concord-plugins/pull/164));
 - puppet: remove okhttp dependency (#160)
 ([#160](https://github.com/walmartlabs/concord-plugins/pull/160)).
+
+
 
 ## [2.3.1] - 2024-06-24
 
