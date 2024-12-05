@@ -12,8 +12,10 @@ configuration:
     - mvn://com.walmartlabs.concord.plugins:codecoverage:<VERSION>
 ```
 
-## Generating HTML report with lcov
+## Generating HTML report with LCOV
 
-1. Download coverage info: /api/v1/process/${INSTANCE_ID}/attachment/coverage.info
-2. Download and unzip process flows: /api/v1/process/${INSTANCE_ID}/attachment/flows.zip
-3. Generate HTML with: genhtml "coverage.info" --output-directory "html"
+The plugin produces a file in [the LCOV format](https://github.com/linux-test-project/lcov).
+
+1. Download coverage info: `/api/v1/process/${INSTANCE_ID}/attachment/coverage.info`
+2. Download and unzip process flows: `/api/v1/process/${INSTANCE_ID}/attachment/flows.zip`
+3. Generate HTML with: `genhtml "coverage.info" --output-directory "html"`
