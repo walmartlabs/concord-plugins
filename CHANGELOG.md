@@ -1,4 +1,4 @@
-# Change log
+# Change Log
 
 ## [2.7.0] - TBD
 
