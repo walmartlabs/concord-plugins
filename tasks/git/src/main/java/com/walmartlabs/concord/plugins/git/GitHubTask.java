@@ -437,7 +437,16 @@ public class GitHubTask {
         String gitHubTagMessage = assertString(in, GITHUB_TAGMESSAGE);
         String gitHubTaggerUID = assertString(in, GITHUB_TAGGERUID);
         String gitHubTaggerEMAIL = assertString(in, GITHUB_TAGGEREMAIL);
-        String gitHubBranchSHA = assertString(in, GITHUB_COMMIT_SHA);
+        String gitHubBranchSHA = getString(in, GITHUB_COMMIT_SHA);
+        String githubBranch = getString(in, GITHUB_BRANCH);
+
+        if (isBlank(gitHubBranchSHA) && isBlank(githubBranch)) {
+            throw new IllegalArgumentException("Invalid task input parameters: " + GITHUB_COMMIT_SHA + " or " + GITHUB_BRANCH + " is required");
+        }
+
+        if (isBlank(gitHubBranchSHA)) {
+            gitHubBranchSHA = getLatestSHAValue(in, gitHubUri);
+        }
 
         //Initiate the client
         GitHubClient client = createClient(gitHubUri);
@@ -908,6 +917,10 @@ public class GitHubTask {
     }
 
     private static Map<String, Object> getLatestSHA(Map<String, Object> in, String gitHubUri) {
+        return Collections.singletonMap("latestCommitSHA", getLatestSHAValue(in, gitHubUri));
+    }
+
+    private static String getLatestSHAValue(Map<String, Object> in, String gitHubUri) {
         String gitHubAccessToken = assertString(in, GITHUB_ACCESSTOKEN);
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
@@ -933,7 +946,7 @@ public class GitHubTask {
 
             log.info("Latest commit SHA: '{}'", latestCommitSHA);
 
-            return Collections.singletonMap("latestCommitSHA", latestCommitSHA);
+            return latestCommitSHA;
         } catch (Exception e) {
             throw new RuntimeException("Error occurred while getting latest commit SHA: " + e.getMessage());
         }
@@ -1105,6 +1118,10 @@ public class GitHubTask {
         m.put("ok", true);
         m.put("data", data);
         return m;
+    }
+
+    private static boolean isBlank(String str) {
+        return str == null || str.isBlank();
     }
 
     static GitHubClient createClient(String rawUrl) {
