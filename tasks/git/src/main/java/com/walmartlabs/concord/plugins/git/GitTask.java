@@ -268,6 +268,12 @@ public class GitTask {
 
             Map<String, Object> commitResult;
             log.info("Changes detected in the following files: {}", status.getUncommittedChanges());
+
+            if (dryRunMode) {
+                log.info("Dry-run mode enabled: Skipping real commit");
+                return Map.of();
+            }
+
             CommitCommand commitCommand = git.commit()
                     .setSign(false)
                     .setAllowEmpty(allowEmptyCommit)
