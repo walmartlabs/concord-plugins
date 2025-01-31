@@ -226,7 +226,7 @@ public class GitHubTask {
 
             if (dryRunMode) {
                 log.info("Dry-run mode enabled: Skipping PR creation");
-                return Map.of();
+                return Map.of("prId", 0); // let's return some `fake` ID
             }
 
             PullRequest result = prService.createPullRequest(repo, pr);
