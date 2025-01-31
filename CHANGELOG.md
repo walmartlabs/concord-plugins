@@ -1,5 +1,13 @@
 # Change Log
 
+## [2.8.0] - TBD
+
+### Added
+
+### Changed
+- github: return fake PR ID in dry-run-mode for craeatePr action
+([#186](https://github.com/walmartlabs/concord-plugins/pull/186)).
+
 ## [2.7.0] - 2024-12-05
 
 ### Added
