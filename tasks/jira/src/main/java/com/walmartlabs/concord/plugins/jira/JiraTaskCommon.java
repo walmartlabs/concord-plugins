@@ -176,7 +176,7 @@ public class JiraTaskCommon {
 
             if (dryRunMode) {
                 log.info("Dry-run mode enabled: Skipping creation of a new issue in '{}'", projectKey);
-                return Map.of();
+                return Map.of(JIRA_ISSUE_ID_KEY, "FAKE-000");
             }
 
             log.info("Creating new issue in '{}'...", projectKey);
@@ -206,7 +206,7 @@ public class JiraTaskCommon {
 
         if (dryRunMode) {
             log.info("Dry-run mode enabled: Skipping creation of component '{}'", componentName);
-            return Map.of();
+            return Map.of(JIRA_COMPONENT_ID_KEY, "FAKE-COMPONENT-000");
         }
 
         try {
