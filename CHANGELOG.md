@@ -5,6 +5,9 @@
 ### Added
 
 ### Changed
+
+- github: return comment id
+([#189](https://github.com/walmartlabs/concord-plugins/pull/189));
 - github: return fake PR ID in dry-run-mode for craeatePr action
 ([#186](https://github.com/walmartlabs/concord-plugins/pull/186)).
 
