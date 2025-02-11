@@ -1,5 +1,20 @@
 # Change Log
 
+## [2.8.0] - TBD
+
+### Added
+
+### Changed
+
+- git: dry-run mode for commit action
+([#185](https://github.com/walmartlabs/concord-plugins/pull/185));
+- jira: return fake IDs in dry-run-mode for createIssue and createComponent actions
+([#188](https://github.com/walmartlabs/concord-plugins/pull/188));
+- github: return comment id
+([#189](https://github.com/walmartlabs/concord-plugins/pull/189));
+- github: return fake PR ID in dry-run-mode for craeatePr action
+([#186](https://github.com/walmartlabs/concord-plugins/pull/186)).
+
 ## [2.7.0] - 2024-12-05
 
 ### Added
