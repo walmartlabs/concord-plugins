@@ -925,7 +925,7 @@ public class GitHubTask {
     }
 
     private static Map<String, Object> getLatestSHA(Map<String, Object> in, String gitHubUri) {
-        return Collections.singletonMap("latestCommitSHA", getLatestSHAValue(in, gitHubUri));
+        return Map.of("latestCommitSHA", getLatestSHAValue(in, gitHubUri));
     }
 
     private static String getLatestSHAValue(Map<String, Object> in, String gitHubUri) {
