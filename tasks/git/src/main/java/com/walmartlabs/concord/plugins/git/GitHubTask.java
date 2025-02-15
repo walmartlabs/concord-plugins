@@ -423,7 +423,9 @@ public class GitHubTask {
             if (defaultBranch != null && ! defaultBranch.trim().isEmpty()) {
                 data.put("defaultBranch", defaultBranch);
             }
-            return Collections.singletonMap("result", makeResult(data));
+            // result just for backward compatibility
+            return Map.of("result", makeResult(data),
+                    "commit", data);
         } catch (IOException e) {
             throw new RuntimeException("Failed to get commit data: " + e.getMessage());
         }
@@ -1100,6 +1102,7 @@ public class GitHubTask {
         return state;
     }
 
+    @Deprecated
     private static Map<String, Object> makeResult(Object data) {
         Map<String, Object> m = new HashMap<>();
         m.put("ok", true);
