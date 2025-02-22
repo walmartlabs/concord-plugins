@@ -44,16 +44,16 @@ public class JiraTaskV2 implements Task {
     @Inject
     public JiraTaskV2(Context context) {
         this.context = context;
-        this.globalDefaults = context.variables().getMap(PARAMS_KEY, new HashMap<>());
+        this.globalDefaults = context.variables().getMap(PARAMS_KEY, Map.of());
         this.delegate = new JiraTaskCommon(new V2SecretService(context.secretService()), context.processConfiguration().dryRun());
     }
 
     @Override
     public TaskResult execute(Variables input) {
-        var defaults = new HashMap<>(context.defaultVariables().toMap());
-        defaults.put("txId", context.processInstanceId());
+        var policyDefaults = new HashMap<>(context.defaultVariables().toMap());
+        policyDefaults.put("txId", context.processInstanceId());
 
-        var result = getDelegate().execute(TaskParams.of(input.toMap(), globalDefaults, defaults));
+        var result = getDelegate().execute(TaskParams.of(input.toMap(), globalDefaults, policyDefaults));
 
         return TaskResult.success()
                 .values(result);
