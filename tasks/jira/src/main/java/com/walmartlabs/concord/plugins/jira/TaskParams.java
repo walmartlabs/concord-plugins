@@ -25,50 +25,34 @@ import com.walmartlabs.concord.runtime.v2.sdk.Variables;
 
 import javax.annotation.Nonnull;
 import java.util.*;
+import java.util.stream.Stream;
 
 public class TaskParams implements JiraClientCfg {
 
     public static TaskParams of(Variables input, Map<String, Object> defaults) {
-        Variables variables = merge(input, defaults);
+        return of(input.toMap(), Map.of(), defaults);
+    }
+
+    public static TaskParams of(Map<String, Object> input,
+                                Map<String, Object> globalDefaults,
+                                Map<String, Object> policyDefaults) {
+
+        Variables variables = merge(input, globalDefaults, policyDefaults);
 
         Action action = new TaskParams(variables).action();
-        switch (action) {
-            case ADDCOMMENT: {
-                return new AddCommentParams(variables);
-            }
-            case CREATECOMPONENT: {
-                return new CreateComponentParams(variables);
-            }
-            case CREATEISSUE: {
-                return new CreateIssueParams(variables);
-            }
-            case DELETECOMPONENT: {
-                return new DeleteComponentParams(variables);
-            }
-            case DELETEISSUE: {
-                return new DeleteIssueParams(variables);
-            }
-            case TRANSITION: {
-                return new TransitionParams(variables);
-            }
-            case UPDATEISSUE: {
-                return new UpdateIssueParams(variables);
-            }
-            case CREATESUBTASK: {
-                return new CreateSubTaskParams(variables);
-            }
-            case CURRENTSTATUS: {
-                return new CurrentStatusParams(variables);
-            }
-            case ADDATTACHMENT: {
-                return new AddAttachmentParams(variables);
-            }
-            case GETISSUES: {
-                return new GetIssuesParams(variables);
-            }
-            default:
-                throw new IllegalArgumentException("Unsupported action type: " + action);
-        }
+        return switch (action) {
+            case ADDCOMMENT -> new AddCommentParams(variables);
+            case CREATECOMPONENT -> new CreateComponentParams(variables);
+            case CREATEISSUE -> new CreateIssueParams(variables);
+            case DELETECOMPONENT -> new DeleteComponentParams(variables);
+            case DELETEISSUE -> new DeleteIssueParams(variables);
+            case TRANSITION -> new TransitionParams(variables);
+            case UPDATEISSUE -> new UpdateIssueParams(variables);
+            case CREATESUBTASK -> new CreateSubTaskParams(variables);
+            case CURRENTSTATUS -> new CurrentStatusParams(variables);
+            case ADDATTACHMENT -> new AddAttachmentParams(variables);
+            case GETISSUES -> new GetIssuesParams(variables);
+        };
     }
 
     private static final String ACTION_KEY = "action";
@@ -77,9 +61,11 @@ public class TaskParams implements JiraClientCfg {
     private static final String JIRA_USER_ID_KEY = "userId";
     private static final String JIRA_PASSWORD_KEY = "password";
     private static final String JIRA_HTTP_CLIENT_PROTOCOL_VERSION_KEY = "httpClientProtocolVersion";
-    private static final String CLIENT_CONNECTTIMEOUT = "connectTimeout";
-    private static final String CLIENT_READTIMEOUT = "readTimeout";
-    private static final String CLIENT_WRITETIMEOUT = "writeTimeout";
+    private static final String CLIENT_CONNECT_TIMEOUT_KEY = "connectTimeout";
+    private static final String CLIENT_READ_TIMEOUT_KEY = "readTimeout";
+    private static final String CLIENT_WRITE_TIMEOUT_KEY = "writeTimeout";
+    private static final String USER_AGENT_KEY = "userAgent";
+    private static final String TX_ID_KEY = "txId";
 
     protected final Variables variables;
 
@@ -102,17 +88,27 @@ public class TaskParams implements JiraClientCfg {
 
     @Override
     public long connectTimeout() {
-        return variables.getLong(CLIENT_CONNECTTIMEOUT, JiraClientCfg.super.connectTimeout());
+        return variables.getLong(CLIENT_CONNECT_TIMEOUT_KEY, JiraClientCfg.super.connectTimeout());
     }
 
     @Override
     public long readTimeout() {
-        return variables.getLong(CLIENT_READTIMEOUT, JiraClientCfg.super.readTimeout());
+        return variables.getLong(CLIENT_READ_TIMEOUT_KEY, JiraClientCfg.super.readTimeout());
     }
 
     @Override
     public long writeTimeout() {
-        return variables.getLong(CLIENT_WRITETIMEOUT, JiraClientCfg.super.writeTimeout());
+        return variables.getLong(CLIENT_WRITE_TIMEOUT_KEY, JiraClientCfg.super.writeTimeout());
+    }
+
+    @Override
+    public String userAgent() {
+        return Optional.ofNullable(variables.getString(USER_AGENT_KEY))
+                .orElseGet(() -> "Concord-Jira-Plugin: " + txId());
+    }
+
+    public String txId() {
+      return variables.assertVariable(TX_ID_KEY, Object.class).toString();
     }
 
     public Map<String, Object> auth() {
@@ -159,6 +155,7 @@ public class TaskParams implements JiraClientCfg {
         public String summary() {
             return variables.assertString(JIRA_SUMMARY_KEY);
         }
+
         public String description() {
             return variables.assertString(JIRA_DESCRIPTION_KEY);
         }
@@ -403,6 +400,22 @@ public class TaskParams implements JiraClientCfg {
         Map<String, Object> variablesMap = new HashMap<>(defaults != null ? defaults : Collections.emptyMap());
         variablesMap.putAll(variables.toMap());
         return new MapBackedVariables(variablesMap);
+    }
+
+    /**
+     * Merge task inputs from multiple locations
+     * @param input Direct task input parameters (e.g. from <code>in:</code> block in runtime-v2)
+     * @param globalDefaults Flow global defaults (e.g. from <code>configuration.arguments.jiraParams</code>
+     * @param policyDefaults System policy-provided defaults
+     * @return Merged variables
+     */
+    static Variables merge(Map<String, Object> input, Map<String, Object> globalDefaults, Map<String, Object> policyDefaults) {
+        var merged = new HashMap<String, Object>();
+        Stream.of(policyDefaults, globalDefaults, input)
+                .filter(Objects::nonNull)
+                .forEach(merged::putAll);
+
+        return new MapBackedVariables(merged);
     }
 
     public enum Action {

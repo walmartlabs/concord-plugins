@@ -28,7 +28,10 @@ import com.walmartlabs.concord.runtime.v2.sdk.*;
 
 import javax.inject.Inject;
 import javax.inject.Named;
+import java.util.HashMap;
 import java.util.Map;
+
+import static com.walmartlabs.concord.plugins.jira.Constants.PARAMS_KEY;
 
 @Named("jira")
 @DryRunReady
@@ -36,16 +39,22 @@ public class JiraTaskV2 implements Task {
 
     private final Context context;
     private final JiraTaskCommon delegate;
+    private final Map<String, Object> globalDefaults;
 
     @Inject
     public JiraTaskV2(Context context) {
         this.context = context;
+        this.globalDefaults = context.variables().getMap(PARAMS_KEY, new HashMap<>());
         this.delegate = new JiraTaskCommon(new V2SecretService(context.secretService()), context.processConfiguration().dryRun());
     }
 
     @Override
     public TaskResult execute(Variables input) {
-        Map<String, Object> result = getDelegate().execute(TaskParams.of(input, context.defaultVariables().toMap()));
+        var defaults = new HashMap<>(context.defaultVariables().toMap());
+        defaults.put("txId", context.processInstanceId());
+
+        var result = getDelegate().execute(TaskParams.of(input.toMap(), globalDefaults, defaults));
+
         return TaskResult.success()
                 .values(result);
     }
@@ -63,8 +72,8 @@ public class JiraTaskV2 implements Task {
 
         @Override
         public JiraCredentials exportCredentials(String orgName, String secretName, String password) throws Exception {
-            SecretService.UsernamePassword up = secretService.exportCredentials(orgName, secretName, password);
-            return new JiraCredentials(up.username(), up.password());
+            var creds = secretService.exportCredentials(orgName, secretName, password);
+            return new JiraCredentials(creds.username(), creds.password());
         }
     }
 

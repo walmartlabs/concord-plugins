@@ -30,11 +30,11 @@ import com.walmartlabs.concord.sdk.Task;
 
 import javax.inject.Inject;
 import javax.inject.Named;
-import java.nio.file.Path;
 import java.util.Map;
-import java.util.UUID;
 
+import static com.walmartlabs.concord.plugins.jira.Constants.PARAMS_KEY;
 import static com.walmartlabs.concord.plugins.jira.JiraTaskCommon.JIRA_ISSUE_STATUS_KEY;
+import static com.walmartlabs.concord.sdk.Constants.Context.CONTEXT_KEY;
 
 @Named("jira")
 @SuppressWarnings("unused")
@@ -42,7 +42,7 @@ public class JiraTask implements Task {
 
     private final SecretService secretService;
 
-    @InjectVariable("jiraParams")
+    @InjectVariable(PARAMS_KEY)
     private Map<String, Object> defaults;
 
     @Inject
@@ -52,17 +52,17 @@ public class JiraTask implements Task {
 
     @Override
     public void execute(Context ctx) {
-        JiraSecretService jiraSecretService = getSecretService(ctx);
-        Map<String, Object> result = delegate(jiraSecretService)
-                .execute(TaskParams.of(new ContextVariables(ctx), defaults));
+        var jiraSecretService = getSecretService(ctx);
 
-        result.forEach(ctx::setVariable);
+        delegate(jiraSecretService)
+                .execute(TaskParams.of(new ContextVariables(ctx), defaults))
+                .forEach(ctx::setVariable);
     }
 
-    public String getStatus(@InjectVariable("context") Context ctx, String issueKey) {
-        Variables vars = TaskParams.merge(new ContextVariables(ctx), defaults);
-        JiraSecretService jiraSecretService = getSecretService(ctx);
-        Map<String, Object> result = delegate(jiraSecretService)
+    public String getStatus(@InjectVariable(CONTEXT_KEY) Context ctx, String issueKey) {
+        var vars = TaskParams.merge(new ContextVariables(ctx), defaults);
+        var jiraSecretService = getSecretService(ctx);
+        var result = delegate(jiraSecretService)
                 .execute(new TaskParams.CurrentStatusParams(vars) {
                     @Override
                     public String issueKey() {
@@ -93,11 +93,11 @@ public class JiraTask implements Task {
 
         @Override
         public JiraCredentials exportCredentials(String orgName, String secretName, String password) throws Exception {
-            UUID txId = ContextUtils.getTxId(ctx);
-            Path workDir = ContextUtils.getWorkDir(ctx);
+            var txId = ContextUtils.getTxId(ctx).toString();
+            var workDir = ContextUtils.getWorkDir(ctx).toString();
 
-            Map<String, String> result1 = secretService.exportCredentials(ctx, txId.toString(), workDir.toString(), orgName, secretName, password);
-            return new JiraCredentials(result1.get("username"), result1.get("password"));
+            var creds = secretService.exportCredentials(ctx, txId, workDir, orgName, secretName, password);
+            return new JiraCredentials(creds.get("username"), creds.get("password"));
         }
     }
 

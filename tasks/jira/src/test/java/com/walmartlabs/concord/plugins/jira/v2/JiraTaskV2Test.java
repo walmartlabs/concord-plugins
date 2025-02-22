@@ -63,7 +63,8 @@ class JiraTaskV2Test {
     @BeforeEach
     public void setup() {
         when(context.processConfiguration()).thenReturn(ProcessConfiguration.builder().build());
-        
+        when(context.variables()).thenReturn(new MapBackedVariables(Map.of()));
+
         task = spy(new JiraTaskV2(context));
         input = new HashMap<>();
         defaultVariables = new MapBackedVariables(Map.of());
