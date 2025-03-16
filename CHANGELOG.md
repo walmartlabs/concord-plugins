@@ -13,7 +13,9 @@
 - github: return comment id
 ([#189](https://github.com/walmartlabs/concord-plugins/pull/189));
 - github: return fake PR ID in dry-run-mode for craeatePr action
-([#186](https://github.com/walmartlabs/concord-plugins/pull/186)).
+([#186](https://github.com/walmartlabs/concord-plugins/pull/186));
+- jira: set user-agent for http calls
+([#192](https://github.com/walmartlabs/concord-plugins/pull/192)).
 
 ## [2.7.0] - 2024-12-05
 
