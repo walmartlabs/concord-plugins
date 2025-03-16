@@ -29,5 +29,6 @@ public class Constants {
     }
 
     static final String BOUNDARY = UUID.randomUUID().toString();
+    public static final String PARAMS_KEY = "jiraParams";
 
 }

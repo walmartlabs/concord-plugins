@@ -226,7 +226,7 @@ public class GitHubTask {
 
             if (dryRunMode) {
                 log.info("Dry-run mode enabled: Skipping PR creation");
-                return Map.of();
+                return Map.of("prId", 0); // let's return some `fake` ID
             }
 
             PullRequest result = prService.createPullRequest(repo, pr);
@@ -278,17 +278,17 @@ public class GitHubTask {
 
         if (dryRunMode) {
             log.info("Dry-run mode enabled: Skipping comment on PR #{} in {}/{}", gitHubPRID, gitHubOrgName, gitHubRepoName);
-            return Map.of();
+            return Map.of("id", 0);
         }
 
         log.info("Commenting PR #{} in {}/{}", gitHubPRID, gitHubOrgName, gitHubRepoName);
 
         try {
             PullRequest pullRequest = prService.getPullRequest(repo, gitHubPRID);
-            issueService.createComment(repo, Integer.toString(pullRequest.getNumber()), gitHubPRComment);
+            Comment response = issueService.createComment(repo, Integer.toString(pullRequest.getNumber()), gitHubPRComment);
             log.info("Commented on PR# {}", gitHubPRID);
 
-            return Collections.emptyMap();
+            return Map.of("id", response.getId());
         } catch (IOException e) {
             throw new RuntimeException("Cannot comment on the pull request: " + e.getMessage());
         }
