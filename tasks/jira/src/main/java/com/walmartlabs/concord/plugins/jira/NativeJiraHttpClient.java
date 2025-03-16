@@ -154,6 +154,7 @@ public class NativeJiraHttpClient implements JiraHttpClient {
         return HttpRequest.newBuilder()
                 .timeout(Duration.ofSeconds(cfg.readTimeout()))
                 .header("Authorization", auth)
+                .header("User-Agent", cfg.userAgent())
                 .header("Accept", "application/json");
     }
 

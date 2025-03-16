@@ -65,59 +65,53 @@ public class JiraTaskCommon {
         log.info("Using JIRA URL: {}", jiraUrl);
 
         Action action = in.action();
+
         switch (action) {
-            case CREATEISSUE: {
+            case CREATEISSUE -> {
                 log.info("Starting 'CreateIssue' Action");
-                return createIssue((CreateIssueParams)in);
+                return createIssue((CreateIssueParams) in);
             }
-            case ADDCOMMENT: {
+            case ADDCOMMENT -> {
                 log.info("Starting 'AddComment' Action");
-                addComment((AddCommentParams)in);
-                break;
+                addComment((AddCommentParams) in);
             }
-            case ADDATTACHMENT: {
+            case ADDATTACHMENT -> {
                 log.info("Starting 'AddAttachment' Action");
-                addAttachment((AddAttachmentParams)in);
-                break;
+                addAttachment((AddAttachmentParams) in);
             }
-            case CREATECOMPONENT: {
+            case CREATECOMPONENT -> {
                 log.info("Starting 'CreateComponent' Action");
-                return createComponent((CreateComponentParams)in);
+                return createComponent((CreateComponentParams) in);
             }
-            case DELETECOMPONENT: {
+            case DELETECOMPONENT -> {
                 log.info("Starting 'DeleteComponent' Action");
-                deleteComponent((DeleteComponentParams)in);
-                break;
+                deleteComponent((DeleteComponentParams) in);
             }
-            case TRANSITION: {
+            case TRANSITION -> {
                 log.info("Starting 'Transition' Action");
-                transition((TransitionParams)in);
-                break;
+                transition((TransitionParams) in);
             }
-            case DELETEISSUE: {
+            case DELETEISSUE -> {
                 log.info("Starting 'DeleteIssue' Action");
-                deleteIssue((DeleteIssueParams)in);
-                break;
+                deleteIssue((DeleteIssueParams) in);
             }
-            case UPDATEISSUE: {
+            case UPDATEISSUE -> {
                 log.info("Starting 'UpdateIssue' Action");
-                updateIssue((UpdateIssueParams)in);
-                break;
+                updateIssue((UpdateIssueParams) in);
             }
-            case CREATESUBTASK: {
+            case CREATESUBTASK -> {
                 log.info("Starting 'CreateSubTask' Action");
-                return createSubTask((CreateSubTaskParams)in);
+                return createSubTask((CreateSubTaskParams) in);
             }
-            case CURRENTSTATUS: {
+            case CURRENTSTATUS -> {
                 log.info("Starting 'CurrentStatus' Action");
-                return currentStatus((CurrentStatusParams)in);
+                return currentStatus((CurrentStatusParams) in);
             }
-            case GETISSUES: {
+            case GETISSUES -> {
                 log.info("Starting 'GetIssues' Action");
-                return getIssues((GetIssuesParams)in);
+                return getIssues((GetIssuesParams) in);
             }
-            default:
-                throw new IllegalArgumentException("Unsupported action type: " + action);
+            default -> throw new IllegalArgumentException("Unsupported action type: " + action);
         }
         return Collections.emptyMap();
     }
