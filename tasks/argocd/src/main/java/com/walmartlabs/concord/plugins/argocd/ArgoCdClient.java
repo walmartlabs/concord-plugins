@@ -21,6 +21,7 @@ package com.walmartlabs.concord.plugins.argocd;
  */
 
 import com.walmartlabs.concord.plugins.argocd.model.HealthStatus;
+import com.walmartlabs.concord.plugins.argocd.model.HttpExecutor;
 import com.walmartlabs.concord.plugins.argocd.model.SyncStatus;
 import com.walmartlabs.concord.plugins.argocd.openapi.ApiClient;
 import com.walmartlabs.concord.plugins.argocd.openapi.ApiException;
@@ -28,32 +29,23 @@ import com.walmartlabs.concord.plugins.argocd.openapi.api.ApplicationServiceApi;
 import com.walmartlabs.concord.plugins.argocd.openapi.api.ApplicationSetServiceApi;
 import com.walmartlabs.concord.plugins.argocd.openapi.api.ProjectServiceApi;
 import com.walmartlabs.concord.plugins.argocd.openapi.model.*;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.client.methods.RequestBuilder;
-import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.config.Registry;
-import org.apache.http.config.RegistryBuilder;
-import org.apache.http.conn.socket.ConnectionSocketFactory;
-import org.apache.http.conn.socket.PlainConnectionSocketFactory;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
-import org.apache.http.message.BasicHeader;
-import org.apache.http.ssl.SSLContexts;
-import org.apache.http.ssl.TrustStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.SocketTimeoutException;
 import java.net.URI;
-import java.net.URISyntaxException;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.http.HttpTimeoutException;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.*;
@@ -73,8 +65,8 @@ public class ArgoCdClient {
         this.client = createClient(in);
     }
 
-    public V1alpha1Application getApp(String app, boolean refresh) throws IOException, ApiException {
-        ApplicationServiceApi api = new ApplicationServiceApi(client);
+    public V1alpha1Application getApp(String app, boolean refresh) throws ApiException {
+        var api = new ApplicationServiceApi(client);
         return getApp(app, refresh, api);
     }
 
@@ -83,7 +75,7 @@ public class ArgoCdClient {
     }
 
     public void deleteApp(String app, boolean cascade, String propagationPolicy) throws ApiException {
-        ApplicationServiceApi api = new ApplicationServiceApi(this.client);
+        var api = new ApplicationServiceApi(this.client);
         api.applicationServiceDelete(app, cascade, propagationPolicy, null);
     }
 
@@ -96,8 +88,8 @@ public class ArgoCdClient {
     }
 
     public void patchApp(String app, List<Map<String, Object>> patch) throws IOException, ApiException {
-        ApplicationServiceApi api = new ApplicationServiceApi(this.client);
-        ApplicationApplicationPatchRequest patchRequest = new ApplicationApplicationPatchRequest()
+        var api = new ApplicationServiceApi(this.client);
+        var patchRequest = new ApplicationApplicationPatchRequest()
                 .name(app)
                 .patch(MAPPER.writeValueAsString(patch))
                 .patchType("json");
@@ -113,7 +105,7 @@ public class ArgoCdClient {
     }
 
     private V1alpha1Application syncApplication(TaskParams.SyncParams in) throws IOException, ApiException {
-        ApplicationServiceApi api = new ApplicationServiceApi(client);
+        var api = new ApplicationServiceApi(client);
         List<V1alpha1SyncOperationResource> resources = new ArrayList<>();
         for (TaskParams.SyncParams.Resource resource : in.resources()) {
             V1alpha1SyncOperationResource resourceOb = new V1alpha1SyncOperationResource();
@@ -123,7 +115,7 @@ public class ArgoCdClient {
             resourceOb.setNamespace(resource.namespace());
             resources.add(resourceOb);
         }
-        ApplicationApplicationSyncRequest syncRequest = new ApplicationApplicationSyncRequest();
+        var syncRequest = new ApplicationApplicationSyncRequest();
         syncRequest.dryRun(in.dryRun())
                 .prune(in.prune())
                 .retryStrategy(MAPPER.mapToModel(in.retryStrategy(), V1alpha1RetryStrategy.class))
@@ -133,13 +125,14 @@ public class ArgoCdClient {
     }
 
     static V1alpha1Application getAppWatchEvent(String app,
-                                                ApiClient client,
-                                                HttpUriRequest request,
+                                                HttpExecutor httpExecutor,
+                                                HttpRequest request,
                                                 WaitWatchParams p,
-                                                ApplicationServiceApi appApi) throws Exception {
+                                                ApplicationServiceApi appApi) throws ApiException, IOException {
 
-            try (CloseableHttpResponse response = client.getHttpClient().execute(request)) {
-                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+            try (var is = httpExecutor.execute(request)) {
+                var bufferedReader = new BufferedReader((new InputStreamReader(is)));
+
                 String line;
 
                 while ((line = bufferedReader.readLine()) != null) {
@@ -183,6 +176,8 @@ public class ArgoCdClient {
                     }
                 }
 
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
             }
             throw new IllegalStateException("No sync status returned");
     }
@@ -213,30 +208,40 @@ public class ArgoCdClient {
                 .orElse(false);
     }
 
-    public V1alpha1Application waitForSync(String appName, String resourceVersion, Duration waitTimeout, WaitWatchParams p) throws URISyntaxException {
+    public V1alpha1Application waitForSync(String appName, String resourceVersion,
+                                           Duration waitTimeout, WaitWatchParams waitParams) {
         log.info("Waiting for application to sync.");
-        URI uri = new URIBuilder(URI.create(client.getBasePath()))
-                .setPath("api/v1/stream/applications")
-                .addParameter("name", appName)
-                .addParameter("resourceVersion", resourceVersion)
-                .build();
-        waitTimeout = (waitTimeout == null) ? Duration.ZERO : waitTimeout;
-        HttpUriRequest request = RequestBuilder.get(uri)
-                .setConfig(RequestConfig.custom()
-                        .setSocketTimeout((int) waitTimeout.toMillis())
-                        .build())
+
+        String params = toParameterString(Map.of("name", appName, "resourceVersion", resourceVersion));
+        URI uri = URI.create(client.getBaseUri() + "/api/v1/stream/applications?" + params);
+
+        waitTimeout = (waitTimeout == null) ? Duration.ofMinutes(15) : waitTimeout;
+        log.info("Using wait timeout {}", waitTimeout);
+        var req = HttpRequest.newBuilder(uri)
+                .GET()
+                .timeout(waitTimeout)
                 .build();
 
-        Callable<V1alpha1Application> mainAttempt = () -> getAppWatchEvent(appName, client, request, p, new ApplicationServiceApi(client));
+        Callable<V1alpha1Application> mainAttempt = () ->
+                getAppWatchEvent(appName, httpExecutor(), req, waitParams, new ApplicationServiceApi(client));
         Callable<Optional<V1alpha1Application>> fallback = () -> {
             V1alpha1Application app = getApp(appName, true);
-            if (checkResourceStatus(p, healthStatus(app), syncStatus(app), app.getOperation())) {
+            if (checkResourceStatus(waitParams, healthStatus(app), syncStatus(app), app.getOperation())) {
                 return Optional.of(app);
             }
             return Optional.empty();
         };
 
-        return new CallRetry<>(mainAttempt, fallback, Set.of(SocketTimeoutException.class) ).attemptWithRetry(RETRY_LIMIT);
+        return new CallRetry<>(mainAttempt, fallback, Set.of(SocketTimeoutException.class, HttpTimeoutException.class))
+                .attemptWithRetry(RETRY_LIMIT, waitTimeout);
+    }
+
+    /**
+     * @return default {@link HttpExecutor} implementation
+     */
+    private HttpExecutor httpExecutor() {
+        return request -> client.getHttpClient()
+                .send(request, HttpResponse.BodyHandlers.ofInputStream()).body();
     }
 
     private static String healthStatus(V1alpha1Application app) {
@@ -254,47 +259,47 @@ public class ArgoCdClient {
     }
 
     public V1alpha1Application createApp(V1alpha1Application application, boolean upsert) throws RuntimeException, ApiException {
-        ApplicationServiceApi api = new ApplicationServiceApi(client);
+        var api = new ApplicationServiceApi(client);
         return api.applicationServiceCreate(application, upsert, true);
     }
 
     public V1alpha1ApplicationSpec updateAppSpec(String app, V1alpha1ApplicationSpec spec) throws ApiException {
-        ApplicationServiceApi api = new ApplicationServiceApi(client);
+        var api = new ApplicationServiceApi(client);
         return api.applicationServiceUpdateSpec(app, spec, true, null);
     }
 
     public V1alpha1AppProject getProject(String project) throws ApiException {
-        ProjectServiceApi api = new ProjectServiceApi(client);
+        var api = new ProjectServiceApi(client);
         return api.projectServiceGet(project);
     }
 
     public void deleteProject(String project) throws ApiException {
-        ProjectServiceApi api = new ProjectServiceApi(client);
+        var api = new ProjectServiceApi(client);
         api.projectServiceDelete(project);
     }
 
     public V1alpha1ApplicationSet createApplicationSet(V1alpha1ApplicationSet applicationSet, boolean upsert) throws ApiException {
-        ApplicationSetServiceApi api = new ApplicationSetServiceApi(client);
+        var api = new ApplicationSetServiceApi(client);
         return api.applicationSetServiceCreate(applicationSet, upsert);
     }
 
     public void deleteApplicationSet(String name) throws ApiException {
-        ApplicationSetServiceApi api = new ApplicationSetServiceApi(client);
+        var api = new ApplicationSetServiceApi(client);
         api.applicationSetServiceDelete(name);
     }
 
     public V1alpha1ApplicationSet getApplicationSet(String name) throws ApiException {
-        ApplicationSetServiceApi api = new ApplicationSetServiceApi(client);
+        var api = new ApplicationSetServiceApi(client);
         return api.applicationSetServiceGet(name);
     }
 
     public V1alpha1ApplicationSetList listApplicationSets(List<String> projects, String selector) throws ApiException {
-        ApplicationSetServiceApi api = new ApplicationSetServiceApi(client);
+        var api = new ApplicationSetServiceApi(client);
         return api.applicationSetServiceList(projects, selector);
     }
 
     public V1alpha1AppProject createProject(TaskParams.CreateProjectParams in) throws IOException, ApiException {
-        ProjectServiceApi api = new ProjectServiceApi(client);
+        var api = new ProjectServiceApi(client);
 
         Map<String, Object> metadata = new HashMap<>();
         Map<String, Object> spec = new HashMap<>();
@@ -330,7 +335,7 @@ public class ArgoCdClient {
         project.put("spec", spec);
         V1alpha1AppProject projectObject = MAPPER.mapToModel(project, V1alpha1AppProject.class);
 
-        ProjectProjectCreateRequest createRequest = new ProjectProjectCreateRequest()
+        var createRequest = new ProjectProjectCreateRequest()
                 .project(projectObject)
                 .upsert(in.upsert());
 
@@ -355,42 +360,82 @@ public class ArgoCdClient {
     }
 
     private static ApiClient createClient(TaskParams in) throws Exception {
-        HttpClientBuilder builder = HttpClientBuilder.create();
+        var httpBuilder = HttpClient.newBuilder()
+                .followRedirects(HttpClient.Redirect.NORMAL)
+                .connectTimeout(Duration.ofSeconds(in.connectTimeout()));
 
         if (!in.validateCerts()) {
-            TrustStrategy acceptingTrustStrategy = (cert, authType) -> true;
-            SSLContext sslContext = SSLContexts.custom().loadTrustMaterial(null, acceptingTrustStrategy).build();
-            SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext,
-                    NoopHostnameVerifier.INSTANCE);
-
-            Registry<ConnectionSocketFactory> socketFactoryRegistry =
-                    RegistryBuilder.<ConnectionSocketFactory>create()
-                            .register("https", sslsf)
-                            .register("http", new PlainConnectionSocketFactory())
-                            .build();
-
-            BasicHttpClientConnectionManager connectionManager =
-                    new BasicHttpClientConnectionManager(socketFactoryRegistry);
-            builder.setSSLSocketFactory(sslsf).setConnectionManager(connectionManager);
+            try {
+                final TrustManager[] tms = NoopTrustManager.getManagers();
+                final SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
+                sslContext.init(null, tms, new SecureRandom());
+                httpBuilder.sslContext(sslContext);
+            } catch (Exception e) {
+                log.info("Error disabling certificate validation.");
+                throw new IllegalStateException("Error disabling certificate validation: " + e.getMessage());
+            }
         }
-        String apiKey;
-        if (in.auth() instanceof TaskParams.TokenAuth) {
-            apiKey = TokenAuthHandler.auth((TaskParams.TokenAuth) in.auth());
-        } else if (in.auth() instanceof TaskParams.BasicAuth) {
-            apiKey = BasicAuthHandler.auth(in.baseUrl(), (TaskParams.BasicAuth) in.auth());
-        } else if (in.auth() instanceof TaskParams.AzureAuth) {
-            apiKey = AzureAuthHandler.auth((TaskParams.AzureAuth) in.auth());
-        } else if (in.auth() instanceof TaskParams.LdapAuth) {
-            apiKey = LdapAuthHandler.auth(builder, in.baseUrl(), (TaskParams.LdapAuth) in.auth());
-        } else {
-            throw new IllegalArgumentException("");
-        }
-        builder.setDefaultHeaders(Collections.singletonList(new BasicHeader("Authorization", "Bearer " + apiKey)));
-        builder.setDefaultRequestConfig(RequestConfig.custom().setSocketTimeout(0).setConnectTimeout(0).build());
-        ApiClient apiClient = new ApiClient(builder.build());
-        apiClient.setBasePath(in.baseUrl());
-        apiClient.setConnectTimeout((int) in.connectTimeout() * 1000);
-        return apiClient;
+
+        String apiKey = createApiKey(in, httpBuilder);
+        return new ApiClient(httpBuilder, MAPPER.getDelegate(), in.baseUrl())
+                .setReadTimeout(Duration.ofSeconds(in.readTimeout()))
+                .setRequestInterceptor(builder -> injectDefaultHeaders(builder, apiKey));
     }
 
+    private static void injectDefaultHeaders(HttpRequest.Builder builder, String apiKey) {
+        builder.header("Authorization", "Bearer " + apiKey);
+
+        // This kind of stinks. GET and DELETE requests typically *shouldn't* have
+        // a body, so swagger doesn't set the header in its generated code. However,
+        // the ArgoCD API requires a Content-Type on these body-less requests.
+        // Since the swagger spec, has a single blanket content type for all requests,
+        // we could probably get away with just setting it to 'application/json'
+        var current = builder.build(); // no getters on HttpRequest.Builder
+        var contentType = current.headers().firstValue("Content-Type");
+
+        if (contentType.isEmpty() || contentType.get().isBlank()) {
+            builder.header("Content-Type", "application/json");
+        }
+    }
+
+    private static String createApiKey(TaskParams in, HttpClient.Builder builder) throws Exception {
+        var auth = in.auth();
+
+        if (auth instanceof TaskParams.TokenAuth tokenAuth) {
+            return TokenAuthHandler.auth(tokenAuth);
+        } else if (auth instanceof TaskParams.BasicAuth basicAuth) {
+            return BasicAuthHandler.auth(builder, in.baseUrl(), basicAuth);
+        } else if (auth instanceof TaskParams.AzureAuth azureAuth) {
+            return AzureAuthHandler.auth(azureAuth);
+        } else if (auth instanceof TaskParams.LdapAuth ldapAuth) {
+            return LdapAuthHandler.auth(builder, in.baseUrl(), ldapAuth);
+        } else {
+            throw new IllegalArgumentException("Unknown auth type");
+        }
+    }
+
+    /**
+     * Converts a map of parameters to a url query string. Does <b>not</b> include
+     * the <code>?</code> at the start. Keys and values are url-encoded.
+     * @return a query string of the form <code>key1=value1&key2=value2</code>
+     */
+    static String toParameterString(Map<String, String> params) {
+        if (params == null || params.isEmpty()) {
+            return null;
+        }
+
+        var sb = new StringBuilder();
+        params.forEach((k, v) -> {
+            if (!sb.isEmpty()) {
+                sb.append("&");
+            }
+
+            sb.append(URLEncoder.encode(k, StandardCharsets.UTF_8))
+                    .append("=")
+                    .append(URLEncoder.encode(v, StandardCharsets.UTF_8));
+
+        });
+
+        return sb.toString();
+    }
 }

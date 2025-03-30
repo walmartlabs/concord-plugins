@@ -20,6 +20,8 @@ package com.walmartlabs.concord.plugins.argocd;
  * =====
  */
 
+import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -28,17 +30,24 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 
 import java.net.SocketTimeoutException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@WireMockTest
 @ExtendWith(MockitoExtension.class)
 class CallRetryTest {
 
@@ -47,11 +56,14 @@ class CallRetryTest {
     @Mock
     Callable<Optional<String>> fallbackResp;
 
+    private static final Duration SHORT_TIMEOUT = Duration.ofMillis(10);
+    private static final Duration LONG_TIMEOUT = Duration.ofSeconds(30);
+
     @Test
     void test() throws Exception {
         when(primaryResp.call()).thenReturn("a");
 
-        String result = new CallRetry<>(primaryResp, fallbackResp, Collections.emptySet()).attemptWithRetry(2);
+        String result = new CallRetry<>(primaryResp, fallbackResp, Collections.emptySet()).attemptWithRetry(2, LONG_TIMEOUT);
 
         assertEquals("a", result);
         verify(primaryResp, times(1)).call();
@@ -63,7 +75,7 @@ class CallRetryTest {
         when(primaryResp.call()).thenThrow(new IllegalStateException("forced exception"));
         when(fallbackResp.call()).thenReturn(Optional.of("b"));
 
-        String result = new CallRetry<>(primaryResp, fallbackResp, Collections.emptySet()).attemptWithRetry(2);
+        String result = new CallRetry<>(primaryResp, fallbackResp, Collections.emptySet()).attemptWithRetry(2, LONG_TIMEOUT);
 
         assertEquals("b", result);
         verify(primaryResp, times(1)).call();
@@ -74,10 +86,31 @@ class CallRetryTest {
     void testPrimaryFailWithExpectedException() throws Exception {
         when(primaryResp.call()).thenThrow(new SocketTimeoutException("forced exception"));
         CallRetry<String> callRetry = new CallRetry<>(primaryResp, fallbackResp, Set.of(SocketTimeoutException.class));
-        Exception e = assertThrows(RuntimeException.class, () -> callRetry.attemptWithRetry(2));
+        Exception e = assertThrows(RuntimeException.class, () -> callRetry.attemptWithRetry(2, LONG_TIMEOUT));
         assertEquals("java.net.SocketTimeoutException: forced exception", e.getMessage());
         verify(primaryResp, times(1)).call();
         verify(fallbackResp, times(0)).call();
+    }
+
+    @Test
+    void testPrimaryCallTimeout(WireMockRuntimeInfo wiremock) throws Exception {
+        stubFor(get("/timeout").willReturn(aResponse()
+                .withFixedDelay(10_000)
+                .withStatus(200)));
+
+        doAnswer(invocation -> {
+            var req = HttpRequest.newBuilder(URI.create(wiremock.getHttpBaseUrl() + "/timeout")).GET().build();
+             HttpClient.newHttpClient().send(req, HttpResponse.BodyHandlers.discarding());
+            return null;
+        }).when(primaryResp).call();
+        when(fallbackResp.call()).thenReturn(Optional.empty());
+
+        CallRetry<String> callRetry = new CallRetry<>(primaryResp, fallbackResp, Set.of(SocketTimeoutException.class));
+
+        Exception e = assertThrows(RuntimeException.class, () -> callRetry.attemptWithRetry(2, SHORT_TIMEOUT));
+        assertEquals("Call attempt timed out after 10ms", e.getMessage());
+        verify(primaryResp, times(1)).call();
+        verify(fallbackResp, times(1)).call();
     }
 
     @Test
@@ -95,7 +128,7 @@ class CallRetryTest {
         });
         when(fallbackResp.call()).thenReturn(Optional.empty());
 
-        String result = new CallRetry<>(primaryResp, fallbackResp, Collections.emptySet()).attemptWithRetry(2);
+        String result = new CallRetry<>(primaryResp, fallbackResp, Collections.emptySet()).attemptWithRetry(2, LONG_TIMEOUT);
 
         assertEquals("a", result);
         verify(primaryResp, times(2)).call();

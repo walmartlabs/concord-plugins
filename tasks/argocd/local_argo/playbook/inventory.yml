@@ -1,0 +1,9 @@
+---
+local:
+  hosts:
+    k3s:
+      ansible_host: localhost
+      kubconfig_path: roles/argocd/files/generated/kubeconfig.yaml
+      k8s_ca_cert: roles/argocd/files/generated/k3s_server_ca.crt
+      ansible_connection: local
+      k8s_ns: argocd
