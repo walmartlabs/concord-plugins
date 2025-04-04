@@ -27,9 +27,14 @@ import ca.ibodrov.concord.testcontainers.Payload;
 import ca.ibodrov.concord.testcontainers.junit5.ConcordRule;
 import com.walmartlabs.concord.client2.ApiException;
 import com.walmartlabs.concord.client2.ProcessEntry;
+import com.walmartlabs.concord.client2.ProjectEntry;
+import com.walmartlabs.concord.client2.ProjectsApi;
 import com.walmartlabs.concord.common.IOUtils;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,11 +49,20 @@ class TaskIT extends AbstractIT {
     @RegisterExtension
     public static final ConcordRule concord = new ConcordRule()
             .mode(Concord.Mode.DOCKER)
-            .streamServerLogs(true)
-            .streamAgentLogs(true)
+            .serverImage(getEnv("IT_SERVER_IMAGE", "walmartlabs/concord-server:2.21.0"))
+            .agentImage(getEnv("IT_AGENT_IMAGE", "walmartlabs/concord-agent:2.21.0"))
+            .streamServerLogs(false)
+            .streamAgentLogs(false)
             .useLocalMavenRepository(true);
 
     private static final String CURRENT_VERSION = getCurrentVersion();
+    private static final Logger log = LoggerFactory.getLogger(TaskIT.class);
+
+    @BeforeAll
+    static void beforeAll() {
+        log.info("Concord url: {}", concord.apiBaseUrl());
+        log.info("Admin token: {}", concord.environment().apiToken());
+    }
 
     @Test
     void testWithRuntimeV1() throws Exception {
@@ -66,6 +80,12 @@ class TaskIT extends AbstractIT {
 
         String projectName = "project_" + randomString();
         concord.projects().create(orgName, projectName);
+
+        var projectsApi = new ProjectsApi(concord.apiClient());
+        var project = projectsApi.getProject(orgName, projectName);
+        project.setAcceptsRawPayload(true);
+        project.rawPayloadMode(ProjectEntry.RawPayloadModeEnum.EVERYONE);
+        projectsApi.createOrUpdateProject(orgName, project);
 
         createSecret(orgName, "dev-akeyless-id", getAccessId().getBytes(StandardCharsets.UTF_8));
         createSecret(orgName, "dev-akeyless-key", getAccessKey().getBytes(StandardCharsets.UTF_8));
@@ -115,4 +135,15 @@ class TaskIT extends AbstractIT {
             throw new RuntimeException(e);
         }
     }
+
+    protected static String getEnv(String name, String defValue) {
+        String envValue = System.getenv(name);
+
+        if (envValue == null) {
+            return defValue;
+        } else {
+            return envValue;
+        }
+    }
+
 }

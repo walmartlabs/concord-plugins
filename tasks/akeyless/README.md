@@ -72,6 +72,9 @@ $ IT_PROPERTIES_FILE=~/my_it_props/akeyless.props mvn -DskipAkeylessITs=false fa
 [INFO] ------------------------------------------------------------------------
 ```
 
+Set custom Concord server and agent images with `IT_SERVER_IMAGE` and `IT_AGENT_IMAGE`
+environment variables.
+
 ## Testing via Payload
 
 **This should really only be done against a local Concord dev instance since the
