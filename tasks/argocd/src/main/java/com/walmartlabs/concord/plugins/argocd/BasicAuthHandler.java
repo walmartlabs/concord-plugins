@@ -20,15 +20,12 @@ package com.walmartlabs.concord.plugins.argocd;
  * =====
  */
 
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.client.methods.RequestBuilder;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.HttpClientBuilder;
-
 import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpRequest.BodyPublishers;
+import java.net.http.HttpResponse;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -36,17 +33,26 @@ public class BasicAuthHandler {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    public static String auth(String baseUrl, TaskParams.BasicAuth auth) throws IOException {
+    private BasicAuthHandler() { }
+
+    public static String auth(HttpClient.Builder httpBuilder, String baseUrl, TaskParams.BasicAuth auth) throws IOException {
         Map<String, Object> body = new HashMap<>();
         body.put("username", auth.username());
         body.put("password", auth.password());
 
-        HttpClient httpClient = HttpClientBuilder.create().build();
-        String url = baseUrl + "api/v1/session";
-        HttpUriRequest request = RequestBuilder.post(url)
-                .setEntity(new StringEntity(objectMapper.writeValueAsString(body), ContentType.APPLICATION_JSON)).build();
-        HttpResponse response = httpClient.execute(request);
-        Map<String, Object> m = objectMapper.readMap(response.getEntity().getContent());
-        return (String)m.get("token");
+        var req = HttpRequest.newBuilder(URI.create(baseUrl + "/api/v1/session"))
+                .POST(BodyPublishers.ofString(objectMapper.writeValueAsString(body)))
+                .header("Content-Type", "application/json")
+                .build();
+
+        try {
+            var resp = httpBuilder.build().send(req, HttpResponse.BodyHandlers.ofInputStream());
+            var m = objectMapper.readMap(resp.body());
+            return (String) m.get("token");
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        throw new IllegalStateException("Unexpected error retrieving token with basic auth");
     }
 }

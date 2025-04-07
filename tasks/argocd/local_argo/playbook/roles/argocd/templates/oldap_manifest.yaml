@@ -1,0 +1,92 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/name: oldap-seed
+  name: oldap-seed
+data:
+  oldap.ldif: |
+    version: 1
+    
+    dn: cn={{ ldap_username }},dc=example,dc=org
+    cn: {{ ldap_username }}
+    displayName: Ldap User
+    mail: {{ ldap_username }}@mail.local
+    gidnumber: 10000
+    givenName: Ldap
+    homedirectory: /home/{{ ldap_username }}
+    loginshell: /bin/bash
+    objectclass: posixAccount
+    objectclass: inetOrgPerson
+    objectclass: organizationalPerson
+    objectclass: person
+    sn: User
+    uid: {{ ldap_username }}
+    uidnumber: 10000
+    userpassword: {{ ldap_password }}
+    
+    dn: cn=admin-group,dc=example,dc=org
+    objectClass: posixGroup
+    gidNumber: 10001
+    cn: admin-group
+    memberUid: {{ ldap_username }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oldap
+  labels:
+    app: oldap
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oldap
+  template:
+    metadata:
+      labels:
+        app: oldap
+    spec:
+      volumes:
+        - name: oldap-seed-volume
+          configMap:
+            name: oldap-seed
+            items:
+              - key: "oldap.ldif"
+                path: "oldap.ldif"
+      containers:
+        - name: oldap
+          image: bitnami/openldap:latest
+          env:
+            - name: LDAP_ADMIN_USERNAME
+              value: "admin"
+            - name: LDAP_ADMIN_PASSWORD
+              value: "{{ ldap_admin_password }}"
+            - name: LDAP_ROOT
+              value: "dc=example,dc=org"
+            - name: LDAP_ADMIN_DN
+              value: "cn=admin,dc=example,dc=org"
+          ports:
+            - containerPort: 1389
+          volumeMounts:
+            - name: oldap-seed-volume
+              mountPath: "/import_data"
+              readOnly: true
+          lifecycle:
+            postStart:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 5; ldapmodify -a -x -D cn=admin,dc=example,dc=org -w '{{ ldap_admin_password }}'  -H ldap://localhost:1389 -f /import_data/oldap.ldif"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: oldap-svc
+spec:
+  clusterIP: None # headless service
+  ports:
+    - name: http
+      port: 1389
+      protocol: TCP
+      targetPort: 1389
+  selector:
+    app: oldap

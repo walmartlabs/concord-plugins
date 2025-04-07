@@ -1,0 +1,243 @@
+---
+- name: Execute with k8s defaults
+  module_defaults:
+    kubernetes.core.k8s:
+      kubeconfig: "{{ kubconfig_path }}"
+      ca_cert: "{{ k8s_ca_cert }}"
+      namespace: "{{ k8s_ns }}"
+    kubernetes.core.k8s_info:
+      kubeconfig: "{{ kubconfig_path }}"
+      ca_cert: "{{ k8s_ca_cert }}"
+      namespace: "{{ k8s_ns }}"
+  vars:
+    # for query lookup
+    kubeconfig: "{{playbook_dir }}/{{ kubconfig_path }}"
+    ca_cert: "{{playbook_dir }}/{{ k8s_ca_cert }}"
+  block:
+    - name: "Create namespaces"
+      kubernetes.core.k8s:
+        state: present
+        merge_type: merge
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: "{{ item }}"
+      loop: [ 'argocd', 'test-namespace']
+
+    - name: Apply argocd manifest to the cluster.
+      kubernetes.core.k8s:
+        state: present
+        src: files/generated/argo_install_manifest.yml
+
+    - name: "Update ArgoCD configmap"
+      kubernetes.core.k8s:
+        state: present
+        merge_type: merge
+        definition: |
+          metadata:
+            name: argocd-cm
+          kind: ConfigMap
+          data:
+            url: "https://{{ ingress_hostname }}"
+            dex.config: |
+              connectors:
+              - type: ldap
+                id: ldap
+                name: LocalLLDAP
+                config:
+                  host: "oldap-svc:1389"
+                  insecureNoSSL: true
+                  insecureSkipVerify: true
+                  bindDN: "cn=admin,dc=example,dc=org"
+                  bindPW: "{{ ldap_admin_password }}"
+                  usernamePrompt: SSO Username
+                  userSearch:
+                    baseDN: "dc=example,dc=org"
+                    filter: ""
+                    username: uid
+                    idAttr: uid
+                    emailAttr: mail
+                    nameAttr: givenName
+                    preferredUsernameAttr: uid
+                  groupSearch:
+                    baseDN: "dc=example,dc=org"
+                    # Optional filter to apply when searching the directory.
+                    filter: "(objectClass=posixGroup)"
+                    # Following list contains field pairs that are used to match a user to a group. It adds an additional
+                    # requirement to the filter that an attribute in the group must match the user's
+                    # attribute value.
+                    userMatchers:
+                    - userAttr: uid
+                      groupAttr: memberUid
+                    nameAttr: cn
+
+    - name: "Update ArgoCD rbac configmap"
+      kubernetes.core.k8s:
+        state: present
+        merge_type: merge
+        definition: |
+          metadata:
+            name: argocd-rbac-cm
+          kind: ConfigMap
+          data:
+            scopes: '[groups, email]'
+            policy.default: 'role:readonly'
+            policy.csv: |
+              g, {{ ldap_username }}@mail.local, role:admin
+
+    - name: "Update ArgoCD params configmap"
+      kubernetes.core.k8s:
+        state: present
+        merge_type: merge
+        definition: |
+          metadata:
+            name: argocd-cmd-params-cm
+          kind: ConfigMap
+          data:
+            server.insecure: "true"
+      register: params_map
+
+    - name: "Delete/restart argo-server"
+      kubernetes.core.k8s:
+        state: absent
+        api_version: v1
+        kind: Pod
+        label_selectors:
+          - app.kubernetes.io/name = argocd-server
+      when: params_map.changed
+
+    - name: Wait for traefik ingressroute CRD to exist
+      kubernetes.core.k8s_info:
+        kind: "CustomResourceDefinition"
+        name: "ingressroutes.traefik.containo.us"
+      register: result
+      until: result.resources | length > 0
+      retries: 36
+      delay: 5
+
+    # current argo docs are for traefik v3, but k3s at the time of working on this is
+    # shipping with v2. Check older docs for that example
+    # https://github.com/argoproj/argo-cd/blob/82db16664e0f3574c8bc6f52ede7dbc9af99eb6a/docs/operator-manual/ingress.md?plain=1
+    - name: "Create argo ingress"
+      kubernetes.core.k8s:
+        state: present
+        apply: true # overwrite existing
+        definition: |
+          apiVersion: traefik.containo.us/v1alpha1
+          kind: IngressRoute
+          metadata:
+            name: argocd-server
+          spec:
+            entryPoints:
+              - websecure
+            routes:
+              - kind: Rule
+                match: Host(`{{ ingress_hostname }}`)
+                priority: 10
+                services:
+                  - name: argocd-server
+                    port: 80
+              - kind: Rule
+                match: Host(`{{ ingress_hostname }}`) && Headers(`Content-Type`, `application/grpc`)
+                priority: 11
+                services:
+                  - name: argocd-server
+                    port: 80
+                    scheme: h2c
+          tls:
+            certResolver: default
+
+    - name: Verify the ArgoCD server is up and running
+      uri:
+        url: "https://{{ ingress_hostname }}"
+        status_code: 200
+        return_content: true
+        validate_certs: false
+      register: result
+      until: result.status == 200
+      retries: 36
+      delay: 5
+
+    - name: "Deploy OLDAP server manifest"
+      kubernetes.core.k8s:
+        state: present
+        apply: true
+        definition: "{{ lookup('template', 'oldap_manifest.yaml') }}"
+
+    - name: "Deploy git server manifest"
+      kubernetes.core.k8s:
+        state: present
+        apply: true
+        definition: "{{ lookup('template', 'git_manifest.yaml') }}"
+      register: git_deploy
+
+    - name: "Delete/restart git"
+      kubernetes.core.k8s:
+        state: absent
+        api_version: v1
+        kind: Pod
+        label_selectors:
+          - app = git
+      when: git_deploy.changed
+
+    - name: Fetch ArgoCD admin password
+      set_fact:
+        argoAdminPassword: |-
+          {{ query('kubernetes.core.k8s',
+              kind='Secret',
+              namespace='argocd',
+              resource_name='argocd-initial-admin-secret',
+              ca_cert=ca_cert,
+              kubeconfig=kubeconfig)[0].data.password | ansible.builtin.b64decode }}
+
+    - name: "Write admin password to generate files"
+      ansible.builtin.copy:
+        content: "{{ argoAdminPassword }}"
+        dest: "{{ role_path }}/files/generated/argocd_admin_password.txt"
+        mode: "0600"
+
+    - name: Get ArgoCD API token
+      ansible.builtin.uri:
+        url: https://{{ ingress_hostname }}/api/v1/session
+        method: POST
+        body: "{\"username\":\"admin\",\"password\":\"{{ argoAdminPassword }}\"}"
+        status_code: 200
+        body_format: json
+        validate_certs: false
+      register: session_token_resp
+
+    - set_fact:
+        api_jwt: "{{ session_token_resp.json.token }}"
+
+    - name: List repositories
+      ansible.builtin.uri:
+        url: https://{{ ingress_hostname }}/api/v1/repositories
+        method: GET
+        status_code: 200
+        validate_certs: false
+        headers:
+          Authorization: "Bearer {{ api_jwt }}"
+      register: repositories_resp
+
+    - name: "Create default repository"
+      when: (repositories_resp['json']['items'] == None) or (repositories_resp['json']['items'] | length == 0)
+      block:
+        - name: Create default repository
+          ansible.builtin.uri:
+            url: https://{{ ingress_hostname }}/api/v1/repositories
+            method: POST
+            body: |
+              {
+                "repo": "ssh://git@git-svc:22/git-server/repos/myrepo.git",
+                "insecure": true,
+                "type": "git",
+                "name": "myrepo",
+                "project": "default",
+                "sshPrivateKey": {{ lookup('file', 'generated/test_key') | to_json }}
+              }
+            status_code: 200
+            body_format: json
+            validate_certs: false
+            headers:
+              Authorization: "Bearer {{ api_jwt }}"
