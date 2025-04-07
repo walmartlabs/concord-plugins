@@ -56,8 +56,6 @@ public class ArgoIT {
     @RegisterExtension
     public static final ConcordRule concord = new ConcordRule()
             .mode(Concord.Mode.DOCKER)
-            .serverImage("walmartlabs/concord-server:2.14.2")
-            .agentImage("walmartlabs/concord-agent:2.14.2")
             .streamServerLogs(false)
             .streamAgentLogs(false)
             .useLocalMavenRepository(true);

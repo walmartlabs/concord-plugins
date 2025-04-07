@@ -52,7 +52,7 @@ flows:
           ldap:
             username: "${argoUsername}"
             password: "${argoPassword}"
-        syncTimeout: "PT5S"
+        syncTimeout: "PT1S"
         resources: []
       out: syncResult
       retry:

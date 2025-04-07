@@ -56,8 +56,6 @@ class ArgoK3sIT {
     @RegisterExtension
     public static final ConcordRule concord = new ConcordRule()
             .mode(Concord.Mode.DOCKER)
-            .serverImage("walmartlabs/concord-server:2.14.2")
-            .agentImage("walmartlabs/concord-agent:2.14.2")
             .streamServerLogs(false)
             .streamAgentLogs(false)
             .useLocalMavenRepository(true);
@@ -68,7 +66,7 @@ class ArgoK3sIT {
 
     @BeforeAll
     static void setUp() {
-        log.info("Concord IT server: {}", concord.apiBaseUrl());
+        log.info("Concord IT server login: {}/#/login?useApiKey=true", concord.apiBaseUrl());
         log.info("Concord IT admin token: {}", concord.environment().apiToken());
     }
 
@@ -142,7 +140,7 @@ class ArgoK3sIT {
         //  ---
 
         // should have forces a timeout with short setting, then success on second longer-timeout attempt
-        proc.assertLogAtLeast(".*Call attempt timed out after 5000ms.*", 1);
+        proc.assertLogAtLeast(".*Call attempt timed out after 1000ms.*", 1);
         proc.assertLog(".*got app status: Healthy.*");
         proc.assertLog(".*Deleted app: true.*");
     }

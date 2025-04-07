@@ -15,7 +15,7 @@
 
         <skipArgoITs>true</skipArgoITs>
 
-        <testcontainers.concord.version>2.0.1</testcontainers.concord.version>
+        <testcontainers.concord.version>2.0.2</testcontainers.concord.version>
         <swagger-annotations-version>1.5.21</swagger-annotations-version>
         <httpclient-version>4.5.13</httpclient-version>
         <jackson-version>2.13.3</jackson-version>
