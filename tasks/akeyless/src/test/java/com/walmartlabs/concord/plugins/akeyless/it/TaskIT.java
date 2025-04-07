@@ -27,8 +27,6 @@ import ca.ibodrov.concord.testcontainers.Payload;
 import ca.ibodrov.concord.testcontainers.junit5.ConcordRule;
 import com.walmartlabs.concord.client2.ApiException;
 import com.walmartlabs.concord.client2.ProcessEntry;
-import com.walmartlabs.concord.client2.ProjectEntry;
-import com.walmartlabs.concord.client2.ProjectsApi;
 import com.walmartlabs.concord.common.IOUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -49,8 +47,6 @@ class TaskIT extends AbstractIT {
     @RegisterExtension
     public static final ConcordRule concord = new ConcordRule()
             .mode(Concord.Mode.DOCKER)
-            .serverImage(getEnv("IT_SERVER_IMAGE", "walmartlabs/concord-server:2.21.0"))
-            .agentImage(getEnv("IT_AGENT_IMAGE", "walmartlabs/concord-agent:2.21.0"))
             .streamServerLogs(false)
             .streamAgentLogs(false)
             .useLocalMavenRepository(true);
@@ -80,12 +76,6 @@ class TaskIT extends AbstractIT {
 
         String projectName = "project_" + randomString();
         concord.projects().create(orgName, projectName);
-
-        var projectsApi = new ProjectsApi(concord.apiClient());
-        var project = projectsApi.getProject(orgName, projectName);
-        project.setAcceptsRawPayload(true);
-        project.rawPayloadMode(ProjectEntry.RawPayloadModeEnum.EVERYONE);
-        projectsApi.createOrUpdateProject(orgName, project);
 
         createSecret(orgName, "dev-akeyless-id", getAccessId().getBytes(StandardCharsets.UTF_8));
         createSecret(orgName, "dev-akeyless-key", getAccessKey().getBytes(StandardCharsets.UTF_8));
@@ -133,16 +123,6 @@ class TaskIT extends AbstractIT {
             return IOUtils.toByteArray(in);
         } catch (IOException e) {
             throw new RuntimeException(e);
-        }
-    }
-
-    protected static String getEnv(String name, String defValue) {
-        String envValue = System.getenv(name);
-
-        if (envValue == null) {
-            return defValue;
-        } else {
-            return envValue;
         }
     }
 

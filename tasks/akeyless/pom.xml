@@ -21,7 +21,7 @@
         <swagger-annotations-version>1.5.21</swagger-annotations-version>
         <jakarta-annotation-version>1.3.5</jakarta-annotation-version>
 
-        <testcontainers.concord.version>2.0.1</testcontainers.concord.version>
+        <testcontainers.concord.version>2.0.2</testcontainers.concord.version>
     </properties>
 
     <dependencies>
