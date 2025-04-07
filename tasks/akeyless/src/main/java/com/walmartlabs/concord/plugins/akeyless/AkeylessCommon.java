@@ -29,6 +29,8 @@ import com.walmartlabs.concord.runtime.v2.sdk.Variables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.http.HttpClient;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -68,35 +70,23 @@ public class AkeylessCommon {
 
         Util.debug(params.debug(), log, String.format("Action: %s", params.action()));
 
-        switch (params.action()) {
-            case AUTH: {
-                return auth(params);
-            }
-            case GETSECRET: {
-                return getSecret((TaskParams.GetSecretParams) params);
-            }
-            case GETSECRETS: {
-                return getSecrets((TaskParams.GetSecretsParams) params);
-            }
-            case CREATESECRET: {
-                return createSecret((TaskParams.CreateSecretParams) params);
-            }
-            case UPDATESECRET: {
-                return updateSecretVal((TaskParams.UpdateSecretParams) params);
-            }
-            case DELETEITEM: {
-                return deleteItem((TaskParams.DeleteItemParams) params);
-            }
-            default:
-                throw new IllegalArgumentException("Invalid action: " + params.action());
-        }
+        return switch (params.action()) {
+            case AUTH -> auth(params);
+            case GETSECRET -> getSecret((TaskParams.GetSecretParams) params);
+            case GETSECRETS -> getSecrets((TaskParams.GetSecretsParams) params);
+            case CREATESECRET -> createSecret((TaskParams.CreateSecretParams) params);
+            case UPDATESECRET -> updateSecretVal((TaskParams.UpdateSecretParams) params);
+            case DELETEITEM -> deleteItem((TaskParams.DeleteItemParams) params);
+        };
     }
 
     private V2Api getApi(TaskParams params) {
         if (apiClient == null) {
-            apiClient = new ApiClient()
-                    .setBasePath(params.apiBasePath())
-                    .setConnectTimeout(params.connectTimeout());
+            var clientBuilder = HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofSeconds(params.connectTimeout()));
+
+            apiClient = new ApiClient(clientBuilder, JSON.getDefault().getMapper(), params.apiBasePath())
+                    .setReadTimeout(Duration.ofSeconds(params.readTimeout()));
         }
 
         return new V2Api(apiClient);
