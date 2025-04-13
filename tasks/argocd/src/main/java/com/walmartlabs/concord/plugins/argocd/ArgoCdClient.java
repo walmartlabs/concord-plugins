@@ -80,7 +80,7 @@ public class ArgoCdClient {
     }
 
     public V1alpha1Application syncApp(TaskParams.SyncParams in) throws IOException, ApiException {
-        String revision = in.revision();
+        var revision = in.revision();
         if (revision != null) {
             patchApp(in.app(), Collections.singletonList(patchRevision(in.revision())));
         }
@@ -106,7 +106,7 @@ public class ArgoCdClient {
 
     private V1alpha1Application syncApplication(TaskParams.SyncParams in) throws IOException, ApiException {
         var api = new ApplicationServiceApi(client);
-        List<V1alpha1SyncOperationResource> resources = new ArrayList<>();
+        var resources = new ArrayList<V1alpha1SyncOperationResource>();
         for (TaskParams.SyncParams.Resource resource : in.resources()) {
             V1alpha1SyncOperationResource resourceOb = new V1alpha1SyncOperationResource();
             resourceOb.setGroup(resource.group());
@@ -136,7 +136,7 @@ public class ArgoCdClient {
                 String line;
 
                 while ((line = bufferedReader.readLine()) != null) {
-                    StreamResultOfV1alpha1ApplicationWatchEvent result = MAPPER.readValue(line, StreamResultOfV1alpha1ApplicationWatchEvent.class);
+                    var result = MAPPER.readValue(line, StreamResultOfV1alpha1ApplicationWatchEvent.class);
                     if (result.getError() != null) {
                         throw new RuntimeException("Error waiting for status: " + result.getError());
                     }
@@ -212,8 +212,8 @@ public class ArgoCdClient {
                                            Duration waitTimeout, WaitWatchParams waitParams) {
         log.info("Waiting for application to sync.");
 
-        String params = toParameterString(Map.of("name", appName, "resourceVersion", resourceVersion));
-        URI uri = URI.create(client.getBaseUri() + "/api/v1/stream/applications?" + params);
+        var paramString = toParameterString(Map.of("name", appName, "resourceVersion", resourceVersion));
+        var uri = URI.create(client.getBaseUri() + "/api/v1/stream/applications?" + paramString);
 
         waitTimeout = (waitTimeout == null) ? Duration.ofMinutes(15) : waitTimeout;
         log.info("Using wait timeout {}", waitTimeout);
@@ -300,10 +300,9 @@ public class ArgoCdClient {
 
     public V1alpha1AppProject createProject(TaskParams.CreateProjectParams in) throws IOException, ApiException {
         var api = new ProjectServiceApi(client);
-
-        Map<String, Object> metadata = new HashMap<>();
-        Map<String, Object> spec = new HashMap<>();
-        Map<String, Object> project = new HashMap<>();
+        var metadata = new HashMap<String, Object>();
+        var spec = new HashMap<String, Object>();
+        var project = new HashMap<String, Object>();
 
         metadata.put("name", in.project());
         if (in.namespace() != null && !in.namespace().isEmpty()) {
@@ -333,7 +332,7 @@ public class ArgoCdClient {
 
         project.put("metadata", metadata);
         project.put("spec", spec);
-        V1alpha1AppProject projectObject = MAPPER.mapToModel(project, V1alpha1AppProject.class);
+        var projectObject = MAPPER.mapToModel(project, V1alpha1AppProject.class);
 
         var createRequest = new ProjectProjectCreateRequest()
                 .project(projectObject)
@@ -344,19 +343,19 @@ public class ArgoCdClient {
 
 
     private static boolean checkResourceStatus(WaitWatchParams p, String healthStatus, String syncStatus, V1alpha1Operation operation) {
-        boolean healthCheckPassed = true;
+        var isHealthCheckPassed = true;
         if (p.watchSuspended() && p.watchHealth()) {
-            healthCheckPassed = HealthStatus.HEALTHY.value().equals(healthStatus) ||
+            isHealthCheckPassed = HealthStatus.HEALTHY.value().equals(healthStatus) ||
                     HealthStatus.SUSPENDED.value().equals(healthStatus);
         } else if (p.watchSuspended()) {
-            healthCheckPassed = HealthStatus.SUSPENDED.value().equals(healthStatus);
+            isHealthCheckPassed = HealthStatus.SUSPENDED.value().equals(healthStatus);
         } else if (p.watchHealth()) {
-            healthCheckPassed = HealthStatus.HEALTHY.value().equals(healthStatus);
+            isHealthCheckPassed = HealthStatus.HEALTHY.value().equals(healthStatus);
         }
 
-        boolean synced = !p.watchSync() || SyncStatus.SYNCED.value().equals(syncStatus);
-        boolean operational = !p.watchOperation() || operation == null;
-        return synced && healthCheckPassed && operational;
+        var isSynced = !p.watchSync() || SyncStatus.SYNCED.value().equals(syncStatus);
+        var isOperational = !p.watchOperation() || operation == null;
+        return isSynced && isHealthCheckPassed && isOperational;
     }
 
     private static ApiClient createClient(TaskParams in) throws Exception {
@@ -376,7 +375,7 @@ public class ArgoCdClient {
             }
         }
 
-        String apiKey = createApiKey(in, httpBuilder);
+        var apiKey = createApiKey(in, httpBuilder);
         return new ApiClient(httpBuilder, MAPPER.getDelegate(), in.baseUrl())
                 .setReadTimeout(Duration.ofSeconds(in.readTimeout()))
                 .setRequestInterceptor(builder -> injectDefaultHeaders(builder, apiKey));
@@ -433,7 +432,6 @@ public class ArgoCdClient {
             sb.append(URLEncoder.encode(k, StandardCharsets.UTF_8))
                     .append("=")
                     .append(URLEncoder.encode(v, StandardCharsets.UTF_8));
-
         });
 
         return sb.toString();

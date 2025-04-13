@@ -68,9 +68,6 @@ public class NoopTrustManager extends X509ExtendedTrustManager {
     }
 
     public static TrustManager[] getManagers() {
-        TrustManager[] managers = new TrustManager[1];
-
-        managers[0] = new NoopTrustManager();
-        return managers;
+        return new TrustManager[] { new NoopTrustManager() };
     }
 }

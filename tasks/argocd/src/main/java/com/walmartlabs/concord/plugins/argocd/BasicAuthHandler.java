@@ -25,8 +25,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublishers;
-import java.net.http.HttpResponse;
-import java.util.HashMap;
+import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Map;
 
 public class BasicAuthHandler {
@@ -36,9 +35,10 @@ public class BasicAuthHandler {
     private BasicAuthHandler() { }
 
     public static String auth(HttpClient.Builder httpBuilder, String baseUrl, TaskParams.BasicAuth auth) throws IOException {
-        Map<String, Object> body = new HashMap<>();
-        body.put("username", auth.username());
-        body.put("password", auth.password());
+        var body = Map.of(
+                "username", auth.username(),
+                "password", auth.password()
+        );
 
         var req = HttpRequest.newBuilder(URI.create(baseUrl + "/api/v1/session"))
                 .POST(BodyPublishers.ofString(objectMapper.writeValueAsString(body)))
@@ -46,9 +46,9 @@ public class BasicAuthHandler {
                 .build();
 
         try {
-            var resp = httpBuilder.build().send(req, HttpResponse.BodyHandlers.ofInputStream());
-            var m = objectMapper.readMap(resp.body());
-            return (String) m.get("token");
+            var resp = httpBuilder.build().send(req, BodyHandlers.ofInputStream());
+            var respBody = objectMapper.readMap(resp.body());
+            return (String) respBody.get("token");
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }

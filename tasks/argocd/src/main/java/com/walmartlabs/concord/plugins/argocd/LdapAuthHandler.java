@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.net.CookieManager;
 import java.net.HttpCookie;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -36,7 +35,7 @@ public class LdapAuthHandler {
 
     private LdapAuthHandler() { }
 
-    public static String auth(HttpClient.Builder clientBuilder, String baseUrl, TaskParams.LdapAuth in) throws IOException, ApiException, URISyntaxException {
+    public static String auth(HttpClient.Builder clientBuilder, String baseUrl, TaskParams.LdapAuth in) throws IOException, ApiException {
         var cookieManager = new CookieManager();
         clientBuilder.cookieHandler(cookieManager);
 
@@ -47,8 +46,11 @@ public class LdapAuthHandler {
                 .build();
 
         try {
-            // this will redirect, hopefully client is configured to do so
-            var resp = clientBuilder.build().send(req, HttpResponse.BodyHandlers.ofString());
+            // this call will redirect
+            var resp = clientBuilder.followRedirects(HttpClient.Redirect.NORMAL)
+                    .build()
+                    .send(req, HttpResponse.BodyHandlers.ofString());
+
             if (!isSuccess(resp.statusCode())) {
                 throw new ApiException(resp.statusCode(), resp.body());
             }
@@ -83,20 +85,11 @@ public class LdapAuthHandler {
             }
         }
 
-//        for (Cookie cookie: httpCookieStore.getCookies() ) {
-//            if(cookie.getName().equals("argocd.token") ) {
-//                token = cookie.getValue();
-//            }
-//        }
-//
-//        EntityUtils.consumeQuietly(response.getEntity());
-
         return token;
     }
 
     private static boolean isSuccess(int code) {
         return code >= 200 && code < 300;
     }
-
 
 }
