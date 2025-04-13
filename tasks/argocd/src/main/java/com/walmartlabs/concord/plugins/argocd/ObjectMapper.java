@@ -77,9 +77,12 @@ public class ObjectMapper {
     }
 
     public <T> T mapToModel(Map<String, Object> map, Class<T> model) throws IOException {
-        return (T) readValue(writeValueAsString(map), model);
+        return readValue(writeValueAsString(map), model);
     }
 
+    public com.fasterxml.jackson.databind.ObjectMapper getDelegate() {
+        return delegate;
+    }
 
     public V1alpha1Application buildApplicationObject(TaskParams.CreateUpdateParams in) throws IOException {
         Map<String, Object> metadata = new HashMap<>();

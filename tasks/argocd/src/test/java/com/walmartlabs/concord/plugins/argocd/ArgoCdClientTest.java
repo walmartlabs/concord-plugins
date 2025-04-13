@@ -20,6 +20,7 @@ package com.walmartlabs.concord.plugins.argocd;
  * =====
  */
 
+import com.walmartlabs.concord.plugins.argocd.model.HttpExecutor;
 import com.walmartlabs.concord.plugins.argocd.openapi.ApiClient;
 import com.walmartlabs.concord.plugins.argocd.openapi.api.ApplicationServiceApi;
 import com.walmartlabs.concord.plugins.argocd.openapi.model.StreamResultOfV1alpha1ApplicationWatchEvent;
@@ -32,7 +33,6 @@ import com.walmartlabs.concord.plugins.argocd.openapi.model.V1alpha1Operation;
 import com.walmartlabs.concord.plugins.argocd.openapi.model.V1alpha1OperationState;
 import com.walmartlabs.concord.plugins.argocd.openapi.model.V1alpha1SyncOperation;
 import com.walmartlabs.concord.plugins.argocd.openapi.model.V1alpha1SyncStatus;
-import org.apache.http.client.methods.CloseableHttpResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
@@ -41,10 +41,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.FileWriter;
+import java.net.http.HttpRequest;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -53,8 +56,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -72,6 +75,12 @@ class ArgoCdClientTest {
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     ApplicationServiceApi applicationServiceApi;
 
+    @Mock
+    HttpExecutor httpExecutor;
+
+    @Mock
+    HttpRequest httpRequest;
+
     @Test
     void testWaitForSync() throws Exception {
         mockStatusApi();
@@ -84,7 +93,7 @@ class ArgoCdClientTest {
                 .watchSuspended(false)
                 .build();
 
-        Callable<V1alpha1Application> c = () -> ArgoCdClient.getAppWatchEvent("test-app", apiClient, null, wwParams, applicationServiceApi);
+        Callable<V1alpha1Application> c = () -> ArgoCdClient.getAppWatchEvent("test-app", httpExecutor, httpRequest, wwParams, applicationServiceApi);
 
         IllegalStateException e = assertThrows(IllegalStateException.class, c::call);
         assertEquals("No sync status returned", e.getMessage());
@@ -94,6 +103,8 @@ class ArgoCdClientTest {
         assertNotNull(result.getMetadata());
         assertEquals("test-app", result.getMetadata().getName());
         assertEquals("test-ns", result.getMetadata().getNamespace());
+
+        verify(httpExecutor, times(2)).execute(any());
     }
 
     private void mockStatusApi() throws Exception {
@@ -126,14 +137,10 @@ class ArgoCdClientTest {
         try (FileWriter fw = new FileWriter(appFile.toFile())) {
             fw.write(sb.toString());
         }
-        CloseableHttpResponse notReadyResp = mock(CloseableHttpResponse.class, RETURNS_DEEP_STUBS);
+
         // first return nothing, then return a valid response on subsequent call(s)
-        when(notReadyResp.getEntity().getContent())
+        when(httpExecutor.execute(any()))
                 .thenReturn(ArgoCdClientTest.class.getResourceAsStream("emptyResponse.json"), Files.newInputStream(appFile));
-
-        when(apiClient.getHttpClient().execute(any()))
-                .thenReturn(notReadyResp);
-
     }
 
     private void mockApplicationServiceApi() throws Exception {

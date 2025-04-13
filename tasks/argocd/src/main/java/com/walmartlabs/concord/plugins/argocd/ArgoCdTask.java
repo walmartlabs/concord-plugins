@@ -58,7 +58,7 @@ public class ArgoCdTask implements Task {
 
         try {
             TaskResult taskResult;
-            record(params, EventStatus.START, null, null);
+            recordEvent(params, EventStatus.START, null, null);
             switch (params.action()) {
                 case GET: {
                     taskResult = processGetAction((TaskParams.GetParams) params);
@@ -120,10 +120,10 @@ public class ArgoCdTask implements Task {
                     throw new IllegalArgumentException("Unsupported action type: " + params.action());
                 }
             }
-            record(params, EventStatus.COMPLETE, taskResult, null);
+            recordEvent(params, EventStatus.COMPLETE, taskResult, null);
             return taskResult;
         } catch (Exception e) {
-            record(params, EventStatus.FAIL, null, e.getMessage());
+            recordEvent(params, EventStatus.FAIL, null, e.getMessage());
             throw e;
         }
     }
@@ -320,7 +320,7 @@ public class ArgoCdTask implements Task {
         return objectMapper.toMap(app);
     }
 
-    private void record(TaskParamsImpl in, EventStatus eventStatus, TaskResult taskResult, String error) throws IOException {
+    private void recordEvent(TaskParamsImpl in, EventStatus eventStatus, TaskResult taskResult, String error) throws IOException {
         if (in.recordEvents()) {
             RecordEvents.recordEvent(processEventsApi, context.processInstanceId(),
                     context.execution().correlationId(), eventStatus, error, in, taskResult);

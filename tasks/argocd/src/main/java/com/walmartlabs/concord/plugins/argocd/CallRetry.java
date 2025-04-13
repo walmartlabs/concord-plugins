@@ -23,8 +23,14 @@ package com.walmartlabs.concord.plugins.argocd;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeoutException;
+
+import static java.util.concurrent.TimeUnit.*;
 
 public class CallRetry<R> {
     private static final Logger log = LoggerFactory.getLogger(CallRetry.class);
@@ -44,46 +50,77 @@ public class CallRetry<R> {
     }
 
     /**
+     * Attempts to execute a call with a 1-hour timeout for each attempt
+     * @deprecated  Use {@link #attemptWithRetry(int, Duration)} instead
+     */
+    @Deprecated
+    public R attemptWithRetry(int maxTries) {
+        return attemptWithRetry(maxTries, Duration.ofHours(1));
+    }
+
+    /**
      * Attempts to call and return result from main call up-to the given number of tries.
      * If the fallback call successfully returns data, after a failure of the main call,
      * then the fallback result is returned immediately
      * @param maxTries number of attempts to make
+     * @param totalTimeout timeout for the overall attempt, including retries
      * @return Results of main call, or fallback result if data is present after main failure
      */
-    public R attemptWithRetry(int maxTries) {
+    public R attemptWithRetry(int maxTries, Duration totalTimeout) {
         Throwable lastError = null;
+
+        var executor = Executors.newSingleThreadExecutor();
+        long startMillis = System.currentTimeMillis();
 
         int attemptsMade = 0;
         while (attemptsMade++ < maxTries) {
+            long actualTimeout = Math.max(1000, totalTimeout.toMillis() - (System.currentTimeMillis() - startMillis));
+
             try {
-                return mainAttempt.call();
+                return executor.submit(mainAttempt).get(actualTimeout, MILLISECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            } catch (ExecutionException e) { // error within callable execution
+                lastError = e.getCause();
+            } catch (TimeoutException e) {
+                return executeFallback().orElseThrow(() -> new RuntimeException("Call attempt timed out after " + totalTimeout.toMillis() + "ms"));
             } catch (Exception e) {
-                boolean isNotRetryable = exceptionsToNotRetry.stream()
-                        .anyMatch(clazz -> clazz.isInstance(e));
-
-                if (isNotRetryable) {
-                    throw new RuntimeException(e);
-                }
-
                 lastError = e;
             }
 
-            // if any of these returns cleanly then that's good enough
-            for (Callable<Optional<R>> c : fallbackAttempts) {
-                try {
-                    Optional<R> result = c.call();
+            assertIsRetryable(lastError);
 
-                    if (result.isPresent()) {
-                        return result.get();
-                    }
-                } catch (Exception e) {
-                    log.warn("Error attempting fallback: {}", e.getMessage());
-                }
+            // if any of these returns cleanly then that's good enough
+            var fallbackResult = executeFallback();
+            if (fallbackResult.isPresent()) {
+                return fallbackResult.get();
             }
 
             log.warn("Retrying [{}/{}]...", attemptsMade, maxTries);
         }
 
         throw new RuntimeException("Too many attempts. Last error: ", lastError);
+    }
+
+    private Optional<R> executeFallback() {
+        for (Callable<Optional<R>> c : fallbackAttempts) {
+            try {
+                return c.call();
+            } catch (Exception e) {
+                log.warn("Error attempting fallback: {}", e.getMessage());
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    private void assertIsRetryable(Throwable e) {
+        boolean isNotRetryable = exceptionsToNotRetry.stream()
+                .anyMatch(clazz -> clazz.isInstance(e));
+
+        if (isNotRetryable) {
+            throw new RuntimeException(e);
+        }
+
     }
 }

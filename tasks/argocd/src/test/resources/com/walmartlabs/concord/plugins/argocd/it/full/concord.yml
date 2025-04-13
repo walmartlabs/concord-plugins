@@ -1,0 +1,95 @@
+configuration:
+  runtime: "concord-v2"
+  dependencies:
+    - "mvn://com.walmartlabs.concord.plugins:argocd-task:%%version%%"
+#    - "mvn://com.walmartlabs.concord.plugins:argocd-task:2.7.0"
+
+flows:
+  default:
+    - name: "Get a project at ${argoBaseUrl}"
+      task: argocd
+      in:
+        action: getProject
+        baseUrl: "${argoBaseUrl}"
+        project: default
+        validateCerts: false
+        auth:
+          ldap:
+            username: "${argoUsername}"
+            password: "${argoPassword}"
+      out: result
+
+    - name: "Create an application"
+      task: argocd
+      in:
+        validateCerts: false
+        action: create
+        baseUrl: "${argoBaseUrl}"
+        auth:
+          ldap:
+            username: "${argoUsername}"
+            password: "${argoPassword}"
+        app: test-app
+        namespace: "${appNamespace}"
+        cluster: in-cluster
+        project: default
+        gitRepo:
+          repoUrl: ssh://git@git-svc:22/git-server/repos/myrepo.git
+          path: app
+          targetRevision: HEAD
+      out: result
+
+    - name: "Sync application"
+      task: argocd
+      in:
+        validateCerts: false
+        action: sync
+        app: test-app
+        revision: "HEAD"
+        watchHealth: true
+        baseUrl: "${argoBaseUrl}"
+        auth:
+          ldap:
+            username: "${argoUsername}"
+            password: "${argoPassword}"
+        syncTimeout: "PT1S"
+        resources: []
+      out: syncResult
+      retry:
+        times: 1
+        in:
+          syncTimeout: "PT5M"
+
+
+    - name: "Get application status"
+      task: argocd
+      in:
+        validateCerts: false
+        action: get
+        baseUrl: "${argoBaseUrl}"
+        app: "test-app"
+        project: default
+        auth:
+          ldap:
+            username: "${argoUsername}"
+            password: "${argoPassword}"
+      out: result
+    - log: "${resource.prettyPrintJson(result)}"
+    - log: "got app status: ${result.app.status.health.status}"
+
+    - name: "Delete application"
+      task: argocd
+      in:
+        validateCerts: false
+        action: delete
+        cascade: true
+        baseUrl: "${argoBaseUrl}"
+        app: "test-app"
+        project: default
+        auth:
+          ldap:
+            username: "${argoUsername}"
+            password: "${argoPassword}"
+      out: result
+
+    - log: "Deleted app: ${result.ok}"
