@@ -20,6 +20,8 @@ package com.walmartlabs.concord.plugins.docs;
  * =====
  */
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.walmartlabs.concord.runtime.v2.model.Flow;
 import com.walmartlabs.concord.runtime.v2.sdk.Context;
 import com.walmartlabs.concord.runtime.v2.sdk.Task;
@@ -30,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Named;
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -88,9 +91,16 @@ public class DocsTaskV2 implements Task {
             }
         }
 
-        MdBookGenerator.generate(input.assertString("bookTitle"), flowDescriptionByFileName, input.getString("sourceBaseUrl"), Path.of(input.assertString("output")));
+        var outputDir = Path.of(input.assertString("output"));
+        MdBookGenerator.generate(input.assertString("bookTitle"), flowDescriptionByFileName, input.getString("sourceBaseUrl"), outputDir);
 
         logMissingFlowDocs(processDefinition.flows().size(), undocumentedFlowsByFileName);
+
+        new ObjectMapper()
+                .setSerializationInclusion(JsonInclude.Include.NON_NULL)
+                .setSerializationInclusion(JsonInclude.Include.NON_EMPTY)
+                .writerWithDefaultPrettyPrinter()
+                .writeValue(outputDir.resolve("flows.json").toFile(), flowDescriptionByFileName);
 
         return TaskResult.success();
     }
