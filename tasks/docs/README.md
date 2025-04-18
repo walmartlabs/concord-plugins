@@ -36,18 +36,22 @@ profiles:
 
 ## Task input parameters
 
-| Input Key                  | Type    | Required | Description                                                                              |
-|----------------------------|---------|----------|------------------------------------------------------------------------------------------|
-| `output`                   | string  | ✓        | Output directory for generated files                                                     |
-| `bookTitle`                | string  | ✓        | Title used in the `book.toml` metadata                                                   |
-| `includeUndocumentedFlows` | boolean |          | Generate docs for flows without description (default: true )                             |
+| Input Key                  | Type    | Required | Description                                                                             |
+|----------------------------|---------|----------|-----------------------------------------------------------------------------------------|
+| `output`                   | string  | ✓        | Output directory for generated files                                                    |
+| `bookTitle`                | string  | ✓        | Title used in the `book.toml` metadata                                                  |
+| `includeUndocumentedFlows` | boolean |          | Generate docs for flows without description (default: true )                            |
 | `sourceBaseUrl`            | string  |          | Base URL for linking to flow source files (e.g., https://github.com/ORG/REPO/blob/main) |
+| `flowsDir`                 | string  |          | Directory containing external Concord flows                                             |
+
+> **Note:** If `flowsDir` is specified, flow imports will not be resolved during documentation generation.
 
 ## Example Output
 
 - `src/**/*.md`: flow documentation
 - `src/SUMMARY.md`: mdBook-style summary with structure
 - `book.toml`: book metadata file
+- `flows.json`: flow descriptions in JSON format
 
 ```
 docs/

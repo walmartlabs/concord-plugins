@@ -22,17 +22,18 @@ package com.walmartlabs.concord.plugins.docs;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.walmartlabs.concord.imports.ImportsListener;
+import com.walmartlabs.concord.imports.NoopImportManager;
+import com.walmartlabs.concord.runtime.v2.NoopImportsNormalizer;
+import com.walmartlabs.concord.runtime.v2.ProjectLoaderV2;
 import com.walmartlabs.concord.runtime.v2.model.Flow;
-import com.walmartlabs.concord.runtime.v2.sdk.Context;
-import com.walmartlabs.concord.runtime.v2.sdk.Task;
-import com.walmartlabs.concord.runtime.v2.sdk.TaskResult;
-import com.walmartlabs.concord.runtime.v2.sdk.Variables;
+import com.walmartlabs.concord.runtime.v2.model.ProcessDefinition;
+import com.walmartlabs.concord.runtime.v2.sdk.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Named;
-import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -55,13 +56,23 @@ public class DocsTaskV2 implements Task {
     @Override
     public TaskResult.SimpleResult execute(Variables input) throws Exception {
         var includeUndocumentedFlows = input.getBoolean("includeUndocumentedFlows", true);
+        var flowsDir = getPathOrNull(input, "flowsDir");
 
-        var processDefinition = context.execution().processDefinition();
+        ProcessDefinition processDefinition;
+        if (flowsDir == null) {
+            log.info("Loading flows from current process");
+            flowsDir = context.workingDirectory();
+            processDefinition = context.execution().processDefinition();
+        } else {
+            log.info("Loading flows from '{}'", flowsDir);
+            processDefinition = loadProcessDefinition(flowsDir);
+        }
+
         var flowLinesByFileName = collectFlowLineNumbers(processDefinition.flows());
         var flowDescriptionByFileName = new LinkedHashMap<String, List<FlowDescription>>();
         var undocumentedFlowsByFileName = new LinkedHashMap<String, List<String>>();
         for (var entry : flowLinesByFileName.entrySet()) {
-            var sourcePath = normalize(context.workingDirectory(), entry.getKey());
+            var sourcePath = flowsDir.resolve(entry.getKey());
             if (!Files.exists(sourcePath)) {
                 log.warn("Flows file '{}' does not exist", entry.getKey());
                 continue;
@@ -103,6 +114,31 @@ public class DocsTaskV2 implements Task {
                 .writeValue(outputDir.resolve("flows.json").toFile(), flowDescriptionByFileName);
 
         return TaskResult.success();
+    }
+
+    private Path getPathOrNull(Variables input, String key) {
+        var v = input.getString(key);
+        if (v == null) {
+            return null;
+        }
+        var p = normalize(context.workingDirectory(), v);
+        if (Files.notExists(p)) {
+            throw new UserDefinedException("'" + key + "' directory does not exists: " + p);
+        }
+        return p;
+    }
+
+    private ProcessDefinition loadProcessDefinition(Path flowsDir) {
+        ProjectLoaderV2.Result loadResult;
+        try {
+            loadResult = new ProjectLoaderV2(new NoopImportManager())
+                    .load(flowsDir, new NoopImportsNormalizer(), ImportsListener.NOP_LISTENER);
+        } catch (Exception e) {
+            log.error("Error while loading flows: {}", e.getMessage(), e);
+            throw new RuntimeException("Error while loading flows: " + e.getMessage());
+        }
+
+        return loadResult.getProjectDefinition();
     }
 
     private static Map<String, List<FlowLineNum>> collectFlowLineNumbers(Map<String, Flow> flows) {
