@@ -17,7 +17,11 @@
 - github: simplify result for getCommit action
 ([#191](https://github.com/walmartlabs/concord-plugins/pull/191))
 - jira: set user-agent for http calls
-([#192](https://github.com/walmartlabs/concord-plugins/pull/192)).
+([#192](https://github.com/walmartlabs/concord-plugins/pull/192));
+- git-tasks: add missing file statuses to getPRFiles action
+([#196](https://github.com/walmartlabs/concord-plugins/pull/196)).
+
+
 
 ## [2.7.0] - 2024-12-05
 
