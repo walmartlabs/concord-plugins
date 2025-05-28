@@ -12,14 +12,18 @@
     <packaging>takari-jar</packaging>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <skipArgoITs>true</skipArgoITs>
+
+        <testcontainers.concord.version>2.0.2</testcontainers.concord.version>
         <swagger-annotations-version>1.5.21</swagger-annotations-version>
         <httpclient-version>4.5.13</httpclient-version>
         <jackson-version>2.13.3</jackson-version>
-        <jackson-threetenbp-version>2.9.10</jackson-threetenbp-version>
+        <jackson-threetenbp-version>2.18.2</jackson-threetenbp-version>
         <jakarta-annotation-version>1.3.5</jakarta-annotation-version>
         <maven-plugin-version>1.0.0</maven-plugin-version>
         <junit-version>4.13.1</junit-version>
-        <threetenbp-version>1.4.0</threetenbp-version>
+        <threetenbp-version>1.7.1</threetenbp-version>
     </properties>
 
     <dependencies>
@@ -57,6 +61,7 @@
         <dependency>
             <groupId>com.google.errorprone</groupId>
             <artifactId>error_prone_annotations</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
@@ -84,6 +89,30 @@
             <version>4.9.0</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.wiremock</groupId>
+            <artifactId>wiremock-jetty12</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.wiremock</groupId>
+            <artifactId>wiremock</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>ca.ibodrov.concord</groupId>
+            <artifactId>testcontainers-concord-core</artifactId>
+            <version>${testcontainers.concord.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>ca.ibodrov.concord</groupId>
+            <artifactId>testcontainers-concord-junit5</artifactId>
+            <version>${testcontainers.concord.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+
         <!-- https://mvnrepository.com/artifact/com.microsoft.identity.client/msal -->
         <!-- https://mvnrepository.com/artifact/com.microsoft.azure/msal4j -->
         <dependency>
@@ -95,32 +124,13 @@
             <groupId>io.swagger</groupId>
             <artifactId>swagger-annotations</artifactId>
             <version>${swagger-annotations-version}</version>
+            <scope>provided</scope>
         </dependency>
 
         <!-- @Nullable annotation -->
         <dependency>
             <groupId>com.google.code.findbugs</groupId>
             <artifactId>jsr305</artifactId>
-            <scope>provided</scope>
-        </dependency>
-
-
-        <!-- HTTP client: apache client -->
-        <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-            <version>${httpclient-version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpmime</artifactId>
-            <version>${httpclient-version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpcore</artifactId>
             <scope>provided</scope>
         </dependency>
 
@@ -151,14 +161,9 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>com.github.joschi.jackson</groupId>
-            <artifactId>jackson-datatype-threetenbp</artifactId>
-            <version>${jackson-threetenbp-version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.threeten</groupId>
-            <artifactId>threetenbp</artifactId>
-            <version>${threetenbp-version}</version>
+            <groupId>org.openapitools</groupId>
+            <artifactId>jackson-databind-nullable</artifactId>
+            <version>0.2.6</version>
         </dependency>
         <dependency>
             <groupId>jakarta.annotation</groupId>
@@ -166,9 +171,37 @@
             <version>${jakarta-annotation-version}</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>1.19.8</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
+        <testResources>
+            <testResource>
+                <filtering>false</filtering>
+                <directory>${project.basedir}/src/test/resources</directory>
+                <includes>
+                    <include>**/*</include>
+                </includes>
+            </testResource>
+            <testResource>
+                <filtering>true</filtering>
+                <directory>${project.basedir}/src/test/filtered-resources</directory>
+                <includes>
+                    <include>**/*</include>
+                </includes>
+            </testResource>
+        </testResources>
+
         <plugins>
             <plugin>
                 <groupId>io.takari.maven.plugins</groupId>
@@ -195,7 +228,7 @@
                                 ${project.basedir}/argocd.yml
                             </inputSpec>
                             <generatorName>java</generatorName>
-                            <library>apache-httpclient</library>
+                            <library>native</library>
                             <packageName>com.walmartlabs.concord.plugins.argocd.openapi</packageName>
                             <apiPackage>com.walmartlabs.concord.plugins.argocd.openapi.api</apiPackage>
                             <modelPackage>com.walmartlabs.concord.plugins.argocd.openapi.model</modelPackage>
@@ -210,6 +243,25 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>3.0.0-M5</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <skipITs>${skipArgoITs}</skipITs>
+                    <includes>
+                        <include>**/*IT</include>
+                    </includes>
+                </configuration>
             </plugin>
         </plugins>
     </build>

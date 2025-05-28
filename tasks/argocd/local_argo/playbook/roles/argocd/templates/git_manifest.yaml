@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/name: git
+  name: git
+data:
+  git.key01.pub: |
+    {{ lookup('file', 'generated/test_key.pub') | indent( width=4 ) }}
+  git.repo01.file: |
+    {{ lookup('file', 'test_deployment.yaml') | indent( width=4 ) }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: git
+  labels:
+    app: git
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: git
+  template:
+    metadata:
+      labels:
+        app: git
+    spec:
+      volumes:
+        - name: git-public-key-volume
+          configMap:
+            name: git
+            items:
+              - key: "git.key01.pub"
+                path: "git.key01.pub"
+        - name: git-repos-volume
+          configMap:
+            name: git
+            items:
+              - key: "git.repo01.file"
+                path: "manifest.yaml"
+      containers:
+        - name: git
+          image: jkarlos/git-server-docker:latest
+          ports:
+            - containerPort: 22
+          volumeMounts:
+            - name: git-public-key-volume
+              mountPath: "/git-server/keys"
+              readOnly: true
+            - name: git-repos-volume
+              mountPath: "/repo_src"
+              readOnly: false
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - "/bin/sh"
+                  - "-c"
+                  - "mkdir -p /git-server/repos/myrepo.git/app; cp /repo_src/..data/manifest.yaml /git-server/repos/myrepo.git/app/manifest.yaml; cd /git-server/repos/myrepo.git; git init; git add app; git config --global user.email me@mail.local; git config --global user.name me; git commit -m init;"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: git-svc
+spec:
+  clusterIP: None # headless service
+  ports:
+    - name: http
+      port: 10022
+      protocol: TCP
+      targetPort: 22
+  selector:
+    app: git

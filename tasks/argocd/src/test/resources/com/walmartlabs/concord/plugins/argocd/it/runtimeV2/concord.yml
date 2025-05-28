@@ -1,0 +1,20 @@
+configuration:
+  runtime: "concord-v2"
+  dependencies:
+    - "mvn://com.walmartlabs.concord.plugins:argocd-task:%%version%%"
+
+flows:
+  default:
+    - log: "Hello world"
+    - task: argocd
+      in:
+        action: get
+        baseUrl: "${argoBaseUrl}"
+        app: "test"
+        auth:
+          ldap:
+            username: user
+            password: password
+      out: result
+    - log: "${resource.prettyPrintJson(result)}"
+    - log: "got app status: ${result.app.status.health.status}"

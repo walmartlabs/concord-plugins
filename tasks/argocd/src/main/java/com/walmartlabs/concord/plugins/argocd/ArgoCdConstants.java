@@ -28,12 +28,10 @@ public class ArgoCdConstants {
 
     static final String CREATE_NAMESPACE_OPTION = "CreateNamespace=true";
 
-    static final Map<String, Object> SYNC_POLICY = Collections.unmodifiableMap(new HashMap<String, Object>() {{
-        put("automated", new HashMap<String, Object>() {{
-            put("prune", true);
-            put("selfHeal", true);
-        }});
-    }});
+    static final Map<String, Object> SYNC_POLICY = Map.of("automated", Map.of(
+            "prune", true,
+            "selfHeal", true
+    ));
 
     static final String ARGOCD_NAMESPACE = "argocd";
 
