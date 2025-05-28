@@ -18,6 +18,8 @@
 ([#191](https://github.com/walmartlabs/concord-plugins/pull/191))
 - jira: set user-agent for http calls
 ([#192](https://github.com/walmartlabs/concord-plugins/pull/192));
+- akeyless: use native httpclient
+([#194](https://github.com/walmartlabs/concord-plugins/pull/194));
 - git-tasks: add missing file statuses to getPRFiles action
 ([#196](https://github.com/walmartlabs/concord-plugins/pull/196)).
 
