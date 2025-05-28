@@ -28,8 +28,11 @@ import ca.ibodrov.concord.testcontainers.junit5.ConcordRule;
 import com.walmartlabs.concord.client2.ApiException;
 import com.walmartlabs.concord.client2.ProcessEntry;
 import com.walmartlabs.concord.common.IOUtils;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,11 +47,18 @@ class TaskIT extends AbstractIT {
     @RegisterExtension
     public static final ConcordRule concord = new ConcordRule()
             .mode(Concord.Mode.DOCKER)
-            .streamServerLogs(true)
-            .streamAgentLogs(true)
+            .streamServerLogs(false)
+            .streamAgentLogs(false)
             .useLocalMavenRepository(true);
 
     private static final String CURRENT_VERSION = getCurrentVersion();
+    private static final Logger log = LoggerFactory.getLogger(TaskIT.class);
+
+    @BeforeAll
+    static void beforeAll() {
+        log.info("Concord url: {}", concord.apiBaseUrl());
+        log.info("Admin token: {}", concord.environment().apiToken());
+    }
 
     @Test
     void testWithRuntimeV1() throws Exception {
@@ -115,4 +125,5 @@ class TaskIT extends AbstractIT {
             throw new RuntimeException(e);
         }
     }
+
 }

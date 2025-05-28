@@ -72,6 +72,10 @@ $ IT_PROPERTIES_FILE=~/my_it_props/akeyless.props mvn -DskipAkeylessITs=false fa
 [INFO] ------------------------------------------------------------------------
 ```
 
+Set custom Concord server and agent images with `TESTCONTAINERS_CONCORD_SERVER_IMAGE`
+and `TESTCONTAINERS_CONCORD_AGENT_IMAGE` environment variables. See
+[`testcontainers-concord` usage notes](https://github.com/concord-workflow/testcontainers-concord?tab=readme-ov-file#usage)
+
 ## Testing via Payload
 
 **This should really only be done against a local Concord dev instance since the
