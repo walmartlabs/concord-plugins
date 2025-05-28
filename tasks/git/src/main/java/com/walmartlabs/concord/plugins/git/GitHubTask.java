@@ -36,13 +36,10 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.walmartlabs.concord.plugins.git.Utils.getUrl;
 import static com.walmartlabs.concord.sdk.MapUtils.*;
-import static java.util.function.Function.identity;
 
 public class GitHubTask {
 
@@ -189,7 +186,8 @@ public class GitHubTask {
             }
             case GETCONTENT: {
                 return getContent(in, gitHubUri);
-            } case CREATEHOOK: {
+            }
+            case CREATEHOOK: {
                 return createHook(in, gitHubUri);
             }
             case GETPRFILES: {
@@ -389,7 +387,7 @@ public class GitHubTask {
 
         log.info("Merging {} in {}/{}", head, gitHubOrgName, gitHubRepoName);
 
-        try (InputStream ignored = client.postStream(uri, params)){
+        try (InputStream ignored = client.postStream(uri, params)) {
 
             log.info("Merged '{}' with '{}'", head, base);
 
@@ -422,7 +420,7 @@ public class GitHubTask {
             Repository repository = repositoryService.getRepository(repo);
             String defaultBranch = repository.getDefaultBranch();
 
-            if (defaultBranch != null && ! defaultBranch.trim().isEmpty()) {
+            if (defaultBranch != null && !defaultBranch.trim().isEmpty()) {
                 data.put("defaultBranch", defaultBranch);
             }
             // result just for backward compatibility
@@ -466,7 +464,7 @@ public class GitHubTask {
         tag.setTagger(commitUser);
 
         if (dryRunMode) {
-            log.info("Dry-run mode enabled: Skipping creation of tag '{}' for commit '{}' in {}/{}", gitHubTagVersion, gitHubBranchSHA,gitHubOrgName, gitHubRepoName);
+            log.info("Dry-run mode enabled: Skipping creation of tag '{}' for commit '{}' in {}/{}", gitHubTagVersion, gitHubBranchSHA, gitHubOrgName, gitHubRepoName);
             return Map.of();
         }
 
@@ -689,7 +687,7 @@ public class GitHubTask {
             log.info("Getting branch list from {}/{}...", gitHubOrgName, gitHubRepoName);
             List<RepositoryBranch> list = repoService.getBranches(repo);
             if (list != null && !list.isEmpty()) {
-                List<String> branchList = list.stream().map(RepositoryBranch::getName).collect(Collectors.toList());
+                List<String> branchList = list.stream().map(RepositoryBranch::getName).toList();
                 result = Collections.singletonMap("branchList", branchList);
             }
 
@@ -719,7 +717,7 @@ public class GitHubTask {
             log.info("Getting tag list from '{}/{}'...", gitHubOrgName, gitHubRepoName);
             List<RepositoryTag> list = repoService.getTags(repo);
             if (list != null && !list.isEmpty()) {
-                List<String> tagList = list.stream().map(RepositoryTag::getName).collect(Collectors.toList());
+                List<String> tagList = list.stream().map(RepositoryTag::getName).toList();
                 result = Collections.singletonMap("tagList", tagList);
             }
 
@@ -763,7 +761,7 @@ public class GitHubTask {
 
         if (!GITHUB_VALID_PR_STATES.contains(state)) {
             throw new IllegalArgumentException("Invalid PR state '" + state +
-                    "'. Allowed values are only 'all', 'open', 'closed'.");
+                                               "'. Allowed values are only 'all', 'open', 'closed'.");
         }
 
         GitHubClient client = createClient(gitHubUri);
@@ -810,14 +808,14 @@ public class GitHubTask {
             }
 
             // cleanup patch field
-            list = list.stream().map(f -> f.setPatch(null)).collect(Collectors.toList());
+            list = list.stream().map(f -> f.setPatch(null)).toList();
 
             List<String> added = list.stream().filter(f -> "added".equals(f.getStatus())).map(CommitFile::getFilename).toList();
             List<String> removed = list.stream().filter(f -> "removed".equals(f.getStatus())).map(CommitFile::getFilename).toList();
             List<String> modified = list.stream().filter(f -> "modified".equals(f.getStatus())).map(CommitFile::getFilename).toList();
-            List<String> renamed  = list.stream().filter(f -> "renamed".equals(f.getStatus())).map(CommitFile::getFilename).toList();
-            List<String> copied  = list.stream().filter(f -> "copied".equals(f.getStatus())).map(CommitFile::getFilename).toList();
-            List<String> changed  = list.stream().filter(f -> "changed".equals(f.getStatus())).map(CommitFile::getFilename).toList();
+            List<String> renamed = list.stream().filter(f -> "renamed".equals(f.getStatus())).map(CommitFile::getFilename).toList();
+            List<String> copied = list.stream().filter(f -> "copied".equals(f.getStatus())).map(CommitFile::getFilename).toList();
+            List<String> changed = list.stream().filter(f -> "changed".equals(f.getStatus())).map(CommitFile::getFilename).toList();
             List<String> any = Stream.of(added, removed, modified, renamed, copied, changed).flatMap(Collection::stream).toList();
 
             Map<String, Object> result = new HashMap<>();
@@ -825,7 +823,7 @@ public class GitHubTask {
             result.put("prFilesAdded", added);
             result.put("prFilesRemoved", removed);
             result.put("prFilesModified", modified);
-            result.put("prFilesRenamed", removed);
+            result.put("prFilesRenamed", renamed);
             result.put("prFilesCopied", copied);
             result.put("prFilesChanged", changed);
             result.put("prFilesAny", any);
@@ -858,14 +856,14 @@ public class GitHubTask {
 
             if (repo == null) {
                 log.debug("Repository " + gitHubRepoName + " does not exist in " + gitHubOrgName +
-                        " organization. " + "Proceeding with repo creation");
+                          " organization. " + "Proceeding with repo creation");
 
                 Repository newRepo = new Repository();
                 newRepo.setName(gitHubRepoName);
                 repo = repositoryService.createRepository(gitHubOrgName, newRepo);
 
                 log.info("Repository " + gitHubRepoName + " created successfully in " +
-                        gitHubOrgName + " organization.");
+                         gitHubOrgName + " organization.");
             } else {
                 log.warn("Repository " + repo.generateId() + " already exists. Skipping creation ...");
             }
@@ -901,14 +899,14 @@ public class GitHubTask {
 
             if (repo == null) {
                 log.warn("Repository " + gitHubOrgName + "/" + gitHubRepoName + " does not exist. " +
-                        "Looks like it is already deleted. Skipping deletion ...");
+                         "Looks like it is already deleted. Skipping deletion ...");
             } else {
                 log.debug("Repository " + gitHubRepoName + " exists in " + gitHubOrgName +
-                        " organization. " + "Proceeding with repo deletion");
+                          " organization. " + "Proceeding with repo deletion");
 
                 repositoryService.deleteRepository(repo);
                 log.info("Repository " + gitHubRepoName + " deleted successfully from " +
-                        gitHubOrgName + " organization.");
+                         gitHubOrgName + " organization.");
             }
 
             return Collections.emptyMap();
@@ -1024,7 +1022,7 @@ public class GitHubTask {
         try {
             if (MapUtils.getBoolean(in, GITHUB_HOOK_REPLACE, false)) {
                 List<RepositoryHook> hooks = service.getHooks(repo);
-                List<RepositoryHook> existingHooks = hooks.stream().filter(h -> hookUrl.equalsIgnoreCase(h.getUrl())).collect(Collectors.toList());
+                List<RepositoryHook> existingHooks = hooks.stream().filter(h -> hookUrl.equalsIgnoreCase(h.getUrl())).toList();
                 for (RepositoryHook h : existingHooks) {
                     service.deleteHook(repo, h.getId());
                 }
@@ -1055,7 +1053,7 @@ public class GitHubTask {
                 .setAssignee(new User().setLogin(getString(in, ISSUE_ASSIGNEE)))
                 .setLabels(getList(in, ISSUE_LABELS, Collections.<String>emptyList()).stream()
                         .map(l -> new Label().setName(l))
-                        .collect(Collectors.toList()));
+                        .toList());
 
         if (dryRunMode) {
             log.info("Dry-run mode enabled: Skipping creation of an issue in {}/{}", gitHubOrgName, gitHubRepoName);
