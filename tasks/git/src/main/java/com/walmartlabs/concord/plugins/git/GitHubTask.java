@@ -36,11 +36,13 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.walmartlabs.concord.plugins.git.Utils.getUrl;
 import static com.walmartlabs.concord.sdk.MapUtils.*;
+import static java.util.function.Function.identity;
 
 public class GitHubTask {
 
@@ -810,16 +812,22 @@ public class GitHubTask {
             // cleanup patch field
             list = list.stream().map(f -> f.setPatch(null)).collect(Collectors.toList());
 
-            List<String> modified = list.stream().filter(f -> "modified".equals(f.getStatus())).map(CommitFile::getFilename).collect(Collectors.toList());
-            List<String> removed = list.stream().filter(f -> "removed".equals(f.getStatus())).map(CommitFile::getFilename).collect(Collectors.toList());
-            List<String> added = list.stream().filter(f -> "added".equals(f.getStatus())).map(CommitFile::getFilename).collect(Collectors.toList());
-            List<String> any = Stream.concat(modified.stream(), Stream.concat(removed.stream(), added.stream())).collect(Collectors.toList());
+            List<String> added = list.stream().filter(f -> "added".equals(f.getStatus())).map(CommitFile::getFilename).toList();
+            List<String> removed = list.stream().filter(f -> "removed".equals(f.getStatus())).map(CommitFile::getFilename).toList();
+            List<String> modified = list.stream().filter(f -> "modified".equals(f.getStatus())).map(CommitFile::getFilename).toList();
+            List<String> renamed  = list.stream().filter(f -> "renamed".equals(f.getStatus())).map(CommitFile::getFilename).toList();
+            List<String> copied  = list.stream().filter(f -> "copied".equals(f.getStatus())).map(CommitFile::getFilename).toList();
+            List<String> changed  = list.stream().filter(f -> "changed".equals(f.getStatus())).map(CommitFile::getFilename).toList();
+            List<String> any = Stream.of(added, removed, modified, renamed, copied, changed).flatMap(Collection::stream).toList();
 
             Map<String, Object> result = new HashMap<>();
             result.put("prFiles", new ObjectMapper().convertValue(list, Object.class));
-            result.put("prFilesModified", modified);
-            result.put("prFilesRemoved", removed);
             result.put("prFilesAdded", added);
+            result.put("prFilesRemoved", removed);
+            result.put("prFilesModified", modified);
+            result.put("prFilesRenamed", removed);
+            result.put("prFilesCopied", copied);
+            result.put("prFilesChanged", changed);
             result.put("prFilesAny", any);
 
             return result;
