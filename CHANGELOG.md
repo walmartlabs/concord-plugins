@@ -18,6 +18,9 @@
 ([#191](https://github.com/walmartlabs/concord-plugins/pull/191))
 - jira: set user-agent for http calls
 ([#192](https://github.com/walmartlabs/concord-plugins/pull/192));
+- argocd: use native http client, apply fallback on sync timeout,
+local ITs instance script
+([#193](https://github.com/walmartlabs/concord-plugins/pull/193));
 - akeyless: use native httpclient
 ([#194](https://github.com/walmartlabs/concord-plugins/pull/194));
 - git-tasks: add missing file statuses to getPRFiles action
