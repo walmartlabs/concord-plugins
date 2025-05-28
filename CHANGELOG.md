@@ -1,5 +1,33 @@
 # Change Log
 
+## [2.8.0] - TBD
+
+### Added
+
+### Changed
+
+- git: dry-run mode for commit action
+([#185](https://github.com/walmartlabs/concord-plugins/pull/185));
+- jira: return fake IDs in dry-run-mode for createIssue and createComponent actions
+([#188](https://github.com/walmartlabs/concord-plugins/pull/188));
+- github: return comment id
+([#189](https://github.com/walmartlabs/concord-plugins/pull/189));
+- github: return fake PR ID in dry-run-mode for craeatePr action
+([#186](https://github.com/walmartlabs/concord-plugins/pull/186));
+- github: simplify result for getCommit action
+([#191](https://github.com/walmartlabs/concord-plugins/pull/191))
+- jira: set user-agent for http calls
+([#192](https://github.com/walmartlabs/concord-plugins/pull/192));
+- argocd: use native http client, apply fallback on sync timeout,
+local ITs instance script
+([#193](https://github.com/walmartlabs/concord-plugins/pull/193));
+- akeyless: use native httpclient
+([#194](https://github.com/walmartlabs/concord-plugins/pull/194));
+- git-tasks: add missing file statuses to getPRFiles action
+([#196](https://github.com/walmartlabs/concord-plugins/pull/196)).
+
+
+
 ## [2.7.0] - 2024-12-05
 
 ### Added
