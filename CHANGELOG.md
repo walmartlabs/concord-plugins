@@ -24,7 +24,9 @@ local ITs instance script
 - akeyless: use native httpclient
 ([#194](https://github.com/walmartlabs/concord-plugins/pull/194));
 - git-tasks: add missing file statuses to getPRFiles action
-([#196](https://github.com/walmartlabs/concord-plugins/pull/196)).
+([#196](https://github.com/walmartlabs/concord-plugins/pull/196));
+- project: remove takari-lifecycle, parent pom
+([#197)(https://github.com/walmartlabs/concord-plugins/pull/197)).
 
 
 
