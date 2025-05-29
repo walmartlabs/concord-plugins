@@ -10,7 +10,7 @@
     </parent>
 
     <artifactId>gremlin-task</artifactId>
-    <packaging>takari-jar</packaging>
+    <packaging>jar</packaging>
 
     <build>
         <resources>

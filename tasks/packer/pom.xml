@@ -11,11 +11,10 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>packer-task</artifactId>
-    <packaging>takari-jar</packaging>
+    <packaging>jar</packaging>
 
     <properties>
         <concord.version>1.36.0</concord.version>
-        <takari.annotationProcessing>proc</takari.annotationProcessing>
     </properties>
 
     <dependencyManagement>

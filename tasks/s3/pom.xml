@@ -10,7 +10,7 @@
     </parent>
 
     <artifactId>s3-task</artifactId>
-    <packaging>takari-jar</packaging>
+    <packaging>jar</packaging>
 
     <properties>
         <awssdk.version>1.12.261</awssdk.version>

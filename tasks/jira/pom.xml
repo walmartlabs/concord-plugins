@@ -10,7 +10,7 @@
     </parent>
 
     <artifactId>jira-task</artifactId>
-    <packaging>takari-jar</packaging>
+    <packaging>jar</packaging>
 
     <properties>
         <skipTests>false</skipTests>

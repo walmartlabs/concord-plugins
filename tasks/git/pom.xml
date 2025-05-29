@@ -11,7 +11,7 @@
     </parent>
 
     <artifactId>git</artifactId>
-    <packaging>takari-jar</packaging>
+    <packaging>jar</packaging>
 
     <properties>
         <jgit.version>6.5.0.202303070854-r</jgit.version>

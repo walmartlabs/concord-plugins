@@ -9,7 +9,7 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <artifactId>argocd-task</artifactId>
-    <packaging>takari-jar</packaging>
+    <packaging>jar</packaging>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
@@ -203,13 +203,6 @@
         </testResources>
 
         <plugins>
-            <plugin>
-                <groupId>io.takari.maven.plugins</groupId>
-                <artifactId>takari-lifecycle-plugin</artifactId>
-                <configuration>
-                    <proc>proc</proc>
-                </configuration>
-            </plugin>
             <plugin>
                 <groupId>dev.ybrig.concord</groupId>
                 <artifactId>concord-maven-plugin</artifactId>
