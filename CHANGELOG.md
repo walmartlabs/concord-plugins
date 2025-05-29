@@ -4,6 +4,9 @@
 
 ### Added
 
+- github: allow create tag with branch name
+([#184](https://github.com/walmartlabs/concord-plugins/pull/184)).
+
 ### Changed
 
 - git: dry-run mode for commit action
