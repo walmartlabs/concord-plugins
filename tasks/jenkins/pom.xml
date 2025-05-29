@@ -11,7 +11,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>jenkins-task</artifactId>
-    <packaging>takari-jar</packaging>
+    <packaging>jar</packaging>
 
     <properties>
         <jaxrs-api.version>1.0.1.Final</jaxrs-api.version>

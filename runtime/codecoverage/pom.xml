@@ -11,7 +11,7 @@
     </parent>
 
     <artifactId>codecoverage</artifactId>
-    <packaging>takari-jar</packaging>
+    <packaging>jar</packaging>
 
     <properties>
     </properties>

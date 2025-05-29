@@ -9,7 +9,7 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <artifactId>zoom-task</artifactId>
-    <packaging>takari-jar</packaging>
+    <packaging>jar</packaging>
     <dependencies>
         <dependency>
             <groupId>com.walmartlabs.concord</groupId>

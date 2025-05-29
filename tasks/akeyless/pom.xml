@@ -10,7 +10,7 @@
     </parent>
 
     <artifactId>akeyless-task</artifactId>
-    <packaging>takari-jar</packaging>
+    <packaging>jar</packaging>
 
     <properties>
         <maven.compiler.source>${java.version}</maven.compiler.source>

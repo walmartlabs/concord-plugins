@@ -10,7 +10,7 @@
     </parent>
 
     <artifactId>aws-tasks</artifactId>
-    <packaging>takari-jar</packaging>
+    <packaging>jar</packaging>
 
     <properties>
         <aws.sdk.version>2.26.4</aws.sdk.version>
