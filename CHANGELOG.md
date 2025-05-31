@@ -1,5 +1,14 @@
 # Change Log
 
+## [2.9.0] - TBD
+
+### Changed
+
+- project: update target concord version to 2.25.0
+([#199](https://github.com/walmartlabs/concord-plugins/pull/199)).
+
+
+
 ## [2.8.0] - 2025-05-29
 
 ### Added
