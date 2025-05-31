@@ -118,7 +118,6 @@ class ArgoK3sIT {
 
         var projectsApi = new ProjectsApi(concord.apiClient());
         var project = projectsApi.getProject(orgName, projectName);
-        project.setAcceptsRawPayload(true);
         project.rawPayloadMode(ProjectEntry.RawPayloadModeEnum.EVERYONE);
         projectsApi.createOrUpdateProject(orgName, project);
 
