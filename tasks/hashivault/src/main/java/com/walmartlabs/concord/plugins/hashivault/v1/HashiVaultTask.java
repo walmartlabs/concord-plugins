@@ -111,4 +111,8 @@ public class HashiVaultTask implements Task {
             return secretService.exportAsString(ctx, txId, o, n, p);
         }
     }
+
+    protected void setDefaults(Map<String, Object> d) {
+        defaults = d;
+    }
 }

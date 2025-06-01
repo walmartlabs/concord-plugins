@@ -28,9 +28,7 @@ import com.walmartlabs.concord.runtime.v2.sdk.*;
 import javax.inject.Inject;
 import javax.inject.Named;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
-
 
 @Named("hashivault")
 @DryRunReady
@@ -52,47 +50,45 @@ public class HashiVaultTask implements Task {
         final TaskParams params = createParams(input);
         final HashiVaultTaskCommon delegate = new HashiVaultTaskCommon(dryRunMode);
         final HashiVaultTaskResult result = delegate.execute(params);
-        final Map<String, Object> data = new HashMap<>(1);
-        data.put("data", result.data());
+        final Object data = result.data() == null ? Map.of() : result.data();
 
-        return TaskResult.of(result.ok(), result.error(), data);
+        return result.ok()
+                ? TaskResult.success().values(Map.of("data", data))
+                : TaskResult.fail(result.error());
     }
 
     private TaskParams createParams(Variables input) {
-        final SecretExporterV2 exporterV2 = new SecretExporterV2(secretService);
+        final var exporterV2 = new SecretExporterV2(secretService);
         return TaskParams.of(input, defaults, exporterV2);
     }
 
     public Map<String, Object> readKV(String path) {
-        Map<String, Object> vars = new HashMap<>();
-        vars.put(TaskParams.ACTION_KEY, TaskParams.Action.READKV.toString());
-        vars.put(TaskParams.PATH_KEY, path);
-
-        final Variables input = new MapBackedVariables(vars);
+        final Variables input = new MapBackedVariables(Map.of(
+                TaskParams.ACTION_KEY, TaskParams.Action.READKV.toString(),
+                TaskParams.PATH_KEY, path
+        ));
         final TaskParams params = createParams(input);
         final HashiVaultTaskResult result = new HashiVaultTaskCommon().execute(params);
         return result.data();
     }
 
     public String readKV(String path, String field) {
-        Map<String, Object> vars = new HashMap<>();
-        vars.put(TaskParams.ACTION_KEY, TaskParams.Action.READKV.toString());
-        vars.put(TaskParams.PATH_KEY, path);
-        vars.put(TaskParams.KEY_KEY, field);
-
-        final Variables input = new MapBackedVariables(vars);
+        final Variables input = new MapBackedVariables(Map.of(
+                TaskParams.ACTION_KEY, TaskParams.Action.READKV.toString(),
+                TaskParams.PATH_KEY, path,
+                TaskParams.KEY_KEY, field
+        ));
         final TaskParams params = createParams(input);
         final HashiVaultTaskResult result = new HashiVaultTaskCommon().execute(params);
         return result.data();
     }
 
     public void writeKV(String path, Map<String, Object> kvPairs) {
-        Map<String, Object> vars = new HashMap<>();
-        vars.put(TaskParams.ACTION_KEY, TaskParams.Action.WRITEKV.toString());
-        vars.put(TaskParams.PATH_KEY, path);
-        vars.put(TaskParams.KV_PAIRS_KEY, kvPairs);
-
-        final Variables input = new MapBackedVariables(vars);
+        final Variables input = new MapBackedVariables(Map.of(
+                TaskParams.ACTION_KEY, TaskParams.Action.WRITEKV.toString(),
+                TaskParams.PATH_KEY, path,
+                TaskParams.KV_PAIRS_KEY, kvPairs
+        ));
         final TaskParams params = createParams(input);
         final HashiVaultTaskCommon delegate = new HashiVaultTaskCommon();
         delegate.execute(params);
