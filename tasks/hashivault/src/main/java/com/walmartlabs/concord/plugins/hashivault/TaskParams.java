@@ -54,6 +54,7 @@ public class TaskParams {
     public static final String KV_PAIRS_KEY = "kvPairs";
     public static final String RETRY_COUNT_KEY = "retryCount";
     public static final String RETRY_INTERVAL_MS_KEY = "retryIntervalMs";
+    public static final String DRY_RUN_KEY = "dryRun";
 
     protected final Variables variables;
 
@@ -61,9 +62,14 @@ public class TaskParams {
         this.variables = variables;
     }
 
-    public static TaskParams of(Variables input, Map<String, Object> defaults, SecretExporter secretExporter) {
+    public static TaskParams of(Variables input,
+                                Map<String, Object> defaults,
+                                SecretExporter secretExporter,
+                                boolean dryRunMode) {
+
         Map<String, Object> variablesMap = new HashMap<>(defaults != null ? defaults : Collections.emptyMap());
         variablesMap.putAll(input.toMap());
+        variablesMap.putIfAbsent(DRY_RUN_KEY, dryRunMode);
 
         if (variablesMap.containsKey(API_TOKEN_SECRET_KEY)) {
             Map<String, Object> tokenSecret = MapUtils.assertMap(variablesMap, API_TOKEN_SECRET_KEY);
@@ -76,6 +82,10 @@ public class TaskParams {
         return switch (p.action()) {
             case READKV, WRITEKV -> new TaskParams(variables);
         };
+    }
+
+    public static TaskParams of(Variables input, Map<String, Object> defaults, SecretExporter secretExporter) {
+        return of(input, defaults, secretExporter, false);
     }
 
     private static String exportToken(SecretExporter secretExporter, Map<String, Object> secret) {
@@ -153,6 +163,10 @@ public class TaskParams {
         }
 
         return variables.getMap(KV_PAIRS_KEY, Collections.emptyMap());
+    }
+
+    public boolean dryRun() {
+        return variables.getBoolean(DRY_RUN_KEY, false);
     }
 
     public enum Action {

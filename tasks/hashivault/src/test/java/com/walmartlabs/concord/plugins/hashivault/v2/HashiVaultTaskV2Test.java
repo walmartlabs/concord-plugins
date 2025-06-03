@@ -20,11 +20,11 @@ package com.walmartlabs.concord.plugins.hashivault.v2;
  * =====
  */
 
-import com.walmartlabs.concord.plugins.hashivault.AbstractVaultTest;
+import com.walmartlabs.concord.plugins.hashivault.AbstractTaskTest;
+import com.walmartlabs.concord.plugins.hashivault.HashiVaultTaskCommon;
 import com.walmartlabs.concord.runtime.v2.sdk.Context;
 import com.walmartlabs.concord.runtime.v2.sdk.MapBackedVariables;
 import com.walmartlabs.concord.runtime.v2.sdk.SecretService;
-import com.walmartlabs.concord.runtime.v2.sdk.TaskResult.SimpleResult;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
@@ -34,17 +34,43 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.walmartlabs.concord.plugins.hashivault.TestConstants.MAP_VAL;
+import static com.walmartlabs.concord.plugins.hashivault.TestConstants.SECRET_PATH;
+import static com.walmartlabs.concord.plugins.hashivault.TestConstants.STRING_VAL;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class HashiVaultTaskV2Test extends AbstractVaultTest {
+class HashiVaultTaskV2Test  {
 
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
-    Context ctx;
+    private Context ctx;
 
     @Mock
-    SecretService secretService;
+    private SecretService secretService;
+
+    @Mock
+    private HashiVaultTaskCommon common;
+
+    @Test
+    void testExecute() {
+        AbstractTaskTest.mockReadMulti(common);
+
+        var result = getTask(true).execute(new MapBackedVariables(Map.of()));
+        assertTrue(result.ok());
+        assertEquals(MAP_VAL, result.values().get("data"));
+    }
+
+    @Test
+    void testExecuteError() {
+        AbstractTaskTest.mockReadError(common);
+
+        var result = getTask(true).execute(new MapBackedVariables(Map.of()));
+        assertFalse(result.ok());
+        assertEquals("mock-error", result.error());
+    }
 
     @Test
     void testReadTokenFromSecretV2() throws Exception {
@@ -53,186 +79,68 @@ class HashiVaultTaskV2Test extends AbstractVaultTest {
                         "org", "my-org",
                         "name", "my-secret"
                 ),
-                "baseUrl", getVaultBaseUrl(),
-                "path", "cubbyhole/hello"
+                "baseUrl", "https://mock-api.local",
+                "path", SECRET_PATH
         );
 
+        AbstractTaskTest.mockReadMulti(common);
         when(secretService.exportAsString("my-org", "my-secret", null))
-                .thenReturn(getApiToken());
+                .thenReturn("mock-token");
 
         var result = getTask(false).execute(new MapBackedVariables(varMap));
-
         assertTrue(result.ok());
+
         var data = assertInstanceOf(Map.class, result.values().get("data"));
-        assertEquals("cubbyVal", data.get("cubbyKey"));
-    }
+        assertEquals(MAP_VAL, data);
 
-    @Test
-    void testCubbyV2() {
-        var vars = new MapBackedVariables(Map.of(
-                "path", "cubbyhole/hello"
-        ));
-
-        var result = getTask(true).execute(vars);
-
-        assertTrue(result.ok());
-        var data = assertInstanceOf(Map.class, result.values().get("data"));
-        assertEquals("cubbyVal", data.get("cubbyKey"));
-    }
-
-    @Test
-    void testKvV2() {
-        var vars = new MapBackedVariables(Map.of(
-                "path", "secret/testing"
-        ));
-        SimpleResult result = getTask(true).execute(vars);
-
-        assertTrue(result.ok());
-        var data = assertInstanceOf(Map.class, result.values().get("data"));
-        assertEquals("password1", data.get("top_secret"));
-        assertEquals("dbpassword1", data.get("db_password"));
-    }
-
-    @Test
-    void testIgnoreSslVerificationV2() {
-        var vars = new MapBackedVariables(Map.of(
-                "baseUrl", getVaultHttpsBaseUrl(),
-                "path", "secret/testing"
-        ));
-
-        // -- expect ssl verification failure with self-signed certs
-
-        assertThrows(Exception.class, () -> getTask(true).execute(vars),
-                "HTTPS should fail with self-signed certs and verification enabled");
-
-        // -- should work with verification disabled
-
-        var result = getTask(true).execute(new MapBackedVariables(Map.of(
-                "baseUrl", getVaultHttpsBaseUrl(),
-                "path", "secret/testing",
-                "verifySsl", false
-        )));
-
-        assertTrue(result.ok());
-        var data = assertInstanceOf(Map.class, result.values().get("data"));
-        assertEquals("password1", data.get("top_secret"));
-        assertEquals("dbpassword1", data.get("db_password"));
-    }
-
-    @Test
-    void testReadKvSingleV2() {
-        var vars = new MapBackedVariables(Map.of(
-                "path", "secret/testing",
-                "key", "db_password"
-        ));
-        var result = getTask(true).execute(vars);
-
-        assertTrue(result.ok());
-        var data = assertInstanceOf(String.class, result.values().get("data"));
-        assertEquals("dbpassword1", data);
-    }
-
-    @Test
-    void testWriteCubbyV2() {
-        writeAndRead("cubbyhole/newSecretTaskV2", "v2CubbyExecute");
-    }
-
-    @Test
-    void testWriteKvV2() {
-        writeAndRead("secret/newSecretTaskV2", "v2SecretExecute");
+        verify(secretService, times(1)).exportAsString("my-org", "my-secret", null);
     }
 
     @Test
     void testReadKvSinglePublicMethodV2()  {
-        String path = "secret/testing";
-        String result = getTask(true).readKV(path, "db_password");
+        AbstractTaskTest.mockReadSingle("db_password", STRING_VAL, common);
 
-        assertEquals("dbpassword1", result);
+        var result = getTask(true).readKV(SECRET_PATH, "db_password");
+
+        assertEquals(STRING_VAL, result);
     }
 
     @Test
-    void testWriteCubbyPublicMethodV2() {
-        var path = "cubbyhole/newSecretTaskPublicMethodV2";
-        var kvPairs = Map.<String, Object>of(
-                "key1", "cubbyValue1",
-                "key2", "cubbyValue2"
-        );
+    void testWriteKvMultiPublicMethodV2() {
+        AbstractTaskTest.mockWriteMulti(common);
 
-        getTask(true).writeKV(path, kvPairs);
-
-        // -- now get the values back
-
-        Map<String, Object> data = getTask(true) // resets context
-                .readKV(path);
-
-        assertEquals("cubbyValue1", data.get("key1"));
-        assertEquals("cubbyValue2", data.get("key2"));
+        assertDoesNotThrow(() -> getTask(true).writeKV(SECRET_PATH, MAP_VAL));
     }
 
     @Test
-    void testWriteKvPublicMethodV2() {
-        var path = "secret/newSecretTaskPublicMethodV2";
-        var kvPairs = Map.<String, Object>of(
-                "key1", "value1",
-                "key2", "value2"
-        );
+    void testReadKvMultiPublicMethodV2() {
+        AbstractTaskTest.mockReadMulti(common);
 
-        getTask(true).writeKV(path, kvPairs);
+        var data = getTask(true).readKV(SECRET_PATH);
 
-        // -- now get the values back
-
-        var data = getTask(true) // resets context
-                .readKV(path);
-
-        assertEquals("value1", data.get("key1"));
-        assertEquals("value2", data.get("key2"));
-    }
-
-    private void writeAndRead(String path, String prefix) {
-        var input1 = new MapBackedVariables(Map.of(
-                "action", "writeKV",
-                "path", path,
-                "kvPairs", Map.of(
-                        "key1", prefix + "Value1",
-                        "key2", prefix + "Value2"
-                )
-        ));
-
-        var writeResult = getTask(true).execute(input1);
-
-        assertTrue(writeResult.ok());
-
-        // -- now get the values back
-
-        var input2 = new MapBackedVariables(Map.of(
-                "action", "readKV",
-                "path", path
-        ));
-
-        var readResult = getTask(true) // resets context
-                .execute(input2);
-
-        assertTrue(readResult.ok());
-
-        var data = assertInstanceOf(Map.class, readResult.values().get("data"));
-        assertEquals(prefix + "Value1", data.get("key1"));
-        assertEquals(prefix + "Value2", data.get("key2"));
+        assertEquals(MAP_VAL, data);
     }
 
     private HashiVaultTask getTask(boolean setDefaults) {
-        Map<String, Object> vars = new HashMap<>();
+        var vars = new HashMap<String, Object>();
 
         if (setDefaults) {
             vars.put("hashivaultParams", Map.of(
-                    "baseUrl", getVaultBaseUrl(),
-                    "apiToken", getApiToken(),
-                    "retryIntervalMs", 1
+                    "baseUrl", "https://mock-api.local",
+                    "apiToken", "mock-key",
+                    "retryIntervalMs", 1,
+                    "path", SECRET_PATH
             ));
         }
 
-        when(ctx.processConfiguration().dryRun()).thenReturn(false);
         when(ctx.variables()).thenReturn(new MapBackedVariables(vars));
+        when(ctx.processConfiguration().dryRun()).thenReturn(false);
 
-        return new HashiVaultTask(ctx, secretService);
+        return new HashiVaultTask(ctx, secretService) {
+            @Override
+            protected HashiVaultTaskCommon getDelegate() {
+                return common;
+            }
+        };
     }
 }

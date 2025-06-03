@@ -22,6 +22,7 @@ package com.walmartlabs.concord.plugins.hashivault;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 public class HashiVaultTaskResult {
     private final Boolean ok;
@@ -35,7 +36,7 @@ public class HashiVaultTaskResult {
     }
 
     public static HashiVaultTaskResult of(boolean ok, Map<String, String> data, String error, TaskParams p) {
-        if (p.hasKeyField()) {
+        if (Optional.ofNullable(p).filter(TaskParams::hasKeyField).isPresent()) {
             return new HashiVaultTaskResult(ok, data.get(p.key()), error);
         }
 

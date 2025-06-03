@@ -20,90 +20,60 @@ package com.walmartlabs.concord.plugins.hashivault.v2;
  * =====
  */
 
-import com.walmartlabs.concord.plugins.hashivault.HashiVaultTaskCommon;
+import com.walmartlabs.concord.plugins.hashivault.AbstractHashiVaultTask;
 import com.walmartlabs.concord.plugins.hashivault.HashiVaultTaskResult;
 import com.walmartlabs.concord.plugins.hashivault.TaskParams;
-import com.walmartlabs.concord.runtime.v2.sdk.*;
+import com.walmartlabs.concord.runtime.v2.sdk.Context;
+import com.walmartlabs.concord.runtime.v2.sdk.DryRunReady;
+import com.walmartlabs.concord.runtime.v2.sdk.SecretService;
+import com.walmartlabs.concord.runtime.v2.sdk.Task;
+import com.walmartlabs.concord.runtime.v2.sdk.TaskResult;
+import com.walmartlabs.concord.runtime.v2.sdk.Variables;
 
 import javax.inject.Inject;
 import javax.inject.Named;
-import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 
 @Named("hashivault")
 @DryRunReady
-public class HashiVaultTask implements Task {
+public class HashiVaultTask extends AbstractHashiVaultTask implements Task {
 
     private final Map<String, Object> defaults;
-    private final SecretService secretService;
+    private final TaskParams.SecretExporter secretExporter;
     private final boolean dryRunMode;
 
     @Inject
     public HashiVaultTask(Context ctx, SecretService secretService) {
-        this.secretService = secretService;
-        this.defaults = ctx.variables().getMap(TaskParams.DEFAULT_PARAMS_KEY, Collections.emptyMap());
+        this.secretExporter = secretService::exportAsString;
+        this.defaults = ctx.variables().getMap(TaskParams.DEFAULT_PARAMS_KEY, Map.of());
         this.dryRunMode = ctx.processConfiguration().dryRun();
     }
 
     @Override
     public TaskResult.SimpleResult execute(Variables input) {
-        final TaskParams params = createParams(input);
-        final HashiVaultTaskCommon delegate = new HashiVaultTaskCommon(dryRunMode);
-        final HashiVaultTaskResult result = delegate.execute(params);
-        final Object data = result.data() == null ? Map.of() : result.data();
+        final HashiVaultTaskResult result = executeCommon(input, secretExporter);
+        final Object data = Optional.ofNullable(result.data()).orElseGet(Map::of);
 
         return result.ok()
                 ? TaskResult.success().values(Map.of("data", data))
                 : TaskResult.fail(result.error());
     }
 
-    private TaskParams createParams(Variables input) {
-        final var exporterV2 = new SecretExporterV2(secretService);
-        return TaskParams.of(input, defaults, exporterV2);
+    @Override
+    public TaskParams createParams(Variables input, TaskParams.SecretExporter secretExporter) {
+        return TaskParams.of(input, defaults, secretExporter, dryRunMode);
     }
 
     public Map<String, Object> readKV(String path) {
-        final Variables input = new MapBackedVariables(Map.of(
-                TaskParams.ACTION_KEY, TaskParams.Action.READKV.toString(),
-                TaskParams.PATH_KEY, path
-        ));
-        final TaskParams params = createParams(input);
-        final HashiVaultTaskResult result = new HashiVaultTaskCommon().execute(params);
-        return result.data();
+        return super.readKV(path, secretExporter);
     }
 
     public String readKV(String path, String field) {
-        final Variables input = new MapBackedVariables(Map.of(
-                TaskParams.ACTION_KEY, TaskParams.Action.READKV.toString(),
-                TaskParams.PATH_KEY, path,
-                TaskParams.KEY_KEY, field
-        ));
-        final TaskParams params = createParams(input);
-        final HashiVaultTaskResult result = new HashiVaultTaskCommon().execute(params);
-        return result.data();
+        return super.readKV(path, field, secretExporter);
     }
 
     public void writeKV(String path, Map<String, Object> kvPairs) {
-        final Variables input = new MapBackedVariables(Map.of(
-                TaskParams.ACTION_KEY, TaskParams.Action.WRITEKV.toString(),
-                TaskParams.PATH_KEY, path,
-                TaskParams.KV_PAIRS_KEY, kvPairs
-        ));
-        final TaskParams params = createParams(input);
-        final HashiVaultTaskCommon delegate = new HashiVaultTaskCommon();
-        delegate.execute(params);
-    }
-
-    private static class SecretExporterV2 implements TaskParams.SecretExporter {
-        private final SecretService secretService;
-
-        SecretExporterV2(SecretService secretService) {
-            this.secretService = secretService;
-        }
-
-        @Override
-        public String exportAsString(String o, String n, String p) throws Exception {
-            return secretService.exportAsString(o, n, p);
-        }
+        super.writeKV(path, kvPairs, secretExporter);
     }
 }

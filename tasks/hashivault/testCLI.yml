@@ -1,6 +1,5 @@
-# testCLI.sh script will replace version with current pom.xml version
 configuration:
-  dependencies:
+  dependencies: # testCLI.sh script will replace version with current pom.xml version
   - mvn://com.walmartlabs.concord.plugins:hashivault-task:LOCAL_VERSION
   arguments:
     hashivaultParams:
@@ -20,6 +19,6 @@ flows:
       out: result
       error:
         - log: "Vault error: ${lastError.cause}"
-    - log: ${resource.prettyPrintJson(result)}
+    - log: "full result:\n${resource.prettyPrintJson(result)}"
     - log: "ok: ${result.ok}"
     - log: "data: ${resource.prettyPrintJson(result.data)}"

@@ -20,68 +20,35 @@ package com.walmartlabs.concord.plugins.hashivault;
  * =====
  */
 
-import com.bettercloud.vault.SslConfig;
 import com.bettercloud.vault.Vault;
-import com.bettercloud.vault.VaultConfig;
 import com.bettercloud.vault.VaultException;
 import com.bettercloud.vault.response.LogicalResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Inject;
 import java.nio.charset.Charset;
 
 public class HashiVaultTaskCommon {
-    Logger log = LoggerFactory.getLogger(HashiVaultTaskCommon.class);
+    private static final Logger log = LoggerFactory.getLogger(HashiVaultTaskCommon.class);
 
-    private final boolean dryRunMode;
+    private final VaultProvider vaultProvider;
 
-    public HashiVaultTaskCommon() {
-        this(false);
-    }
-
-    public HashiVaultTaskCommon(boolean dryRun) {
-        this.dryRunMode = dryRun;
-    }
-
-    private static VaultConfig buildConfig(TaskParams params) {
-        final String apiToken = params.apiToken();
-        final String apiBaseUrl = params.baseUrl();
-        VaultConfig config;
-
-        try {
-            config = new VaultConfig()
-                    .address(apiBaseUrl)
-                    .token(apiToken)
-                    .sslConfig(new SslConfig().verify(params.verifySsl()).build());
-        } catch (Exception e) {
-            throw new HashiVaultTaskException("Error building Vault configuration. " + e.getMessage());
-        }
-
-        if (params.path().matches("^/?cubbyhole.*")) {
-            config.engineVersion(1);
-        } else {
-            config.engineVersion(params.engineVersion());
-        }
-
-        try {
-            return config.build();
-        } catch (VaultException e) {
-            String msg = String.format("Error building vault config: %s", e.getMessage());
-            throw new HashiVaultTaskException(msg);
-        }
+    @Inject
+    public HashiVaultTaskCommon(VaultProvider vaultProvider) {
+        this.vaultProvider = vaultProvider;
     }
 
     public HashiVaultTaskResult execute(TaskParams params) {
-        final VaultConfig config = buildConfig(params);
-        final Vault vault = new Vault(config);
-
         return switch (params.action()) {
-            case READKV -> readValue(vault, params);
-            case WRITEKV -> writeValue(vault, params);
+            case READKV -> readValue(params);
+            case WRITEKV -> writeValue(params);
         };
     }
 
-    private HashiVaultTaskResult readValue(Vault vault, TaskParams params) {
+    private HashiVaultTaskResult readValue(TaskParams params) {
+        final Vault vault = vaultProvider.getVault(params);
+
         try {
             final LogicalResponse r = vault.withRetries(params.retryCount(), params.retryIntervalMs()).logical()
                     .withNameSpace(params.ns())
@@ -105,11 +72,13 @@ public class HashiVaultTaskCommon {
         }
     }
 
-    private HashiVaultTaskResult writeValue(Vault vault, TaskParams params) {
-        if (dryRunMode) {
+    private HashiVaultTaskResult writeValue(TaskParams params) {
+        if (params.dryRun()) {
             log.info("Dry-run mode enabled: Skipping write to vault");
             return HashiVaultTaskResult.of(true, null, null, params);
         }
+
+        final Vault vault = vaultProvider.getVault(params);
 
         try {
             final LogicalResponse r = vault.withRetries(params.retryCount(), params.retryIntervalMs()).logical()

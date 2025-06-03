@@ -20,19 +20,19 @@ package com.walmartlabs.concord.plugins.hashivault.v1;
  * =====
  */
 
-import com.walmartlabs.concord.plugins.hashivault.HashiVaultTaskCommon;
+import com.walmartlabs.concord.plugins.hashivault.AbstractHashiVaultTask;
 import com.walmartlabs.concord.plugins.hashivault.HashiVaultTaskResult;
 import com.walmartlabs.concord.plugins.hashivault.TaskParams;
 import com.walmartlabs.concord.runtime.v2.sdk.MapBackedVariables;
+import com.walmartlabs.concord.runtime.v2.sdk.Variables;
 import com.walmartlabs.concord.sdk.*;
 
 import javax.inject.Inject;
 import javax.inject.Named;
-import java.util.HashMap;
 import java.util.Map;
 
 @Named("hashivault")
-public class HashiVaultTask implements Task {
+public class HashiVaultTask extends AbstractHashiVaultTask implements Task {
 
     @InjectVariable(TaskParams.DEFAULT_PARAMS_KEY)
     private Map<String, Object> defaults;
@@ -41,58 +41,34 @@ public class HashiVaultTask implements Task {
 
     @Inject
     public HashiVaultTask(SecretService secretService) {
+        super();
         this.secretService = secretService;
     }
 
     @Override
     public void execute(Context ctx) {
-        final TaskParams params = createParams(ctx, ctx.toMap());
-        final HashiVaultTaskCommon delegate = new HashiVaultTaskCommon();
-        final HashiVaultTaskResult result = delegate.execute(params);
+        final TaskParams.SecretExporter secretExporter = new SecretExporterV1(ctx, secretService);
+        final Variables input = new MapBackedVariables(ctx.toMap());
+        final HashiVaultTaskResult result = executeCommon(input, secretExporter);
 
         ctx.setVariable("result", result.toMap());
     }
 
-    private TaskParams createParams(Context ctx, Map<String, Object> input) {
-        final MapBackedVariables vars = new MapBackedVariables(input);
-        final SecretExporterV1 exporterV1 = new SecretExporterV1(ctx, secretService);
-        return TaskParams.of(vars, defaults, exporterV1);
+    @Override
+    public TaskParams createParams(Variables input, TaskParams.SecretExporter secretExporter) {
+        return TaskParams.of(input, defaults, secretExporter);
     }
 
     public Map<String, Object> readKV(@InjectVariable("context") Context ctx, String path) {
-        final Map<String, Object> input = new HashMap<>(2);
-        input.put(TaskParams.ACTION_KEY, TaskParams.Action.READKV.toString());
-        input.put(TaskParams.PATH_KEY, path);
-
-        final TaskParams params = createParams(ctx, input);
-        final HashiVaultTaskCommon delegate = new HashiVaultTaskCommon();
-        HashiVaultTaskResult result = delegate.execute(params);
-
-        return result.data();
+        return super.readKV(path, new SecretExporterV1(ctx, secretService));
     }
 
     public String readKV(@InjectVariable("context") Context ctx, String path, String key) {
-        final Map<String, Object> input = new HashMap<>(2);
-        input.put(TaskParams.ACTION_KEY, TaskParams.Action.READKV.toString());
-        input.put(TaskParams.PATH_KEY, path);
-        input.put(TaskParams.KEY_KEY, key);
-
-        final TaskParams params = createParams(ctx, input);
-        final HashiVaultTaskCommon delegate = new HashiVaultTaskCommon();
-        final HashiVaultTaskResult result = delegate.execute(params);
-
-        return result.data();
+        return super.readKV(path, key, new SecretExporterV1(ctx, secretService));
     }
 
     public void writeKV(@InjectVariable("context") Context ctx, String path, Map<String, Object> kvPairs) {
-        final Map<String, Object> input = new HashMap<>(2);
-        input.put(TaskParams.ACTION_KEY, TaskParams.Action.WRITEKV.toString());
-        input.put(TaskParams.PATH_KEY, path);
-        input.put(TaskParams.KV_PAIRS_KEY, kvPairs);
-
-        final TaskParams params = createParams(ctx, input);
-        final HashiVaultTaskCommon delegate = new HashiVaultTaskCommon();
-        delegate.execute(params);
+        super.writeKV(path, kvPairs, new SecretExporterV1(ctx, secretService));
     }
 
     private static class SecretExporterV1 implements TaskParams.SecretExporter {
