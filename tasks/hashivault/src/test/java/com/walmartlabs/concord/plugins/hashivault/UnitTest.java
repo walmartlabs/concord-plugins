@@ -21,78 +21,56 @@ package com.walmartlabs.concord.plugins.hashivault;
  */
 
 import com.walmartlabs.concord.runtime.v2.sdk.MapBackedVariables;
-import com.walmartlabs.concord.runtime.v2.sdk.Variables;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class UnitTest {
+class UnitTest {
 
     private static final TaskParams.SecretExporter exporter =
             (o, n, p) -> "a-secret";
 
-    @BeforeEach
-    public void setup() {
-    }
-
     @Test
-    public void defaultActionTest() {
-        Map<String, Object> vars = new HashMap<>();
-        vars.put("baseUrl", "http://example.com:8200");
+    void defaultActionTest() {
+        var vars = Map.<String, Object>of("baseUrl", "http://example.com:8200");
 
-        TaskParams params = TaskParams.of(new MapBackedVariables(vars), null, exporter);
+        var params = TaskParams.of(new MapBackedVariables(vars), null, exporter);
         assertEquals(TaskParams.Action.READKV, params.action());
     }
 
     @Test
-    public void invalidActionTest() {
-        Map<String, Object> vars = new HashMap<>();
-        vars.put("action", "not-an-action");
+    void invalidActionTest() {
+        var vars = new MapBackedVariables(Map.of("action", "not-an-action"));
 
-        Assertions.assertThrows(IllegalArgumentException.class, () -> TaskParams.of(new MapBackedVariables(vars), null, exporter));
+        assertThrows(IllegalArgumentException.class, () -> TaskParams.of(vars, null, exporter));
     }
 
     @Test
-    public void requiredParametersTest() {
-        TaskParams params = TaskParams.of(new MapBackedVariables(getMap()), null, exporter);
-        try {
-            params.baseUrl();
-        } catch (IllegalArgumentException e) {
-            assertTrue(e.getMessage().contains("'baseUrl' is required"));
-        }
+    void requiredParametersTest() {
+        var params = TaskParams.of(new MapBackedVariables(Map.of()), null, exporter);
 
-        try {
-            params.apiToken();
-        } catch (IllegalArgumentException e) {
-            assertTrue(e.getMessage().contains("'apiToken' is required"));
-        }
+        var e1 = assertThrows(IllegalArgumentException.class, params::baseUrl);
+        assertTrue(e1.getMessage().contains("'baseUrl' is required"));
 
-        try {
-            params.path();
-        } catch (IllegalArgumentException e) {
-            assertTrue(e.getMessage().contains("'path' is required"));
-        }
+        var e2 = assertThrows(IllegalArgumentException.class, params::apiToken);
+        assertTrue(e2.getMessage().contains("'apiToken' is required"));
 
-        params.kvPairs(); // default action
+        var e3 = assertThrows(IllegalArgumentException.class, params::path);
+        assertTrue(e3.getMessage().contains("'path' is required"));
+
+        assertDoesNotThrow(params::kvPairs); // default action
 
         // kvPairs required when action is writeKv
         params = TaskParams.of(
-                new MapBackedVariables(getMap("action", "writeKv")), null, exporter);
-        try {
-            params.kvPairs();
-        } catch (IllegalArgumentException e) {
-            assertTrue(e.getMessage().contains("'kvPairs' is required"));
-        }
+                new MapBackedVariables(Map.of("action", "writeKv")), null, exporter);
+        var e4 = assertThrows(IllegalArgumentException.class, params::kvPairs);
+        assertTrue(e4.getMessage().contains("'kvPairs' is required"));
 
         // cubbyhole is a v1 engine
         params = TaskParams.of(new MapBackedVariables(
-                getMap("path", "cubbyhole/mysecret", "engineVersion", 2)), null, exporter);
+                Map.of("path", "cubbyhole/mysecret", "engineVersion", 2)), null, exporter);
         assertEquals(1, params.engineVersion());
     }
 
@@ -102,68 +80,30 @@ public class UnitTest {
      * Vault secret when a specific secret "key" is specified.
      */
     @Test
-    public void mapDataTest(){
-        Variables vars = new MapBackedVariables(getMap("path", "secret/mysecret"));
-        TaskParams params = TaskParams.of(vars, null, exporter);
+    void mapDataTest(){
+        var vars = new MapBackedVariables(Map.of("path", "secret/mysecret"));
+        var params = TaskParams.of(vars, null, exporter);
 
-        HashiVaultTaskResult result = HashiVaultTaskResult
-                .of(true, getMap("top_secret", "value"), null, params);
+        var result = HashiVaultTaskResult
+                .of(true, Map.of("top_secret", "value"), null, params);
 
-        try {
-            String s = result.data();
-            fail("data should be Map when key param is not given");
-        } catch (ClassCastException e) {
-            // that's expected
-        }
-
-        // this should work
-        Map<String, Object> m = result.data();
+        var m = assertInstanceOf(Map.class, result.data(),
+                "data should be Map when key param is not given");
         assertEquals(1, m.size());
+        assertEquals("value", m.get("top_secret"));
     }
 
     @Test
-    public void stringDataTest() {
-        Variables vars = new MapBackedVariables(
-                getMap("path", "secret/mysecret", "key", "top_secret"));
-        TaskParams params = TaskParams.of(vars, null, exporter);
+    void stringDataTest() {
+        var vars = new MapBackedVariables(
+                Map.of("path", "secret/mysecret", "key", "top_secret"));
+        var params = TaskParams.of(vars, null, exporter);
 
-        HashiVaultTaskResult result = HashiVaultTaskResult
-                .of(true, getMap("top_secret", "value"), null, params);
-        try {
-            Map<String, Object> m = result.data();
-            fail("data should be String when key param is given");
-        } catch (ClassCastException e) {
-            // that's expected
-        }
-
-        // this should work
-        String s = result.data();
+        var result = HashiVaultTaskResult
+                .of(true, Map.of("top_secret", "value"), null, params);
+        var s = assertInstanceOf(String.class, result.data(),
+                "data should be String when key param is given");
         assertEquals("value", s);
     }
 
-    /**
-     * <p>Creates a Map from an arbitrary list of keys and values.</p>
-     * <pre>
-     * Map&lt;String, Object&gt; m = getMap("key1", "value1", "key2", "value2");
-     * </pre>
-     * @param params An even number of alternating keys and values
-     * @return Map of the given keys and values
-     */
-    @SuppressWarnings("unchecked")
-    private static <V> Map<String, V> getMap(Object... params) {
-        if (params.length % 2 != 0) {
-            throw new RuntimeException("Must have even number of parameters");
-        }
-
-        if (params.length == 0) {
-            return Collections.emptyMap();
-        }
-
-        Map<String, V> m = new HashMap<>(params.length / 2);
-        for (int i=0; i<params.length; i+=2) {
-            m.put(params[i].toString(), (V) params[i+1]);
-        }
-
-        return m;
-    }
 }
