@@ -48,6 +48,8 @@ public abstract class AbstractVaultTest {
                     .withNetworkAliases("vault")
                     .withSecretInVault("secret/testing", "top_secret=password1","db_password=dbpassword1")
                     .withSecretInVault("cubbyhole/hello", "cubbyKey=cubbyVal")
+                    // we could explicitly wait for the http endpoint to be available here,
+                    // but the nginx check will implicitly handle that
                     .waitingFor(Wait.forLogMessage(".*Vault server started.*", 1));
     @Container
     public static NginxContainer<?> nginxContainer =
@@ -61,7 +63,10 @@ public abstract class AbstractVaultTest {
                     .withCopyFileToContainer(mountRes("nginx.conf"), "/etc/nginx/templates/default.conf.template")
                     .withCopyFileToContainer(mountRes("server.crt"), "/etc/nginx/certs/server.crt")
                     .withCopyFileToContainer(mountRes("server.key"), "/etc/nginx/certs/server.key")
-                    .waitingFor(Wait.forLogMessage(".*ready for start up.*", 1));
+                    .waitingFor(Wait.forHttps("/v1/sys/health")
+                            .forPort(NGINX_SSL_PORT)
+                            .forStatusCode(200)
+                            .allowInsecure());
 
     protected static String getVaultBaseUrl() {
         return String.format("http://%s:%s",

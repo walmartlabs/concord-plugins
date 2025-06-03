@@ -33,6 +33,8 @@ public class TaskParams {
     private static final String DEFAULT_NAMESPACE = null;
     private static final int DEFAULT_ENGINE_VERSION = 2;
     private static final boolean DEFAULT_VERIFY_SSL = true;
+    private static final long DEFAULT_RETRY_COUNT = 3;
+    private static final long DEFAULT_RETRY_INTERVAL_MS = 5_000;
 
     public static final String DEFAULT_PARAMS_KEY = "hashivaultParams";
     public static final String TX_ID_KEY = "txId";
@@ -50,6 +52,8 @@ public class TaskParams {
     public static final String PATH_KEY = "path";
     public static final String KEY_KEY = "key";
     public static final String KV_PAIRS_KEY = "kvPairs";
+    public static final String RETRY_COUNT_KEY = "retryCount";
+    public static final String RETRY_INTERVAL_MS_KEY = "retryIntervalMs";
 
     protected final Variables variables;
 
@@ -69,13 +73,9 @@ public class TaskParams {
         Variables variables = new MapBackedVariables(variablesMap);
         TaskParams p = new TaskParams(variables);
 
-        switch (p.action()) {
-            case READKV:
-            case WRITEKV:
-                return new TaskParams(variables);
-            default:
-                throw new IllegalArgumentException("Unsupported action type: " + p.action());
-        }
+        return switch (p.action()) {
+            case READKV, WRITEKV -> new TaskParams(variables);
+        };
     }
 
     private static String exportToken(SecretExporter secretExporter, Map<String, Object> secret) {
@@ -83,14 +83,11 @@ public class TaskParams {
         String n = MapUtils.assertString(secret, NAME_KEY);
         String p = MapUtils.getString(secret, PASSWORD_KEY);
 
-        String token;
-
         try {
-            token = secretExporter.exportAsString(o, n, p);
+            return secretExporter.exportAsString(o, n, p);
         } catch (Exception e) {
             throw new HashiVaultTaskException("Error retrieving API token from Concord secret: " + e.getMessage());
         }
-        return token;
     }
 
     public Action action() {
@@ -120,6 +117,14 @@ public class TaskParams {
 
     public boolean verifySsl() {
         return variables.getBoolean(VERIFY_SSL_KEY, DEFAULT_VERIFY_SSL);
+    }
+
+    public int retryCount() {
+        return variables.getNumber(RETRY_COUNT_KEY, DEFAULT_RETRY_COUNT).intValue();
+    }
+
+    public int retryIntervalMs() {
+        return variables.getNumber(RETRY_INTERVAL_MS_KEY, DEFAULT_RETRY_INTERVAL_MS).intValue();
     }
 
     public int engineVersion() {
