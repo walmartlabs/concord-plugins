@@ -11,11 +11,10 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>packer-task</artifactId>
-    <packaging>takari-jar</packaging>
+    <packaging>jar</packaging>
 
     <properties>
         <concord.version>1.36.0</concord.version>
-        <takari.annotationProcessing>proc</takari.annotationProcessing>
     </properties>
 
     <dependencyManagement>
@@ -93,8 +92,8 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.eclipse.sisu</groupId>
-                <artifactId>sisu-maven-plugin</artifactId>
+                <groupId>dev.ybrig.concord</groupId>
+                <artifactId>concord-maven-plugin</artifactId>
             </plugin>
         </plugins>
     </build>

@@ -1,4 +1,88 @@
-# Change log
+# Change Log
+
+## [2.8.0] - 2025-05-29
+
+### Added
+
+- github: allow create tag with branch name
+([#184](https://github.com/walmartlabs/concord-plugins/pull/184)).
+
+### Changed
+
+- git: dry-run mode for commit action
+([#185](https://github.com/walmartlabs/concord-plugins/pull/185));
+- jira: return fake IDs in dry-run-mode for createIssue and createComponent actions
+([#188](https://github.com/walmartlabs/concord-plugins/pull/188));
+- github: return comment id
+([#189](https://github.com/walmartlabs/concord-plugins/pull/189));
+- github: return fake PR ID in dry-run-mode for craeatePr action
+([#186](https://github.com/walmartlabs/concord-plugins/pull/186));
+- github: simplify result for getCommit action
+([#191](https://github.com/walmartlabs/concord-plugins/pull/191))
+- jira: set user-agent for http calls
+([#192](https://github.com/walmartlabs/concord-plugins/pull/192));
+- argocd: use native http client, apply fallback on sync timeout,
+local ITs instance script
+([#193](https://github.com/walmartlabs/concord-plugins/pull/193));
+- akeyless: use native httpclient
+([#194](https://github.com/walmartlabs/concord-plugins/pull/194));
+- git-tasks: add missing file statuses to getPRFiles action
+([#196](https://github.com/walmartlabs/concord-plugins/pull/196));
+- project: remove takari-lifecycle, parent pom
+([#197)(https://github.com/walmartlabs/concord-plugins/pull/197)).
+
+
+
+## [2.7.0] - 2024-12-05
+
+### Added
+
+- opentelemetry: add initial support for tracing
+([#178](https://github.com/walmartlabs/concord-plugins/pull/178));
+- tasks: initial support for dry-run mode
+([#179](https://github.com/walmartlabs/concord-plugins/pull/179));
+- codecoverage: initial support for code coverage in LCOV format
+([#181](https://github.com/walmartlabs/concord-plugins/pull/181).
+
+### Changed
+
+- project: migrate to concord-client2 and target platform 2.14.0
+([#176](https://github.com/walmartlabs/concord-plugins/pull/176));
+- jira-task: properly handle issue creation when no priority is
+specified
+([#182](https://github.com/walmartlabs/concord-plugins/pull/182));
+- project: bump takari-lifecycle-plugin version
+([#183](https://github.com/walmartlabs/concord-plugins/pull/183));
+
+
+
+## [2.6.0] - 2024-09-27
+
+### Changed
+
+- github: log the response from GH when error occurs
+([#170](https://github.com/walmartlabs/concord-plugins/pull/170));
+- xmlUtils: disable external entity handling
+([#175](https://github.com/walmartlabs/concord-plugins/pull/175));
+- github: add github task unit tests
+([#172](https://github.com/walmartlabs/concord-plugins/pull/172));
+- awsEcr: allow delete images
+([#173](https://github.com/walmartlabs/concord-plugins/pull/173)).
+
+
+
+## [2.5.0] - 2024-08-19
+
+### Changed
+
+- gremlin: remove okhttp and gson dependencies
+([#162](https://github.com/walmartlabs/concord-plugins/pull/162));
+- msteams: remove apache httpclient dependency, add unit and integration tests
+([#163](https://github.com/walmartlabs/concord-plugins/pull/163));
+- jira: remove okhttp2 dependency
+([#171](https://github.com/walmartlabs/concord-plugins/pull/171)).
+
+
 
 ## [2.4.0] - 2024-07-19
 
@@ -12,6 +96,8 @@
 ([#164](https://github.com/walmartlabs/concord-plugins/pull/164));
 - puppet: remove okhttp dependency (#160)
 ([#160](https://github.com/walmartlabs/concord-plugins/pull/160)).
+
+
 
 ## [2.3.1] - 2024-06-24
 

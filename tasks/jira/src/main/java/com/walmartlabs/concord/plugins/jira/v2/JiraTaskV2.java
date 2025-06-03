@@ -9,9 +9,9 @@ package com.walmartlabs.concord.plugins.jira.v2;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -28,23 +28,33 @@ import com.walmartlabs.concord.runtime.v2.sdk.*;
 
 import javax.inject.Inject;
 import javax.inject.Named;
+import java.util.HashMap;
 import java.util.Map;
 
+import static com.walmartlabs.concord.plugins.jira.Constants.PARAMS_KEY;
+
 @Named("jira")
+@DryRunReady
 public class JiraTaskV2 implements Task {
 
     private final Context context;
     private final JiraTaskCommon delegate;
+    private final Map<String, Object> globalDefaults;
 
     @Inject
     public JiraTaskV2(Context context) {
         this.context = context;
-        this.delegate = new JiraTaskCommon(new V2SecretService(context.secretService()));
+        this.globalDefaults = context.variables().getMap(PARAMS_KEY, Map.of());
+        this.delegate = new JiraTaskCommon(new V2SecretService(context.secretService()), context.processConfiguration().dryRun());
     }
 
     @Override
     public TaskResult execute(Variables input) {
-        Map<String, Object> result = getDelegate().execute(TaskParams.of(input, context.defaultVariables().toMap()));
+        var policyDefaults = new HashMap<>(context.defaultVariables().toMap());
+        policyDefaults.put("txId", context.processInstanceId());
+
+        var result = getDelegate().execute(TaskParams.of(input.toMap(), globalDefaults, policyDefaults));
+
         return TaskResult.success()
                 .values(result);
     }
@@ -62,8 +72,8 @@ public class JiraTaskV2 implements Task {
 
         @Override
         public JiraCredentials exportCredentials(String orgName, String secretName, String password) throws Exception {
-            SecretService.UsernamePassword up = secretService.exportCredentials(orgName, secretName, password);
-            return new JiraCredentials(up.username(), up.password());
+            var creds = secretService.exportCredentials(orgName, secretName, password);
+            return new JiraCredentials(creds.username(), creds.password());
         }
     }
 

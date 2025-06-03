@@ -30,7 +30,9 @@ import static com.walmartlabs.concord.plugins.msteams.TeamsV2TaskParams.ReplayTo
 
 public class TeamsV2TaskCommon {
 
-    private static final Logger log = LoggerFactory.getLogger(TeamsTask.class);
+    private static final Logger log = LoggerFactory.getLogger(TeamsV2TaskCommon.class);
+
+    private TeamsClientV2 client;
 
     public Result execute(TeamsV2TaskParams in) {
         Map<String, Object> activity = in.activity();
@@ -54,8 +56,8 @@ public class TeamsV2TaskCommon {
         }
     }
 
-    private Result createConversation(CreateConversationParams in) {
-        try (TeamsClientV2 client = new TeamsClientV2(in)) {
+    Result createConversation(CreateConversationParams in) {
+        try (TeamsClientV2 client = getClient(in)) {
             Result r = client.createConversation(in.tenantId(), in.activity(), in.channelId(), in.rootApi());
 
             if (!r.isOk()) {
@@ -71,15 +73,15 @@ public class TeamsV2TaskCommon {
                         "For details check for the 'ERROR': {}", e.getMessage());
                 return Result.error(e.getMessage());
             } else {
-                throw new RuntimeException("'msteams' task error: " + e.getMessage());
+                throw new RuntimeException("'msteams' task error while creating conversation: " + e.getMessage());
             }
         }
     }
 
-    private Result replyToConversation(ReplayToConversationParams in) {
+    Result replyToConversation(ReplayToConversationParams in) {
         String conversationId = in.conversationId();
 
-        try (TeamsClientV2 client = new TeamsClientV2(in)) {
+        try (TeamsClientV2 client = getClient(in)) {
             Result r = client.replyToConversation(in.activity(), in.rootApi(), conversationId);
 
             if (!r.isOk()) {
@@ -98,4 +100,12 @@ public class TeamsV2TaskCommon {
             }
         }
     }
+
+    TeamsClientV2 getClient(TeamsV2TaskParams in) {
+        if (client == null) {
+            client = new TeamsClientV2(in);
+        }
+        return client;
+    }
+
 }

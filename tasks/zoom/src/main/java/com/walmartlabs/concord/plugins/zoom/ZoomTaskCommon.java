@@ -29,6 +29,16 @@ public class ZoomTaskCommon {
 
     private static final Logger log = LoggerFactory.getLogger(ZoomTaskCommon.class);
 
+    private final boolean dryRunMode;
+
+    public ZoomTaskCommon() {
+        this(false);
+    }
+
+    public ZoomTaskCommon(boolean dryRunMode) {
+        this.dryRunMode = dryRunMode;
+    }
+
     public Result execute(TaskParams in) {
 
         log.info("Starting '{}' action...", in.action());
@@ -43,8 +53,11 @@ public class ZoomTaskCommon {
     }
 
     private Result sendMessage(SendMessageParams in) {
-        try (ZoomClient client = new ZoomClient(in)) {
+        try (ZoomClient client = new ZoomClient(in, dryRunMode)) {
             Result r = client.message(in.robotJid(), in.headText(), in.bodyText(), in.channelId(), in.accountId(), in.rootApi());
+            if (dryRunMode) {
+                return r;
+            }
 
             if (!r.isOk()) {
                 log.warn("Error sending a zoom message: {}", r.getError());
@@ -54,7 +67,7 @@ public class ZoomTaskCommon {
             return r;
         } catch (Exception e) {
             if (!in.ignoreErrors()) {
-                log.error("call ['{}', '{}', '{}'] -> error", in.channelId(), in.headText(), e);
+                log.error("call ['{}', '{}'] -> error", in.channelId(), in.headText(), e);
                 throw new RuntimeException("zoom task error: ", e);
             }
 

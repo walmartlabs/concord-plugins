@@ -9,9 +9,9 @@ package com.walmartlabs.concord.plugins.akeyless;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -29,6 +29,8 @@ import com.walmartlabs.concord.runtime.v2.sdk.Variables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.http.HttpClient;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -41,9 +43,14 @@ public class AkeylessCommon {
     private ApiClient apiClient;
     private SecretExporter secretExporter;
     private static final Map<String, BiFunction<Variables, SecretExporter, Auth>> authBuilders = createAuthBuilders();
+    private final boolean dryRunMode;
 
     public AkeylessCommon() {
-        // empty default constructor
+        this(false);
+    }
+
+    public AkeylessCommon(boolean dryRunMode) {
+        this.dryRunMode = dryRunMode;
     }
 
     private static Map<String, BiFunction<Variables, SecretExporter, Auth>> createAuthBuilders() {
@@ -63,35 +70,23 @@ public class AkeylessCommon {
 
         Util.debug(params.debug(), log, String.format("Action: %s", params.action()));
 
-        switch (params.action()) {
-            case AUTH: {
-                return auth(params);
-            }
-            case GETSECRET: {
-                return getSecret((TaskParams.GetSecretParams) params);
-            }
-            case GETSECRETS: {
-                return getSecrets((TaskParams.GetSecretsParams) params);
-            }
-            case CREATESECRET: {
-                return createSecret((TaskParams.CreateSecretParams) params);
-            }
-            case UPDATESECRET: {
-                return updateSecretVal((TaskParams.UpdateSecretParams) params);
-            }
-            case DELETEITEM: {
-                return deleteItem((TaskParams.DeleteItemParams) params);
-            }
-            default:
-                throw new IllegalArgumentException("Invalid action: " + params.action());
-        }
+        return switch (params.action()) {
+            case AUTH -> auth(params);
+            case GETSECRET -> getSecret((TaskParams.GetSecretParams) params);
+            case GETSECRETS -> getSecrets((TaskParams.GetSecretsParams) params);
+            case CREATESECRET -> createSecret((TaskParams.CreateSecretParams) params);
+            case UPDATESECRET -> updateSecretVal((TaskParams.UpdateSecretParams) params);
+            case DELETEITEM -> deleteItem((TaskParams.DeleteItemParams) params);
+        };
     }
 
     private V2Api getApi(TaskParams params) {
         if (apiClient == null) {
-            apiClient = new ApiClient()
-                    .setBasePath(params.apiBasePath())
-                    .setConnectTimeout(params.connectTimeout());
+            var clientBuilder = HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofSeconds(params.connectTimeout()));
+
+            apiClient = new ApiClient(clientBuilder, JSON.getDefault().getMapper(), params.apiBasePath())
+                    .setReadTimeout(Duration.ofSeconds(params.readTimeout()));
         }
 
         return new V2Api(apiClient);
@@ -167,6 +162,11 @@ public class AkeylessCommon {
             V2Api api = getApi(params);
             String accessToken = getAccessToken(api);
 
+            if (dryRunMode) {
+                log.info("Dry-run mode enabled: Skipping secret creation");
+                return AkeylessTaskResult.of(true, null, null);
+            }
+
             api.createSecret(new CreateSecret()
                     .token(accessToken)
                     .name(params.path())
@@ -189,6 +189,11 @@ public class AkeylessCommon {
             V2Api api = getApi(params);
             String accessToken = getAccessToken(api);
 
+            if (dryRunMode) {
+                log.info("Dry-run mode enabled: Skipping secret update");
+                return AkeylessTaskResult.of(true, null, null);
+            }
+
             api.updateSecretVal(new UpdateSecretVal()
                     .token(accessToken)
                     .value(params.value())
@@ -210,6 +215,11 @@ public class AkeylessCommon {
         try {
             V2Api api = getApi(params);
             String accessToken = getAccessToken(api);
+
+            if (dryRunMode) {
+                log.info("Dry-run mode enabled: Skipping item delete");
+                return AkeylessTaskResult.of(true, null, null);
+            }
 
             api.deleteItem(new DeleteItem()
                     .token(accessToken)

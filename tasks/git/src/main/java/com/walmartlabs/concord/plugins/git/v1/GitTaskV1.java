@@ -9,9 +9,9 @@ package com.walmartlabs.concord.plugins.git.v1;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -50,7 +50,7 @@ public class GitTaskV1 implements Task {
 
     @Override
     public void execute(Context ctx) throws Exception {
-        Map<String, Object> result = new GitTask(new SecretServiceV1(secretService, ctx), ContextUtils.getWorkDir(ctx))
+        Map<String, Object> result = new GitTask(new SecretServiceV1(secretService, ctx), ContextUtils.getWorkDir(ctx), false)
                 .execute(ctx.toMap(), defaults);
 
         String out = ContextUtils.getString(ctx, OUT_KEY, DEFAULT_OUT_VAR_KEY);

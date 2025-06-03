@@ -24,6 +24,7 @@ import com.walmartlabs.concord.sdk.Context;
 import com.walmartlabs.concord.sdk.InjectVariable;
 import com.walmartlabs.concord.sdk.Task;
 
+import javax.inject.Inject;
 import javax.inject.Named;
 import java.util.HashMap;
 import java.util.Map;
@@ -35,7 +36,12 @@ public class TeamsTask implements Task {
     @InjectVariable("msteamsParams")
     private Map<String, Object> defaults;
 
-    private final TeamsTaskCommon delegate = new TeamsTaskCommon();
+    private final TeamsTaskCommon delegate;
+
+    @Inject
+    public TeamsTask(TeamsTaskCommon delegate) {
+        this.delegate = delegate;
+    }
 
     @Override
     public void execute(Context ctx) {

@@ -68,7 +68,7 @@ public class TeamsV2TaskParams implements TeamsV2Configuration {
         try {
             return Action.valueOf(action.trim().toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new RuntimeException("Unknown action: '" + action + "'. Available actions: " + Arrays.toString(TeamsTaskParams.Action.values()));
+            throw new RuntimeException("Unknown action: '" + action + "'. Available actions: " + Arrays.toString(Action.values()));
         }
     }
 

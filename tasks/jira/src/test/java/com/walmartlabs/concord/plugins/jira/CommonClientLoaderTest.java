@@ -56,27 +56,15 @@ class CommonClientLoaderTest {
     }
 
     @Test
-    void testLoadClientFallback() {
+    void testLoadNotFound() {
         Map<String, Object> input = new HashMap<>();
         input.put("action", "getIssues");
 
         doThrow(new NoClassDefFoundError()).when(delegate).getNativeClient(any());
 
-        var client = delegate.getClient(TaskParams.of(new MapBackedVariables(input), Map.of()));
-        assertInstanceOf(JiraClient.class, client);
-    }
+        var ex = assertThrows(IllegalStateException.class,
+                () -> delegate.getClient(TaskParams.of(new MapBackedVariables(input), Map.of())));
 
-    @Test
-    void testNoClient() {
-        Map<String, Object> input = new HashMap<>();
-        input.put("action", "getIssues");
-
-        doThrow(new NoClassDefFoundError()).when(delegate).getNativeClient(any());
-        doThrow(new NoClassDefFoundError()).when(delegate).getOkHttpClient(any());
-
-        var params = TaskParams.of(new MapBackedVariables(input), Map.of());
-
-        var expected = assertThrows(IllegalStateException.class, () -> delegate.getClient(params));
-        assertTrue(expected.getMessage().contains("No jira http client found"));
+        assertTrue(ex.getMessage().contains("Unexpected error while creating JiraHttpClient"));
     }
 }

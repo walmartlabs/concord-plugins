@@ -9,9 +9,9 @@ package com.walmartlabs.concord.plugins.git.v2;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -32,6 +32,7 @@ import java.nio.file.Path;
 import java.util.Map;
 
 @Named("git")
+@DryRunReady
 public class GitTaskV2 implements Task {
 
     private final Context context;
@@ -40,7 +41,7 @@ public class GitTaskV2 implements Task {
     @Inject
     public GitTaskV2(Context context) {
         this.context = context;
-        this.delegate = new GitTask(new SecretServiceV2(context.secretService()), context.workingDirectory());
+        this.delegate = new GitTask(new SecretServiceV2(context.secretService()), context.workingDirectory(), context.processConfiguration().dryRun());
     }
 
     @Override

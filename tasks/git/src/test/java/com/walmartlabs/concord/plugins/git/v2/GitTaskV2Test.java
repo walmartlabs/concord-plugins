@@ -25,10 +25,7 @@ import com.walmartlabs.concord.common.secret.UsernamePassword;
 import com.walmartlabs.concord.plugins.git.GitTask;
 import com.walmartlabs.concord.plugins.git.TokenSecret;
 import com.walmartlabs.concord.plugins.git.Utils;
-import com.walmartlabs.concord.runtime.v2.sdk.Context;
-import com.walmartlabs.concord.runtime.v2.sdk.MapBackedVariables;
-import com.walmartlabs.concord.runtime.v2.sdk.SecretService;
-import com.walmartlabs.concord.runtime.v2.sdk.TaskResult;
+import com.walmartlabs.concord.runtime.v2.sdk.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -65,6 +62,9 @@ public class GitTaskV2Test {
         when(context.secretService()).thenReturn(mock(SecretService.class));
         when(context.workingDirectory()).thenReturn(workDir);
         when(context.defaultVariables()).thenReturn(new MapBackedVariables(Collections.emptyMap()));
+
+        ProcessConfiguration processConfiguration = mock(ProcessConfiguration.class);
+        when(context.processConfiguration()).thenReturn(processConfiguration);
 
         GitTaskV2 task = new GitTaskV2(context);
         TaskResult.SimpleResult result = task.execute(new MapBackedVariables(input));

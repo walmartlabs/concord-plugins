@@ -34,6 +34,10 @@ public interface JiraClientCfg {
         return 30L;
     }
 
+    default String userAgent() {
+        return "Concord-Jira-Plugin";
+    }
+
     default HttpVersion httpProtocolVersion() {
         return HttpVersion.DEFAULT;
     }

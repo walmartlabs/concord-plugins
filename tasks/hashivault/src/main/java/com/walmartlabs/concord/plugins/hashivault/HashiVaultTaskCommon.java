@@ -9,9 +9,9 @@ package com.walmartlabs.concord.plugins.hashivault;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -29,13 +29,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.Charset;
-import java.util.Map;
 
 public class HashiVaultTaskCommon {
     Logger log = LoggerFactory.getLogger(HashiVaultTaskCommon.class);
 
+    private final boolean dryRunMode;
+
     public HashiVaultTaskCommon() {
-        // empty default constructor
+        this(false);
+    }
+
+    public HashiVaultTaskCommon(boolean dryRun) {
+        this.dryRunMode = dryRun;
     }
 
     private static VaultConfig buildConfig(TaskParams params) {
@@ -69,27 +74,16 @@ public class HashiVaultTaskCommon {
     public HashiVaultTaskResult execute(TaskParams params) {
         final VaultConfig config = buildConfig(params);
         final Vault vault = new Vault(config);
-        HashiVaultTaskResult result;
 
-        switch (params.action()) {
-            case READKV:
-                Map<String, String> data = readValue(vault, params);
-                result = HashiVaultTaskResult.of(true, data, null, params);
-                break;
-            case WRITEKV:
-                writeValue(vault, params);
-                result = HashiVaultTaskResult.of(true, null, null, params);
-                break;
-            default:
-                throw new HashiVaultTaskException("Unsupported action: " + params.action());
-        }
-
-        return result;
+        return switch (params.action()) {
+            case READKV -> readValue(vault, params);
+            case WRITEKV -> writeValue(vault, params);
+        };
     }
 
-    private Map<String, String> readValue(Vault vault, TaskParams params) {
+    private HashiVaultTaskResult readValue(Vault vault, TaskParams params) {
         try {
-            final LogicalResponse r = vault.withRetries(3, 5000).logical()
+            final LogicalResponse r = vault.withRetries(params.retryCount(), params.retryIntervalMs()).logical()
                     .withNameSpace(params.ns())
                     .read(params.path());
             final int status = r.getRestResponse().getStatus();
@@ -100,8 +94,7 @@ public class HashiVaultTaskCommon {
                 throw new VaultException(body, status);
             }
 
-            return r.getData();
-
+            return HashiVaultTaskResult.of(true, r.getData(), null, params);
         } catch (VaultException e) {
             String msg = String.format("Error reading from vault (%s): %s",
                     e.getHttpStatusCode(), e.getMessage());
@@ -112,9 +105,14 @@ public class HashiVaultTaskCommon {
         }
     }
 
-    private void writeValue(Vault vault, TaskParams params) {
+    private HashiVaultTaskResult writeValue(Vault vault, TaskParams params) {
+        if (dryRunMode) {
+            log.info("Dry-run mode enabled: Skipping write to vault");
+            return HashiVaultTaskResult.of(true, null, null, params);
+        }
+
         try {
-            final LogicalResponse r = vault.withRetries(3, 5000).logical()
+            final LogicalResponse r = vault.withRetries(params.retryCount(), params.retryIntervalMs()).logical()
                     .withNameSpace(params.ns())
                     .write(params.path(), params.kvPairs());
             final int status = r.getRestResponse().getStatus();
@@ -133,5 +131,7 @@ public class HashiVaultTaskCommon {
             log.error(msg);
             throw new HashiVaultTaskException(msg);
         }
+
+        return HashiVaultTaskResult.of(true, null, null, params);
     }
 }

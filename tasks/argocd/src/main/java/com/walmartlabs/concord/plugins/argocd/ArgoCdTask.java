@@ -20,11 +20,10 @@ package com.walmartlabs.concord.plugins.argocd;
  * =====
  */
 
-import com.walmartlabs.concord.ApiClient;
-import com.walmartlabs.concord.client.ProcessEventsApi;
+import com.walmartlabs.concord.client2.ApiClient;
+import com.walmartlabs.concord.client2.ProcessEventsApi;
 import com.walmartlabs.concord.common.ConfigurationUtils;
 import com.walmartlabs.concord.plugins.argocd.model.EventStatus;
-import com.walmartlabs.concord.plugins.argocd.openapi.ApiException;
 import com.walmartlabs.concord.plugins.argocd.openapi.model.*;
 import com.walmartlabs.concord.runtime.v2.sdk.*;
 import org.slf4j.Logger;
@@ -39,7 +38,7 @@ import java.util.Map;
 @Named("argocd")
 public class ArgoCdTask implements Task {
 
-    private final static Logger log = LoggerFactory.getLogger(ArgoCdTask.class);
+    private static final Logger log = LoggerFactory.getLogger(ArgoCdTask.class);
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final Context context;
@@ -59,7 +58,7 @@ public class ArgoCdTask implements Task {
 
         try {
             TaskResult taskResult;
-            record(params, EventStatus.START, null, null);
+            recordEvent(params, EventStatus.START, null, null);
             switch (params.action()) {
                 case GET: {
                     taskResult = processGetAction((TaskParams.GetParams) params);
@@ -121,10 +120,10 @@ public class ArgoCdTask implements Task {
                     throw new IllegalArgumentException("Unsupported action type: " + params.action());
                 }
             }
-            record(params, EventStatus.COMPLETE, taskResult, null);
+            recordEvent(params, EventStatus.COMPLETE, taskResult, null);
             return taskResult;
         } catch (Exception e) {
-            record(params, EventStatus.FAIL, null, e.getMessage());
+            recordEvent(params, EventStatus.FAIL, null, e.getMessage());
             throw e;
         }
     }
@@ -321,7 +320,7 @@ public class ArgoCdTask implements Task {
         return objectMapper.toMap(app);
     }
 
-    private void record(TaskParamsImpl in, EventStatus eventStatus, TaskResult taskResult, String error) throws IOException {
+    private void recordEvent(TaskParamsImpl in, EventStatus eventStatus, TaskResult taskResult, String error) throws IOException {
         if (in.recordEvents()) {
             RecordEvents.recordEvent(processEventsApi, context.processInstanceId(),
                     context.execution().correlationId(), eventStatus, error, in, taskResult);

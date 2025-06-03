@@ -22,6 +22,7 @@ package com.walmartlabs.concord.plugins.xmlutils.v2;
 
 import com.walmartlabs.concord.plugins.xmlutils.XmlUtilsTaskCommon;
 import com.walmartlabs.concord.runtime.v2.sdk.Context;
+import com.walmartlabs.concord.runtime.v2.sdk.DryRunReady;
 import com.walmartlabs.concord.runtime.v2.sdk.Task;
 
 import javax.inject.Inject;
@@ -31,6 +32,7 @@ import java.util.Map;
 
 @Named("xmlUtils")
 @SuppressWarnings("unused")
+@DryRunReady
 public class XmlUtilsTaskV2 implements Task {
 
     private final XmlUtilsTaskCommon delegate;
@@ -50,6 +52,7 @@ public class XmlUtilsTaskV2 implements Task {
     /**
      * @deprecated Use {@link #xpathString(String, String)} instead
      */
+    @Deprecated(since = "1.42.0")
     public String xpathString(String workDir, String file, String expression) throws Exception {
         return xpathString(file, expression);
     }
@@ -64,7 +67,7 @@ public class XmlUtilsTaskV2 implements Task {
     /**
      * @deprecated Use {@link #xpathListOfStrings(String, String)} instead
      */
-    @Deprecated
+    @Deprecated(since = "1.42.0")
     public List<String> xpathListOfStrings(String workDir, String file, String expression) throws Exception {
         return xpathListOfStrings(file, expression);
     }
@@ -80,7 +83,7 @@ public class XmlUtilsTaskV2 implements Task {
     /**
      * @deprecated Use {@link #mavenGav(String)} instead
      */
-    @Deprecated
+    @Deprecated(since = "1.42.0")
     public Map<String, String> mavenGav(String workDir, String file) throws Exception {
         return mavenGav(file);
     }

@@ -21,9 +21,9 @@ package com.walmartlabs.concord.plugins.terraform.backend;
  */
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.walmartlabs.concord.ApiClient;
-import com.walmartlabs.concord.client.JsonStoreApi;
-import com.walmartlabs.concord.client.JsonStoreRequest;
+import com.walmartlabs.concord.client2.ApiClient;
+import com.walmartlabs.concord.client2.JsonStoreApi;
+import com.walmartlabs.concord.client2.JsonStoreRequest;
 import com.walmartlabs.concord.plugins.terraform.TaskConstants;
 import com.walmartlabs.concord.runtime.v2.sdk.Context;
 import com.walmartlabs.concord.runtime.v2.sdk.LockService;
@@ -90,9 +90,9 @@ public class ConcordV2Backend implements Backend {
         String orgName = getCurrentOrgName(ctx);
 
         JsonStoreApi jsonStoreApi = new JsonStoreApi(apiClient);
-        jsonStoreApi.createOrUpdate(orgName, new JsonStoreRequest().setName(stateId));
+        jsonStoreApi.createOrUpdateJsonStore(orgName, new JsonStoreRequest().name(stateId));
 
-        String address = String.format("%s/api/v1/org/%s/jsonstore/%s/item/state", apiClient.getBasePath(), orgName, stateId);
+        String address = String.format("%s/api/v1/org/%s/jsonstore/%s/item/state", apiClient.getBaseUri(), orgName, stateId);
         if (debug) {
             log.info("init -> using state URL: {}", address);
         }

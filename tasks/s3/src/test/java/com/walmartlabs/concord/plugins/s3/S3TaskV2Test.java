@@ -9,9 +9,9 @@ package com.walmartlabs.concord.plugins.s3;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -24,6 +24,7 @@ import com.adobe.testing.s3mock.testcontainers.S3MockContainer;
 import com.walmartlabs.concord.plugins.s3.v2.S3TaskV2;
 import com.walmartlabs.concord.runtime.v2.sdk.Context;
 import com.walmartlabs.concord.runtime.v2.sdk.MapBackedVariables;
+import com.walmartlabs.concord.runtime.v2.sdk.ProcessConfiguration;
 import com.walmartlabs.concord.runtime.v2.sdk.TaskResult;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -72,6 +73,7 @@ class S3TaskV2Test {
         args.put(TaskParams.PutObjectParams.AUTH_KEY, Collections.singletonMap("basic", auth));
 
         Context context = Mockito.mock(Context.class);
+        when(context.processConfiguration()).thenReturn(ProcessConfiguration.builder().build());
         
         when(context.variables()).thenReturn(new MapBackedVariables(Collections.emptyMap()));
         when(context.defaultVariables()).thenReturn(new MapBackedVariables(Collections.emptyMap()));

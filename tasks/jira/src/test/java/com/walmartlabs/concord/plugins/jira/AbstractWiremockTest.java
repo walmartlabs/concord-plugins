@@ -165,6 +165,7 @@ public abstract class AbstractWiremockTest {
         assertNotNull(event);
 
         assertAuth(event.getRequest().header("Authorization").firstValue());
+        assertEquals("Concord-Jira-Plugin", event.getRequest().header("User-Agent").firstValue());
     }
 
     @Test
@@ -187,6 +188,7 @@ public abstract class AbstractWiremockTest {
         assertEquals("value1", requestBody.get("field1"));
 
         assertAuth(event.getRequest().header("Authorization").firstValue());
+        assertEquals("Concord-Jira-Plugin", event.getRequest().header("User-Agent").firstValue());
     }
 
     @Test
@@ -211,6 +213,7 @@ public abstract class AbstractWiremockTest {
         assertEquals("multipart/form-data; boundary=" + Constants.BOUNDARY, contentType);
 
         assertAuth(event.getRequest().header("Authorization").firstValue());
+        assertEquals("Concord-Jira-Plugin", event.getRequest().header("User-Agent").firstValue());
     }
 
     @Test
@@ -227,6 +230,7 @@ public abstract class AbstractWiremockTest {
         assertNotNull(event);
 
         assertAuth(event.getRequest().header("Authorization").firstValue());
+        assertEquals("Concord-Jira-Plugin", event.getRequest().header("User-Agent").firstValue());
     }
 
     @Test
@@ -243,6 +247,7 @@ public abstract class AbstractWiremockTest {
         assertNotNull(event);
 
         assertAuth(event.getRequest().header("Authorization").firstValue());
+        assertEquals("Concord-Jira-Plugin", event.getRequest().header("User-Agent").firstValue());
     }
 
     @Test

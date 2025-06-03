@@ -20,9 +20,9 @@ package com.walmartlabs.concord.plugins.argocd;
  * =====
  */
 
-import com.walmartlabs.concord.ApiException;
-import com.walmartlabs.concord.client.ProcessEventRequest;
-import com.walmartlabs.concord.client.ProcessEventsApi;
+import com.walmartlabs.concord.client2.ApiException;
+import com.walmartlabs.concord.client2.ProcessEventRequest;
+import com.walmartlabs.concord.client2.ProcessEventsApi;
 import com.walmartlabs.concord.plugins.argocd.model.EventStatus;
 import com.walmartlabs.concord.runtime.v2.sdk.TaskResult;
 import org.slf4j.Logger;
@@ -33,8 +33,8 @@ import java.util.*;
 
 public class RecordEvents {
 
-    private final static Logger log = LoggerFactory.getLogger(RecordEvents.class);
-    private final static List<String> BLACK_LIST = Arrays.asList("auth", "spec", "helm");
+    private static final Logger log = LoggerFactory.getLogger(RecordEvents.class);
+    private static final List<String> BLACK_LIST = Arrays.asList("auth", "spec", "helm");
 
     static void recordEvent(ProcessEventsApi processEventsApi, UUID instanceId, UUID correlationId,
                             EventStatus eventStatus, String error, TaskParamsImpl taskParams, TaskResult taskResult) throws IOException {
@@ -65,8 +65,8 @@ public class RecordEvents {
         }
         try {
             processEventsApi.event(instanceId, new ProcessEventRequest()
-                    .setEventType("ARGOCD")
-                    .setData(eventData));
+                    .eventType("ARGOCD")
+                    .data(eventData));
         } catch (ApiException e) {
             log.warn("recordEvents -> error while recording the event, ignoring: {}", e.getMessage());
         }

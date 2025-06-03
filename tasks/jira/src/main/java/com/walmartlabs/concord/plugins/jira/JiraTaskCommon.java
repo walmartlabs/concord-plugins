@@ -49,9 +49,15 @@ public class JiraTaskCommon {
     private static final String SECRET_KEY = "secret";
 
     private final JiraSecretService secretService;
+    private final boolean dryRunMode;
 
     public JiraTaskCommon(JiraSecretService secretService) {
+        this(secretService, false);
+    }
+
+    public JiraTaskCommon(JiraSecretService secretService, boolean dryRunMode) {
         this.secretService = secretService;
+        this.dryRunMode = dryRunMode;
     }
 
     public Map<String, Object> execute(TaskParams in) {
@@ -59,59 +65,53 @@ public class JiraTaskCommon {
         log.info("Using JIRA URL: {}", jiraUrl);
 
         Action action = in.action();
+
         switch (action) {
-            case CREATEISSUE: {
+            case CREATEISSUE -> {
                 log.info("Starting 'CreateIssue' Action");
-                return createIssue((CreateIssueParams)in);
+                return createIssue((CreateIssueParams) in);
             }
-            case ADDCOMMENT: {
+            case ADDCOMMENT -> {
                 log.info("Starting 'AddComment' Action");
-                addComment((AddCommentParams)in);
-                break;
+                addComment((AddCommentParams) in);
             }
-            case ADDATTACHMENT: {
+            case ADDATTACHMENT -> {
                 log.info("Starting 'AddAttachment' Action");
-                addAttachment((AddAttachmentParams)in);
-                break;
+                addAttachment((AddAttachmentParams) in);
             }
-            case CREATECOMPONENT: {
+            case CREATECOMPONENT -> {
                 log.info("Starting 'CreateComponent' Action");
-                return createComponent((CreateComponentParams)in);
+                return createComponent((CreateComponentParams) in);
             }
-            case DELETECOMPONENT: {
+            case DELETECOMPONENT -> {
                 log.info("Starting 'DeleteComponent' Action");
-                deleteComponent((DeleteComponentParams)in);
-                break;
+                deleteComponent((DeleteComponentParams) in);
             }
-            case TRANSITION: {
+            case TRANSITION -> {
                 log.info("Starting 'Transition' Action");
-                transition((TransitionParams)in);
-                break;
+                transition((TransitionParams) in);
             }
-            case DELETEISSUE: {
+            case DELETEISSUE -> {
                 log.info("Starting 'DeleteIssue' Action");
-                deleteIssue((DeleteIssueParams)in);
-                break;
+                deleteIssue((DeleteIssueParams) in);
             }
-            case UPDATEISSUE: {
+            case UPDATEISSUE -> {
                 log.info("Starting 'UpdateIssue' Action");
-                updateIssue((UpdateIssueParams)in);
-                break;
+                updateIssue((UpdateIssueParams) in);
             }
-            case CREATESUBTASK: {
+            case CREATESUBTASK -> {
                 log.info("Starting 'CreateSubTask' Action");
-                return createSubTask((CreateSubTaskParams)in);
+                return createSubTask((CreateSubTaskParams) in);
             }
-            case CURRENTSTATUS: {
+            case CURRENTSTATUS -> {
                 log.info("Starting 'CurrentStatus' Action");
-                return currentStatus((CurrentStatusParams)in);
+                return currentStatus((CurrentStatusParams) in);
             }
-            case GETISSUES: {
+            case GETISSUES -> {
                 log.info("Starting 'GetIssues' Action");
-                return getIssues((GetIssuesParams)in);
+                return getIssues((GetIssuesParams) in);
             }
-            default:
-                throw new IllegalArgumentException("Unsupported action type: " + action);
+            default -> throw new IllegalArgumentException("Unsupported action type: " + action);
         }
         return Collections.emptyMap();
     }
@@ -123,7 +123,6 @@ public class JiraTaskCommon {
         String description = in.description();
         String requestorUid = in.requestorUid();
         String issueType = in.issueType();
-        String issuePriority = in.issuePriority();
         Map<String, Object> assignee = in.assignee();
         List<String> labels = in.labels();
         List<String> components = in.components();
@@ -135,7 +134,6 @@ public class JiraTaskCommon {
         try {
             //Build JSON data
             Map<String, Object> objProj = Collections.singletonMap("key", projectKey);
-            Map<String, Object> objPriority = Collections.singletonMap("name", issuePriority);
             Map<String, Object> objIssueType = Collections.singletonMap("name", issueType);
 
             Map<String, Object> objMain = new HashMap<>();
@@ -147,7 +145,10 @@ public class JiraTaskCommon {
                 objMain.put("reporter", Collections.singletonMap("name", requestorUid));
             }
 
-            objMain.put("priority", objPriority);
+            if (in.issuePriority() != null) {
+                objMain.put("priority", Map.of("name", in.issuePriority()));
+            }
+
             objMain.put("issuetype", objIssueType);
 
             if (labels != null && !labels.isEmpty()) {
@@ -166,6 +167,11 @@ public class JiraTaskCommon {
             objMain.putAll(customFieldsTypeAtt);
 
             Map<String, Object> objFields = Collections.singletonMap("fields", objMain);
+
+            if (dryRunMode) {
+                log.info("Dry-run mode enabled: Skipping creation of a new issue in '{}'", projectKey);
+                return Map.of(JIRA_ISSUE_ID_KEY, "FAKE-000");
+            }
 
             log.info("Creating new issue in '{}'...", projectKey);
 
@@ -192,6 +198,11 @@ public class JiraTaskCommon {
         String projectKey = in.projectKey();
         String componentName = in.componentName();
 
+        if (dryRunMode) {
+            log.info("Dry-run mode enabled: Skipping creation of component '{}'", componentName);
+            return Map.of(JIRA_COMPONENT_ID_KEY, "FAKE-COMPONENT-000");
+        }
+
         try {
             Map<String, Object> m = new HashMap<>();
             m.put("name", componentName);
@@ -215,6 +226,11 @@ public class JiraTaskCommon {
     void deleteComponent(DeleteComponentParams in) {
         int componentId = in.componentId();
 
+        if (dryRunMode) {
+            log.info("Dry-run mode enabled: Skipping deletion of component #{}", componentId);
+            return;
+        }
+
         try {
             getClient(in)
                     .url(in.jiraUrl() + "component/" + componentId)
@@ -237,6 +253,11 @@ public class JiraTaskCommon {
             throw new IllegalArgumentException("File not found: " + filePath);
         }
 
+        if (dryRunMode) {
+            log.info("Dry-run mode enabled: Skipping attachment to #{}", issueKey);
+            return;
+        }
+
         try {
             getClient(in)
                     .url(in.jiraUrl() + "issue/" + issueKey + "/attachments")
@@ -252,9 +273,14 @@ public class JiraTaskCommon {
         String issueKey = in.issueKey();
         String comment = in.comment();
         boolean debug = in.debug();
+        Map<String, Object> m = Collections.singletonMap("body", comment);
+
+        if (dryRunMode) {
+            log.info("Dry-run mode enabled: Skipping issue #{} comment: '{}'", issueKey, comment);
+            return;
+        }
 
         try {
-            Map<String, Object> m = Collections.singletonMap("body", comment);
 
             getClient(in)
                     .url(in.jiraUrl() + "issue/" + issueKey + "/comment")
@@ -297,6 +323,11 @@ public class JiraTaskCommon {
             Map<String, Object> objFields = Collections.singletonMap("fields", objMain);
             objupdate = ConfigurationUtils.deepMerge(objFields, ConfigurationUtils.deepMerge(objTransition, objupdate));
 
+            if (dryRunMode) {
+                log.info("Dry-run mode enabled: Skipping transition of issue #{}", issueKey);
+                return;
+            }
+
             getClient(in)
                     .url(in.jiraUrl() + "issue/" + issueKey + "/transitions")
                     .jiraAuth(buildAuth(in))
@@ -311,6 +342,11 @@ public class JiraTaskCommon {
 
     void deleteIssue(DeleteIssueParams in) {
         String issueKey = in.issueKey();
+
+        if (dryRunMode) {
+            log.info("Dry-run mode enabled: Skipping deletion of issue #{}", issueKey);
+            return;
+        }
 
         try {
             getClient(in)
@@ -328,6 +364,11 @@ public class JiraTaskCommon {
     void updateIssue(UpdateIssueParams in) {
         String issueKey = in.issueKey();
         Map<String, Object> fields = in.fields();
+
+        if (dryRunMode) {
+            log.info("Dry-run mode enabled: Skipping update for issue #{}", issueKey);
+            return;
+        }
 
         log.info("Updating {} fields for issue #{}", fields, issueKey);
 
@@ -495,23 +536,15 @@ public class JiraTaskCommon {
             return getNativeClient(in);
         } catch (NoClassDefFoundError e) {
             // client2 may not exist
-            log.info("Falling back to okhttp client");
+            log.info("Error while creating jira http client: {}", e.getMessage());
+            log.info("Add com.walmartlabs.concord.client2 to classpath?");
         }
 
-        try {
-            return getOkHttpClient(in);
-        } catch (Exception | NoClassDefFoundError e) {
-            // that's very unexpected as long as okhttp is still allowed
-            throw new IllegalStateException("No jira http client found");
-        }
+        throw new IllegalStateException("Unexpected error while creating JiraHttpClient.");
     }
 
     JiraHttpClient getNativeClient(TaskParams in) {
         return new NativeJiraHttpClient(in);
-    }
-
-    JiraHttpClient getOkHttpClient(TaskParams in) {
-        return new JiraClient(in);
     }
 
     JiraSecretService getSecretService() {

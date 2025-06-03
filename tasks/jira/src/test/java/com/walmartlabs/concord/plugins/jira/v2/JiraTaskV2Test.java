@@ -9,9 +9,9 @@ package com.walmartlabs.concord.plugins.jira.v2;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,11 +22,7 @@ package com.walmartlabs.concord.plugins.jira.v2;
 
 import com.walmartlabs.concord.plugins.jira.JiraTaskCommon;
 import com.walmartlabs.concord.plugins.jira.TaskParams;
-import com.walmartlabs.concord.runtime.v2.sdk.Context;
-import com.walmartlabs.concord.runtime.v2.sdk.MapBackedVariables;
-import com.walmartlabs.concord.runtime.v2.sdk.SecretService;
-import com.walmartlabs.concord.runtime.v2.sdk.TaskResult;
-import com.walmartlabs.concord.runtime.v2.sdk.Variables;
+import com.walmartlabs.concord.runtime.v2.sdk.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -66,6 +62,9 @@ class JiraTaskV2Test {
 
     @BeforeEach
     public void setup() {
+        when(context.processConfiguration()).thenReturn(ProcessConfiguration.builder().build());
+        when(context.variables()).thenReturn(new MapBackedVariables(Map.of()));
+
         task = spy(new JiraTaskV2(context));
         input = new HashMap<>();
         defaultVariables = new MapBackedVariables(Map.of());

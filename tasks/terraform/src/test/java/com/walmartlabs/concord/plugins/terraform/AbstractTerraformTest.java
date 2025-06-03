@@ -73,9 +73,9 @@ public abstract class AbstractTerraformTest {
     @RegisterExtension
     protected static WireMockExtension wireMockRule = WireMockExtension.newInstance()
             .options(wireMockConfig()
-                .extensions(new StateBackendTransformer())
-                .bindAddress("0.0.0.0")
-                .port(12345))
+                    .extensions(new StateBackendTransformer())
+                    .bindAddress("0.0.0.0")
+                    .dynamicPort())
             .build();
 
     public void abstractSetup() throws Exception {

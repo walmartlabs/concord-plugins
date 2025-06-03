@@ -26,6 +26,7 @@ import com.walmartlabs.concord.sdk.Task;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Inject;
 import javax.inject.Named;
 import java.util.HashMap;
 import java.util.Map;
@@ -34,12 +35,17 @@ import java.util.Map;
 @SuppressWarnings("unused")
 public class TeamsTaskV2 implements Task {
 
-    private static final Logger log = LoggerFactory.getLogger(TeamsTask.class);
+    private static final Logger log = LoggerFactory.getLogger(TeamsTaskV2.class);
 
     @InjectVariable("msteamsParams")
     private Map<String, Object> defaults;
 
-    private final TeamsV2TaskCommon delegate = new TeamsV2TaskCommon();
+    private final TeamsV2TaskCommon delegate;
+
+    @Inject
+    public TeamsTaskV2(TeamsV2TaskCommon delegate) {
+        this.delegate = delegate;
+    }
 
     @Override
     public void execute(Context ctx) {

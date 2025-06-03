@@ -91,10 +91,12 @@ public class GitTask {
 
     private final GitSecretService secretService;
     private final Path processWorkDir;
+    private final boolean dryRunMode;
 
-    public GitTask(GitSecretService secretService, Path processWorkDir) {
+    public GitTask(GitSecretService secretService, Path processWorkDir, boolean dryRunMode) {
         this.secretService = secretService;
         this.processWorkDir = processWorkDir;
+        this.dryRunMode = dryRunMode;
     }
 
     public Map<String, Object> execute(Map<String, Object> in, Map<String, Object> defaults) throws Exception {
@@ -266,6 +268,12 @@ public class GitTask {
 
             Map<String, Object> commitResult;
             log.info("Changes detected in the following files: {}", status.getUncommittedChanges());
+
+            if (dryRunMode) {
+                log.info("Dry-run mode enabled: Skipping real commit");
+                return Map.of();
+            }
+
             CommitCommand commitCommand = git.commit()
                     .setSign(false)
                     .setAllowEmpty(allowEmptyCommit)
@@ -373,6 +381,11 @@ public class GitTask {
             return handleError("Error while cloning the repository", e, in, dstDir, secret);
         }
 
+        if (dryRunMode) {
+            log.info("Dry-run mode enabled: Skipping creation of branch '{}'", newBranchName);
+            return Map.of();
+        }
+
         try (Git git = Git.open(dstDir.toFile())) {
             git.checkout().setCreateBranch(true).setName(newBranchName).call();
             log.info("Created new branch '{}' from '{}'", newBranchName, getHeadSHA(dstDir));
@@ -410,6 +423,11 @@ public class GitTask {
             client.cloneRepo(uri, destinationBranch, secret, dstDir);
         } catch (Exception e) {
             return handleError("Error while cloning the repository", e, in, dstDir, secret);
+        }
+
+        if (dryRunMode) {
+            log.info("Dry-run mode enabled: Skipping merging of '{}' with '{}'", sourceBranch, destinationBranch);
+            return Map.of();
         }
 
         try (Git git = Git.open(dstDir.toFile())) {

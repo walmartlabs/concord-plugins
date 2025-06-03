@@ -20,61 +20,55 @@ package com.walmartlabs.concord.plugins.msteams;
  * =====
  */
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.http.Header;
-import org.apache.http.HttpHeaders;
-import org.apache.http.HttpHost;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.conn.HttpClientConnectionManager;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
-import org.apache.http.message.BasicHeader;
-import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.ProxySelector;
+import java.net.URI;
 import java.net.URLDecoder;
-import java.util.*;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class TeamsClientV2 implements AutoCloseable {
 
-    private static final Logger log = LoggerFactory.getLogger(TeamsClient.class);
+    private static final Logger log = LoggerFactory.getLogger(TeamsClientV2.class);
 
     private final int retryCount;
-    private final PoolingHttpClientConnectionManager connManager;
-    private final CloseableHttpClient client;
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final HttpClient client;
+    private final Map<String, String> defaultHeaders;
 
     public TeamsClientV2(TeamsV2Configuration cfg) {
+        this.defaultHeaders = new HashMap<>();
         this.retryCount = cfg.retryCount();
-        this.connManager = TeamsClient.createConnManager();
-        this.client = createClient(cfg, connManager);
+        this.client = createClient(cfg);
+        defaultHeaders.put("Authorization", "Bearer " + generateAccessToken(cfg, client));
     }
 
     @Override
-    public void close() throws IOException {
-        client.close();
-        connManager.close();
+    public void close() {
+        // leaving this for now, in case something out there is using it.
+        // it is public :(
     }
 
     public Result createConversation(String tenantId, Map<String, Object> activity,
                                      String channelId, String rootApi) throws IOException {
 
-        Map<String, Object> params = new HashMap<>();
-        params.put("activity", activity);
+        Map<String, Object> params = new LinkedHashMap<>();
         params.put("tenantId", tenantId);
+        params.put("activity", activity);
 
-        Map<String, Object> channel = Collections.singletonMap("id", URLDecoder.decode(channelId, "UTF-8"));
+        Map<String, Object> channel = Collections.singletonMap("id", URLDecoder.decode(channelId, StandardCharsets.UTF_8));
         Map<String, Object> channelData = Collections.singletonMap("channel", channel);
         params.put("channelData", channelData);
         return exec(params, rootApi);
@@ -85,108 +79,124 @@ public class TeamsClientV2 implements AutoCloseable {
         return exec(activity, rootApi);
     }
 
-    private Result exec(Map<String, Object> params, String rootApi) throws IOException {
-        HttpPost request = new HttpPost(rootApi);
-        request.setEntity(new StringEntity(objectMapper.writeValueAsString(params), ContentType.APPLICATION_JSON));
+    private HttpRequest.Builder buildRequest() {
+        var builder = HttpRequest.newBuilder();
+
+        defaultHeaders.forEach(builder::header);
+
+        return builder;
+    }
+
+    Result exec(Map<String, Object> params, String rootApi) throws IOException {
+        var request = buildRequest()
+                .uri(URI.create(rootApi))
+                .POST(HttpRequest.BodyPublishers.ofString(Utils.mapper().writeValueAsString(params)))
+                .header("Content-Type", "application/json")
+                .build();
 
         for (int i = 0; i < retryCount + 1; i++) {
-            try (CloseableHttpResponse response = client.execute(request)) {
-                if (response.getStatusLine().getStatusCode() == Constants.TOO_MANY_REQUESTS_ERROR) {
+            try {
+                var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                var body = response.body();
+
+                if (response.statusCode() == Constants.TOO_MANY_REQUESTS_ERROR) {
                     int retryAfter = TeamsClient.getRetryAfter(response);
                     log.warn("exec [params: '{}'] -> too many requests, retry after {} sec", params, retryAfter);
-                    TeamsClient.sleep(retryAfter * 1000L);
+                    sleep(retryAfter * 1000L);
                 } else {
-                    if (response.getEntity() == null) {
+                    if (body == null) {
                         log.error("exec [params: '{}'] -> empty response", params);
                         return new Result(false, "empty response", null, null, null);
                     }
 
-                    String s = EntityUtils.toString(response.getEntity());
-                    if (response.getStatusLine().getStatusCode() != Constants.TEAMS_SUCCESS_STATUS_CODE_V2) {
+                    if (response.statusCode() != Constants.TEAMS_SUCCESS_STATUS_CODE_V2) {
                         log.error("exec [params: '{}'] -> failed response", params);
-                        return new Result(false, s, null, null, null);
+                        return new Result(false, body, null, null, null);
                     }
 
-
                     Result r;
-                    if (objectMapper.readTree(s).has("activityId")) {
-                        String conversationId = objectMapper.readTree(s).get("id").toString().
+                    var tree = Utils.mapper().readTree(body);
+                    if (tree.has("activityId")) {
+                        String conversationId = tree.get("id").toString().
                                 replace("\"", "");
-                        String activityId = objectMapper.readTree(s).get("activityId").toString().
+                        String activityId = tree.get("activityId").toString().
                                 replace("\"", "");
 
-                        r = new Result(true, null, s, conversationId, activityId);
+                        r = new Result(true, null, body, conversationId, activityId);
                         log.info("exec [params: '{}'] -> {}", params, r);
                         return r;
                     }
-                    r = new Result(true, null, s, null, null);
+                    r = new Result(true, null, body, null, null);
                     log.info("exec [params: '{}'] -> {}", params, r);
                     return r;
                 }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
             }
         }
 
         return new Result(false, "too many requests", null, null, null);
     }
 
-    private static CloseableHttpClient createClient(TeamsV2Configuration cfg, HttpClientConnectionManager connManager) {
-        String accessToken = generateAccessToken(cfg);
+    private static HttpClient createClient(TeamsV2Configuration cfg) {
+        var clientBuilder =  HttpClient.newBuilder()
+                .connectTimeout(Duration.ofMillis(cfg.connectTimeout()));
 
-        Collection<Header> headers = Collections.singleton(new BasicHeader(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken));
-        return HttpClientBuilder.create()
-                .setDefaultRequestConfig(createConfig(cfg))
-                .setConnectionManager(connManager)
-                .setDefaultHeaders(headers)
-                .build();
-    }
-
-    public static RequestConfig createConfig(TeamsV2Configuration cfg) {
-        HttpHost proxy = null;
-        if (cfg.useProxy()) {
-            proxy = new HttpHost(cfg.proxyAddress(), cfg.proxyPort(), "http");
+        if (cfg.proxyAddress() != null) {
+            clientBuilder.proxy(ProxySelector.of(new InetSocketAddress(cfg.proxyAddress(), cfg.proxyPort())));
         }
 
-        return RequestConfig.custom()
-                .setConnectTimeout(cfg.connectTimeout())
-                .setSocketTimeout(cfg.soTimeout())
-                .setProxy(proxy)
-                .build();
+        return clientBuilder.build();
     }
 
     @SuppressWarnings("unchecked")
-    private static String generateAccessToken(TeamsV2Configuration cfg) {
-        List<NameValuePair> data = new ArrayList<>();
-        data.add(new BasicNameValuePair("client_id", cfg.clientId()));
-        data.add(new BasicNameValuePair("client_secret", cfg.clientSecret()));
-        data.add(new BasicNameValuePair("scope", Constants.API_BOT_FRAMEWORK_SCOPE));
-        data.add(new BasicNameValuePair("grant_type", Constants.API_BOT_FRAMEWORK_GRANT_TYPE));
+    String generateAccessToken(TeamsV2Configuration cfg, HttpClient client) {
+        Map<String, String> params = new LinkedHashMap<>(); // linked so order is predictable for unit tests
+        params.put("client_id", cfg.clientId());
+        params.put("client_secret", cfg.clientSecret());
+        params.put("grant_type", Constants.API_BOT_FRAMEWORK_GRANT_TYPE);
+        params.put("scope", Constants.API_BOT_FRAMEWORK_SCOPE);
+
+        var paramString = params.entrySet()
+                .stream()
+                .map(e -> e.getKey() + "=" + URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8))
+                .collect(Collectors.joining("&"));
+
+        var request = HttpRequest.newBuilder(URI.create(cfg.accessTokenApi()))
+                .POST(HttpRequest.BodyPublishers.ofString(paramString))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .timeout(Duration.ofMillis(cfg.soTimeout()))
+                .build();
 
         try {
-            HttpPost request = new HttpPost(cfg.accessTokenApi());
-            request.addHeader("content-type", "application/x-www-form-urlencoded");
-            request.setEntity(new UrlEncodedFormEntity(data));
-            CloseableHttpClient client = HttpClientBuilder.create().build();
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            String responseBody = response.body();
 
-            try (CloseableHttpResponse r = client.execute(request)) {
-
-                String responseBody = EntityUtils.toString(r.getEntity());
-                if (responseBody != null) {
-
-                    // Getting the status code.
-                    int statusCode = r.getStatusLine().getStatusCode();
-
-                    if (statusCode == 200) {
-                        ObjectMapper mapper = new ObjectMapper();
-                        Map<Object, String> map = mapper.readValue(responseBody, Map.class);
-                        return map.get(Constants.VAR_ACCESS_TOKEN);
-                    } else {
-                        throw new RuntimeException("Error while generating access token" + responseBody);
-                    }
-                }
+            if (response.statusCode() != 200) {
+                throw new RuntimeException("Error while generating access token" + responseBody);
             }
-        } catch (Exception e) {
-            throw new RuntimeException("Error while generating access token", e);
+
+            if (responseBody == null || responseBody.isBlank()) {
+                throw new RuntimeException("No body returned for access token request.");
+            }
+
+            Map<Object, String> map = Utils.mapper().readValue(responseBody, Map.class);
+            return map.get(Constants.VAR_ACCESS_TOKEN);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } catch (IOException e) {
+            throw new RuntimeException("IO error while retieving access token: " + e.getMessage(), e);
         }
+
         return null;
     }
+
+    void sleep(long t) {
+        try {
+            Thread.sleep(t);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
 }

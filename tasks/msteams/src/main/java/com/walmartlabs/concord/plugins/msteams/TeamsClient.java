@@ -20,35 +20,17 @@ package com.walmartlabs.concord.plugins.msteams;
  * =====
  */
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.http.Header;
-import org.apache.http.HttpHost;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.config.Registry;
-import org.apache.http.config.RegistryBuilder;
-import org.apache.http.conn.HttpClientConnectionManager;
-import org.apache.http.conn.socket.ConnectionSocketFactory;
-import org.apache.http.conn.socket.PlainConnectionSocketFactory;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
-import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
-import java.security.SecureRandom;
-import java.security.cert.X509Certificate;
+import java.net.InetSocketAddress;
+import java.net.ProxySelector;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,21 +40,17 @@ public class TeamsClient implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(TeamsClient.class);
 
     private final int retryCount;
-    private final PoolingHttpClientConnectionManager connManager;
-    private final CloseableHttpClient client;
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final HttpClient client;
 
     public TeamsClient(TeamsConfiguration cfg) {
         this.retryCount = cfg.retryCount();
-        this.connManager = createConnManager();
-        this.client = createClient(cfg, connManager);
+        this.client = createClient(cfg);
     }
 
     @Override
-    public void close() throws IOException {
-        client.close();
-        connManager.close();
+    public void close() {
+        // leaving this for now, in case something out there is using it.
+        // it is public :(
     }
 
     public Result message(TeamsConfiguration cfg, String title, String text, String themeColor,
@@ -93,67 +71,79 @@ public class TeamsClient implements AutoCloseable {
         return exec(cfg, params);
     }
 
-    private Result exec(TeamsConfiguration cfg, Map<String, Object> params) throws IOException {
-
-        String teamId = cfg.teamId();
-        String webhookId = cfg.webhookId();
-        String webhookUrl = cfg.webhookUrl();
-
-        HttpPost request;
-
-        if ((teamId != null && !teamId.isEmpty()) && (webhookId != null && !webhookId.isEmpty())) {
-            webhookUrl = cfg.rootWebhookUrl() + teamId + "@" + cfg.tenantId() + "/IncomingWebhook/" + webhookId + "/" + cfg.webhookTypeId();
-            request = new HttpPost(webhookUrl);
-        } else if (webhookUrl != null && !webhookUrl.isEmpty()) {
-            request = new HttpPost(webhookUrl);
-        } else {
-            throw new IllegalArgumentException("Mandatory parameters 'teamId & webhookId' or 'webhookUrl' is required for the execution of 'msteams' task");
-        }
-        request.setEntity(new StringEntity(objectMapper.writeValueAsString(params), ContentType.APPLICATION_JSON));
+    Result exec(TeamsConfiguration cfg, Map<String, Object> params) throws IOException {
+        var webhookUrl = getWebhookUrl(cfg);
+        var request = HttpRequest.newBuilder(URI.create(webhookUrl))
+                .POST(HttpRequest.BodyPublishers.ofString(Utils.mapper().writeValueAsString(params)))
+                .header("Content-Type", "application/json")
+                .timeout(Duration.ofMillis(cfg.soTimeout()))
+                .build();
 
         for (int i = 0; i < retryCount + 1; i++) {
-            try (CloseableHttpResponse response = client.execute(request)) {
-                if (response.getStatusLine().getStatusCode() == Constants.TOO_MANY_REQUESTS_ERROR) {
+            try {
+                var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+                if (response.statusCode() == Constants.TOO_MANY_REQUESTS_ERROR) {
                     int retryAfter = getRetryAfter(response);
                     log.warn("exec [webhookUrl: '{}', params: '{}'] -> too many requests, retry after {} sec", webhookUrl, params, retryAfter);
                     sleep(retryAfter * 1000L);
                 } else {
-                    if (response.getEntity() == null) {
+                    var body = response.body();
+                    if (body == null) {
                         log.error("exec [webhookUrl: '{}', params: '{}'] -> empty response", webhookUrl, params);
                         return new Result(false, "empty response", null, null, null);
                     }
 
-                    String s = EntityUtils.toString(response.getEntity());
-                    if (response.getStatusLine().getStatusCode() != Constants.TEAMS_SUCCESS_STATUS_CODE) {
+                    if (response.statusCode() != Constants.TEAMS_SUCCESS_STATUS_CODE) {
                         log.error("exec [webhookUrl: '{}', params: '{}'] -> failed response", webhookUrl, params);
-                        return new Result(false, s, null, null, null);
+                        return new Result(false, body, null, null, null);
                     }
 
-                    Result r = new Result(true, null, s, null, null);
+                    Result r = new Result(true, null, body, null, null);
                     log.info("exec [webhookUrl: '{}', params: '{}'] -> {}", webhookUrl, params, r);
                     return r;
                 }
+            } catch (IOException e) {
+                log.error("IO Error sending request to webhook url '{}': {}", webhookUrl, e.getMessage());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("thread interrupted");
             }
         }
 
         return new Result(false, "too many requests", null, null, null);
     }
 
-    public static int getRetryAfter(HttpResponse response) {
-        Header h = response.getFirstHeader("Retry-After");
-        if (h == null) {
+    private String getWebhookUrl(TeamsConfiguration cfg) {
+        String teamId = cfg.teamId();
+        String webhookId = cfg.webhookId();
+        String webhookUrl = cfg.webhookUrl();
+
+        if ((teamId != null && !teamId.isEmpty()) && (webhookId != null && !webhookId.isEmpty())) {
+            return cfg.rootWebhookUrl() + teamId + "@" + cfg.tenantId() + "/IncomingWebhook/" + webhookId + "/" + cfg.webhookTypeId();
+        } else if (webhookUrl != null && !webhookUrl.isEmpty()) {
+            return webhookUrl;
+        } else {
+            throw new IllegalArgumentException("Mandatory parameters 'teamId & webhookId' or 'webhookUrl' is required for the execution of 'msteams' task");
+        }
+    }
+
+    public static int getRetryAfter(HttpResponse<String> response) {
+        var retryAfterHeader = response.headers().firstValue("Retry-After");
+
+        if (retryAfterHeader.isEmpty()) {
             return Constants.DEFAULT_RETRY_AFTER;
         }
 
         try {
-            return Integer.parseInt(h.getValue());
+            return Integer.parseInt(retryAfterHeader.get());
         } catch (Exception e) {
-            log.warn("getRetryAfter -> can't parse retry value '{}'", h.getValue());
+            log.warn("getRetryAfter -> can't parse retry value '{}'", retryAfterHeader.get());
             return Constants.DEFAULT_RETRY_AFTER;
         }
     }
 
-    public static void sleep(long t) {
+    void sleep(long t) {
         try {
             Thread.sleep(t);
         } catch (InterruptedException e) {
@@ -161,56 +151,14 @@ public class TeamsClient implements AutoCloseable {
         }
     }
 
-    @SuppressWarnings("Duplicates")
-    public static PoolingHttpClientConnectionManager createConnManager() {
-        try {
-            SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
-            sslContext.init(new KeyManager[0], new TrustManager[]{new DefaultTrustManager()}, new SecureRandom());
+    private static HttpClient createClient(TeamsConfiguration cfg) {
+        var clientBuilder =  HttpClient.newBuilder()
+                .connectTimeout(Duration.ofMillis(cfg.connectTimeout()));
 
-            Registry<ConnectionSocketFactory> registry = RegistryBuilder.<ConnectionSocketFactory>create()
-                    .register("http", PlainConnectionSocketFactory.INSTANCE)
-                    .register("https", new SSLConnectionSocketFactory(sslContext, SSLConnectionSocketFactory.getDefaultHostnameVerifier()))
-                    .build();
-
-            return new PoolingHttpClientConnectionManager(registry);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private static CloseableHttpClient createClient(TeamsConfiguration cfg, HttpClientConnectionManager connManager) {
-        return HttpClientBuilder.create()
-                .setDefaultRequestConfig(createConfig(cfg))
-                .setConnectionManager(connManager)
-                .build();
-    }
-
-    public static RequestConfig createConfig(TeamsConfiguration cfg) {
-        HttpHost proxy = null;
         if (cfg.proxyAddress() != null) {
-            proxy = new HttpHost(cfg.proxyAddress(), cfg.proxyPort(), "http");
+            clientBuilder.proxy(ProxySelector.of(new InetSocketAddress(cfg.proxyAddress(), cfg.proxyPort())));
         }
 
-        return RequestConfig.custom()
-                .setConnectTimeout(cfg.connectTimeout())
-                .setSocketTimeout(cfg.soTimeout())
-                .setProxy(proxy)
-                .build();
-    }
-
-    private static class DefaultTrustManager implements X509TrustManager {
-
-        @Override
-        public void checkClientTrusted(X509Certificate[] x509Certificates, String s) { // NOSONAR
-        }
-
-        @Override
-        public void checkServerTrusted(X509Certificate[] x509Certificates, String s) { // NOSONAR
-        }
-
-        @Override
-        public X509Certificate[] getAcceptedIssuers() {
-            return null;
-        }
+        return clientBuilder.build();
     }
 }

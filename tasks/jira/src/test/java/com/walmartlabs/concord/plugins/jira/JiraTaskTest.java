@@ -69,7 +69,6 @@ class JiraTaskTest {
         mockContext = new MockContext(new HashMap<>());
         mockContext.setVariable("txId", UUID.randomUUID());
         mockContext.setVariable("workDir", workDir.toString());
-
     }
 
     @Test

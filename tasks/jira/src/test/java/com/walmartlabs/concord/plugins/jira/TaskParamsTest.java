@@ -71,4 +71,20 @@ class TaskParamsTest {
         var expected = assertThrows(IllegalArgumentException.class, params::httpProtocolVersion);
         assertTrue(expected.getMessage().contains("Unsupported HTTP version"));
     }
+
+    @Test
+    void testUserAgent() {
+        Map<String, Object> input = Map.of("txId", "ec82226b-a012-43d6-8571-f4a5849b2189");
+        var params = new TaskParams.DeleteIssueParams(new MapBackedVariables(input));
+
+        assertEquals("Concord-Jira-Plugin: ec82226b-a012-43d6-8571-f4a5849b2189", params.userAgent());
+    }
+
+    @Test
+    void testCustomUserAgent() {
+        Map<String, Object> input = Map.of("userAgent", "custom-agent");
+        var params = new TaskParams.DeleteIssueParams(new MapBackedVariables(input));
+
+        assertEquals("custom-agent", params.userAgent());
+    }
 }
