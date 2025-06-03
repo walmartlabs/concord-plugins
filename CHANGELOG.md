@@ -4,6 +4,10 @@
 
 ### Changed
 
+- jsonpath: bump com.jayway.jsonpath:json-path from 2.4.0 to 2.9.0
+([#167](https://github.com/walmartlabs/concord-plugins/pull/167));
+- git: bump com.google.code.gson:gson from 2.8.7 to 2.8.9
+([#168](https://github.com/walmartlabs/concord-plugins/pull/168));
 - project: tone down openapi generator logging
 ([#190](https://github.com/walmartlabs/concord-plugins/pull/190));
 - project: update target concord version to 2.25.0
