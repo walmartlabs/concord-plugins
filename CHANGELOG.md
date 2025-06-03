@@ -7,7 +7,9 @@
 - project: tone down openapi generator logging
 ([#190](https://github.com/walmartlabs/concord-plugins/pull/190));
 - project: update target concord version to 2.25.0
-([#199](https://github.com/walmartlabs/concord-plugins/pull/199)).
+([#199](https://github.com/walmartlabs/concord-plugins/pull/199));
+- hashivault: add configurable retry interval
+([#201](https://github.com/walmartlabs/concord-plugins/pull/201)).
 
 
 
