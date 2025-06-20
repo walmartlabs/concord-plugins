@@ -23,6 +23,7 @@ package com.walmartlabs.concord.plugins.git.v1;
 import com.walmartlabs.concord.plugins.git.GitHubTask;
 import com.walmartlabs.concord.sdk.Context;
 import com.walmartlabs.concord.sdk.InjectVariable;
+import com.walmartlabs.concord.sdk.SecretService;
 import com.walmartlabs.concord.sdk.Task;
 
 import javax.inject.Inject;
@@ -37,14 +38,17 @@ public class GitHubTaskV1 implements Task {
     @InjectVariable("githubParams")
     private Map<String, Object> defaults;
 
+    private SecretService secretService;
+
     @Inject
-    public GitHubTaskV1() {
+    public GitHubTaskV1(SecretService secretService) {
         this.delegate = new GitHubTask();
+        this.secretService = secretService;
     }
 
     @Override
     public void execute(Context ctx) {
-        Map<String, Object> result = delegate.execute(ctx.toMap(), defaults);
+        Map<String, Object> result = delegate.execute(ctx.toMap(), defaults, new SecretServiceV1(secretService, ctx));
         result.forEach(ctx::setVariable);
     }
 }

@@ -20,6 +20,8 @@ package com.walmartlabs.concord.plugins.git;
  * =====
  */
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.walmartlabs.concord.common.secret.UsernamePassword;
 import com.walmartlabs.concord.sdk.Secret;
 
@@ -29,6 +31,9 @@ import static com.walmartlabs.concord.sdk.MapUtils.getString;
 
 public final class Utils {
 
+    private static final ObjectMapper MAPPER = new ObjectMapper()
+            .registerModule(new JavaTimeModule());
+
     public static boolean getBoolean(Map<String, Object> in, String k, boolean fallback) {
         Object v = in.get(k);
 
@@ -36,8 +41,8 @@ public final class Utils {
             return fallback;
         }
 
-        if (v instanceof String) {
-            return Boolean.parseBoolean((String) v);
+        if (v instanceof String s) {
+            return Boolean.parseBoolean(s);
         }
 
         if (!(v instanceof Boolean)) {
@@ -60,18 +65,22 @@ public final class Utils {
             return null;
         }
 
-        if (secret instanceof UsernamePassword) {
-            char[] password = ((UsernamePassword) secret).getPassword();
+        if (secret instanceof UsernamePassword up) {
+            char[] password = up.getPassword();
             if (password != null && password.length != 0) {
                 s = s.replace(new String(password), "***");
             }
-        } else if (secret instanceof TokenSecret) {
-            String token = ((TokenSecret) secret).getToken();
+        } else if (secret instanceof TokenSecret ts) {
+            String token = ts.getToken();
             if (token != null && !token.trim().isEmpty()) {
                 s = s.replace(token, "***");
             }
         }
         return s;
+    }
+
+    public static ObjectMapper getObjectMapper() {
+        return MAPPER;
     }
 
     private Utils() {
