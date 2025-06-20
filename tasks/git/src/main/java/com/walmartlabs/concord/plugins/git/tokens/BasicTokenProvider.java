@@ -1,10 +1,10 @@
-package com.walmartlabs.concord.plugins.git;
+package com.walmartlabs.concord.plugins.git.tokens;
 
 /*-
  * *****
  * Concord
  * -----
- * Copyright (C) 2017 - 2020 Walmart Inc.
+ * Copyright (C) 2017 - 2025 Walmart Inc., Concord Authors
  * -----
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,12 +20,16 @@ package com.walmartlabs.concord.plugins.git;
  * =====
  */
 
-import java.nio.file.Path;
+public class BasicTokenProvider implements AccessTokenProvider {
+    private final String accessToken;
 
-public interface GitSecretService {
+    public BasicTokenProvider(String accessToken) {
+        this.accessToken = accessToken;
+    }
 
-    Path exportPrivateKeyAsFile(String orgName, String secretName, String pwd) throws Exception;
-
-    Path exportFile(String orgName, String secretName, String pwd) throws Exception;
+    @Override
+    public String getToken() {
+        return accessToken;
+    }
 
 }
