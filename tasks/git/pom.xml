@@ -64,9 +64,10 @@
             <artifactId>jackson-datatype-jsr310</artifactId>
             <scope>provided</scope>
         </dependency>
+        <!-- Immutables -->
         <dependency>
             <groupId>org.immutables</groupId>
-            <artifactId>builder</artifactId>
+            <artifactId>value</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
