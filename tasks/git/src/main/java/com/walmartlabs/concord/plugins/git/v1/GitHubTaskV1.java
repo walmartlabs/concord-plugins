@@ -38,7 +38,7 @@ public class GitHubTaskV1 implements Task {
     @InjectVariable("githubParams")
     private Map<String, Object> defaults;
 
-    private SecretService secretService;
+    private final SecretService secretService;
 
     @Inject
     public GitHubTaskV1(SecretService secretService) {
@@ -48,7 +48,19 @@ public class GitHubTaskV1 implements Task {
 
     @Override
     public void execute(Context ctx) {
-        Map<String, Object> result = delegate.execute(ctx.toMap(), defaults, new SecretServiceV1(secretService, ctx));
+        Map<String, Object> result = getDelegate().execute(ctx.toMap(), getDefaults(), new SecretServiceV1(secretService, ctx));
         result.forEach(ctx::setVariable);
+    }
+
+    public String createAppAccessToken(@InjectVariable("context") Context ctx, Map<String, Object> in) {
+        return getDelegate().createAppToken(in, getDefaults(), new SecretServiceV1(secretService, ctx));
+    }
+
+    GitHubTask getDelegate() {
+        return delegate;
+    }
+
+    Map<String, Object> getDefaults() {
+        return defaults == null ? Map.of() : defaults;
     }
 }

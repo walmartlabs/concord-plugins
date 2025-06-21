@@ -35,20 +35,28 @@ public class GithubTaskV2 implements Task {
 
     private final GitHubTask delegate;
 
-    private final Map<String, Object> defaults;
+    private final Map<String, Object> policyDefaults;
 
     private final GitSecretService secretService;
 
     @Inject
     public GithubTaskV2(Context ctx, SecretService secretService) {
-        this.defaults = ctx.defaultVariables().toMap();
+        this.policyDefaults = ctx.defaultVariables().toMap();
         this.delegate = new GitHubTask(ctx.processConfiguration().dryRun());
         this.secretService = new SecretServiceV2(ctx.secretService());
     }
 
     @Override
     public TaskResult execute(Variables input) {
-        Map<String, Object> result = delegate.execute(input.toMap(), defaults, secretService);
+        Map<String, Object> result = getDelegate().execute(input.toMap(), policyDefaults, secretService);
         return TaskResult.success().values(result);
+    }
+
+    public String createAppAccessToken(Map<String, Object> in) {
+        return getDelegate().createAppToken(in, policyDefaults, secretService);
+    }
+
+    GitHubTask getDelegate() {
+        return delegate;
     }
 }

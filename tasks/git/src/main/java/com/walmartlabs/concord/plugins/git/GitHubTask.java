@@ -128,17 +128,19 @@ public class GitHubTask {
         return execute(in, defaults, null);
     }
 
-    public Map<String, Object> execute(Map<String, Object> in, Map<String, Object> defaults, GitSecretService secretService) {
-        Action action = getAction(in);
-
+    GitHubApiInfo createApiInfo(Map<String, Object> in, Map<String, Object> defaults, GitSecretService secretService) {
         String gitHubUri = getUrl(defaults, in, API_URL_KEY);
-        GitHubApiInfo apiInfo = GitHubApiInfo.builder()
+        return GitHubApiInfo.builder()
                 .baseUrl(gitHubUri)
                 .accessTokenProvider(getTokenProvider(in, gitHubUri, secretService))
                 .build();
+    }
 
-        log.info("Starting '{}' action...", action);
-        log.info("Using GitHub apiUrl {}", gitHubUri);
+    public Map<String, Object> execute(Map<String, Object> in, Map<String, Object> defaults, GitSecretService secretService) {
+        Action action = getAction(in);
+        GitHubApiInfo apiInfo = createApiInfo(in, defaults, secretService);
+
+        log.info("Starting '{}' action on API URL: {}", action, apiInfo.baseUrl());
 
         return switch (action) {
             case CREATEPR -> createPR(in, apiInfo);
@@ -165,6 +167,7 @@ public class GitHubTask {
             case GETCONTENT -> getContent(in, apiInfo);
             case CREATEHOOK -> createHook(in, apiInfo);
             case GETPRFILES -> getPRFiles(in, apiInfo);
+            case CREATEAPPTOKEN -> createAppToken(apiInfo);
         };
     }
 
@@ -1104,6 +1107,15 @@ public class GitHubTask {
         return repository;
     }
 
+    private Map<String, Object> createAppToken(GitHubApiInfo apiInfo) {
+        return Map.of("token", apiInfo.accessTokenProvider().getToken());
+    }
+
+    public String createAppToken(Map<String, Object> in, Map<String, Object> defaults, GitSecretService secretService) {
+        GitHubApiInfo apiInfo = createApiInfo(in, defaults, secretService);
+        return apiInfo.accessTokenProvider().getToken();
+    }
+
     private static Action getAction(Map<String, Object> in) {
         String v = MapUtils.assertString(in, ACTION_KEY);
         try {
@@ -1215,6 +1227,7 @@ public class GitHubTask {
         GETLATESTSHA,
         CREATEREPO,
         DELETEREPO,
-        GETCONTENT
+        GETCONTENT,
+        CREATEAPPTOKEN
     }
 }

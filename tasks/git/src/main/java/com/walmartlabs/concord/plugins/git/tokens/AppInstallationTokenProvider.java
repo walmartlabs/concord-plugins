@@ -81,9 +81,8 @@ public class AppInstallationTokenProvider implements AccessTokenProvider {
             return true;
         }
 
-        var now = OffsetDateTime.now();
-
-        return now.isAfter(token.expiresAt().minusSeconds(buffer));
+        return OffsetDateTime.now()
+                .isAfter(token.expiresAt().minusSeconds(buffer));
     }
 
     static String accessTokenUrl(String baseUrl, String installationRepo, String jwt) {
