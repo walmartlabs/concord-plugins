@@ -31,11 +31,10 @@ import org.immutables.value.Value;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public interface AppInstallation {
 
-    long id();
-
-    @JsonProperty("client_id")
-    String clientId();
-
+    /*
+    This is all we **need**, even though there's other attributes. Some may differ
+    between GitHub "cloud" and GitHub Enterprise. So, be care if/when adding more.
+     */
     @JsonProperty("access_tokens_url")
     String accessTokensUrl();
 

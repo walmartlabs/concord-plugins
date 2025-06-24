@@ -53,8 +53,6 @@ class DeserializationTest {
                   "access_tokens_url": "https://example.local/app/installations/1234/access_tokens"
                 }
                 """, AppInstallation.class);
-        assertEquals(123456, installation.id());
-        assertEquals("abc123", installation.clientId());
         assertEquals("https://example.local/app/installations/1234/access_tokens", installation.accessTokensUrl());
     }
 
