@@ -47,11 +47,13 @@ public class GithubTaskV2 implements Task {
     }
 
     @Override
+    @SensitiveData(keys = {"token"})
     public TaskResult execute(Variables input) {
         Map<String, Object> result = getDelegate().execute(input.toMap(), policyDefaults, secretService);
         return TaskResult.success().values(result);
     }
 
+    @SensitiveData
     public String createAppAccessToken(Map<String, Object> in) {
         return getDelegate().createAppToken(in, policyDefaults, secretService);
     }
