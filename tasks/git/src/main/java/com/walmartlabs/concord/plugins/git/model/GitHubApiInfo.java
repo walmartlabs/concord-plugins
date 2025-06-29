@@ -1,10 +1,10 @@
-package com.walmartlabs.concord.plugins.git;
+package com.walmartlabs.concord.plugins.git.model;
 
 /*-
  * *****
  * Concord
  * -----
- * Copyright (C) 2017 - 2020 Walmart Inc.
+ * Copyright (C) 2017 - 2025 Walmart Inc., Concord Authors
  * -----
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,12 +20,18 @@ package com.walmartlabs.concord.plugins.git;
  * =====
  */
 
-import java.nio.file.Path;
+import com.walmartlabs.concord.plugins.git.tokens.AccessTokenProvider;
+import org.immutables.value.Value;
 
-public interface GitSecretService {
+@Value.Immutable
+@Value.Style(jdkOnly = true)
+public interface GitHubApiInfo {
 
-    Path exportPrivateKeyAsFile(String orgName, String secretName, String pwd) throws Exception;
+    String baseUrl();
 
-    Path exportFile(String orgName, String secretName, String pwd) throws Exception;
+    AccessTokenProvider accessTokenProvider();
 
+    static ImmutableGitHubApiInfo.Builder builder() {
+        return ImmutableGitHubApiInfo.builder();
+    }
 }

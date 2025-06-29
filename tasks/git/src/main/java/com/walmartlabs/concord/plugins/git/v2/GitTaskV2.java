@@ -20,15 +20,12 @@ package com.walmartlabs.concord.plugins.git.v2;
  * =====
  */
 
-import com.walmartlabs.concord.plugins.git.GitSecretService;
 import com.walmartlabs.concord.plugins.git.GitTask;
 import com.walmartlabs.concord.runtime.v2.sdk.*;
 import com.walmartlabs.concord.sdk.MapUtils;
 
 import javax.inject.Inject;
 import javax.inject.Named;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Map;
 
 @Named("git")
@@ -57,19 +54,4 @@ public class GitTaskV2 implements Task {
                 .values(result);
     }
 
-    static class SecretServiceV2 implements GitSecretService {
-
-        private final SecretService delegate;
-
-        SecretServiceV2(SecretService delegate) {
-            this.delegate = delegate;
-        }
-
-        @Override
-        public Path exportPrivateKeyAsFile(String orgName, String secretName, String pwd) throws Exception {
-            SecretService.KeyPair result = delegate.exportKeyAsFile(orgName, secretName, pwd);
-            Files.deleteIfExists(result.publicKey());
-            return result.privateKey();
-        }
-    }
 }

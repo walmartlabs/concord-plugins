@@ -21,6 +21,7 @@ package com.walmartlabs.concord.plugins.git.v2;
  */
 
 import com.walmartlabs.concord.plugins.git.GitHubTask;
+import com.walmartlabs.concord.plugins.git.GitSecretService;
 import com.walmartlabs.concord.runtime.v2.sdk.*;
 
 import javax.inject.Inject;
@@ -34,17 +35,30 @@ public class GithubTaskV2 implements Task {
 
     private final GitHubTask delegate;
 
-    private final Map<String, Object> defaults;
+    private final Map<String, Object> policyDefaults;
+
+    private final GitSecretService secretService;
 
     @Inject
-    public GithubTaskV2(Context ctx) {
-        this.defaults = ctx.defaultVariables().toMap();
+    public GithubTaskV2(Context ctx, SecretService secretService) {
+        this.policyDefaults = ctx.defaultVariables().toMap();
         this.delegate = new GitHubTask(ctx.processConfiguration().dryRun());
+        this.secretService = new SecretServiceV2(ctx.secretService());
     }
 
     @Override
+    @SensitiveData(keys = {"token"})
     public TaskResult execute(Variables input) {
-        Map<String, Object> result = delegate.execute(input.toMap(), defaults);
+        Map<String, Object> result = getDelegate().execute(input.toMap(), policyDefaults, secretService);
         return TaskResult.success().values(result);
+    }
+
+    @SensitiveData
+    public String createAppAccessToken(Map<String, Object> in) {
+        return getDelegate().createAppToken(in, policyDefaults, secretService);
+    }
+
+    GitHubTask getDelegate() {
+        return delegate;
     }
 }
