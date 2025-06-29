@@ -25,20 +25,26 @@ import org.immutables.value.Value;
 
 import javax.annotation.Nullable;
 
-public sealed interface Auth
-        permits Auth.AppInstallationAuth, Auth.AccessTokenAuth, Auth.AppInstallationSecretAuth {
+@Value.Immutable
+@Value.Style(jdkOnly = true)
+@JsonDeserialize(as = ImmutableAuth.class)
+public interface Auth {
 
-    @Value.Immutable
-    @Value.Style(jdkOnly = true)
-    @JsonDeserialize(as = ImmutableAccessTokenAuth.class)
-    non-sealed interface AccessTokenAuth extends Auth {
-        String token();
+    @Nullable
+    String accessToken();
+    @Nullable
+    AppInstallationAuth appInstallation();
+    @Nullable
+    AppInstallationSecretAuth appInstallationSecret();
+
+    static ImmutableAuth.Builder builder() {
+        return ImmutableAuth.builder();
     }
 
     @Value.Immutable
     @Value.Style(jdkOnly = true)
     @JsonDeserialize(as = ImmutableAppInstallationAuth.class)
-    non-sealed interface AppInstallationAuth extends Auth {
+    interface AppInstallationAuth {
         String privateKey();
 
         String clientId();
@@ -47,18 +53,26 @@ public sealed interface Auth
         default long refreshBufferSeconds() {
             return 60;
         }
+
+        static ImmutableAppInstallationAuth.Builder builder() {
+            return ImmutableAppInstallationAuth.builder();
+        }
     }
 
     @Value.Immutable
     @Value.Style(jdkOnly = true)
     @JsonDeserialize(as = ImmutableAppInstallationSecretAuth.class)
-    non-sealed interface AppInstallationSecretAuth extends Auth {
+    interface AppInstallationSecretAuth {
         String org();
 
         String name();
 
         @Nullable
         String password();
+
+        static ImmutableAppInstallationSecretAuth.Builder builder() {
+            return ImmutableAppInstallationSecretAuth.builder();
+        }
     }
 
 }

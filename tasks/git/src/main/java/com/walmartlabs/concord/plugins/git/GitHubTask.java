@@ -51,8 +51,6 @@ public class GitHubTask {
     private static final String API_URL_KEY = "apiUrl";
     private static final String ACTION_KEY = "action";
     private static final String GITHUB_AUTH_ACCESSTOKEN = "accessToken";
-    private static final String GITHUB_AUTH_APP_INSTALLATION = "appInstallation";
-    private static final String GITHUB_AUTH_APP_INSTALLATION_SECRET = "appInstallationSecret";
     private static final String GITHUB_ORGNAME = "org";
     private static final String GITHUB_REPONAME = "repo";
     private static final String GITHUB_BRANCH = "branch";
@@ -175,30 +173,20 @@ public class GitHubTask {
         String owner = assertString(in, GITHUB_ORGNAME);
         String repo = assertString(in, GITHUB_REPONAME);
 
-        Map<String, Map<String, Object>> auth = getMap(in, "auth", Map.of());
+        Map<String, Object> auth = getMap(in, "auth", Map.of());
         String token = getString(in, GITHUB_AUTH_ACCESSTOKEN, null);
 
-        if (auth.isEmpty()) {
+        if (auth.isEmpty() && token != null) {
             log.warn("Using deprecated 'accessToken' input. Please use 'auth.accessToken.token' instead.");
             // maintain support for old top-level input, translate to new "auth.accessToken" input
-            auth = Map.of(GITHUB_AUTH_ACCESSTOKEN, Map.of("token", token));
+            auth = Map.of(GITHUB_AUTH_ACCESSTOKEN, token);
         }
 
         if (auth.size() != 1) {
             throw new IllegalArgumentException("Invalid 'auth' input. Expected one element, got: " + auth.keySet());
         }
 
-        Map.Entry<String, Map<String, Object>> authType = auth.entrySet().stream().findFirst()
-                .orElseThrow(() -> new IllegalStateException("Invalid 'auth' input. Missing 'auth' entry"));
-
-        Class<? extends Auth> authClass = switch(authType.getKey()) {
-            case GITHUB_AUTH_ACCESSTOKEN -> Auth.AccessTokenAuth.class;
-            case GITHUB_AUTH_APP_INSTALLATION -> Auth.AppInstallationAuth.class;
-            case GITHUB_AUTH_APP_INSTALLATION_SECRET -> Auth.AppInstallationSecretAuth.class;
-            default -> throw new IllegalArgumentException("Unsupported auth type: " + authType.getKey());
-        };
-
-        Auth a = Utils.getObjectMapper().convertValue(authType.getValue(), authClass);
+        Auth a = Utils.getObjectMapper().convertValue(auth, Auth.class);
 
         return AccessTokenProvider.fromAuth(a, baseUrl, owner + "/" + repo, secretService);
     }
@@ -245,7 +233,7 @@ public class GitHubTask {
     }
 
     private static Map<String, Object> getPRCommitList(Map<String, Object> in, GitHubApiInfo apiInfo) {
-        String gitHubAccessToken = assertString(in, GITHUB_AUTH_ACCESSTOKEN);
+        String gitHubAccessToken = apiInfo.accessTokenProvider().getToken();
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
         int gitHubPRID = assertInt(in, GITHUB_PRID);
@@ -267,7 +255,7 @@ public class GitHubTask {
     }
 
     private Map<String, Object> commentPR(Map<String, Object> in, GitHubApiInfo apiInfo) {
-        String gitHubAccessToken = assertString(in, GITHUB_AUTH_ACCESSTOKEN);
+        String gitHubAccessToken = apiInfo.accessTokenProvider().getToken();
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
         String gitHubPRComment = assertString(in, GITHUB_PRCOMMENT);
@@ -299,7 +287,7 @@ public class GitHubTask {
     }
 
     private Map<String, Object> mergePR(Map<String, Object> in, GitHubApiInfo apiInfo) {
-        String gitHubAccessToken = assertString(in, GITHUB_AUTH_ACCESSTOKEN);
+        String gitHubAccessToken = apiInfo.accessTokenProvider().getToken();
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
         int gitHubPRID = assertInt(in, GITHUB_PRID);
@@ -334,7 +322,7 @@ public class GitHubTask {
     }
 
     private Map<String, Object> closePR(Map<String, Object> in, GitHubApiInfo apiInfo) {
-        String gitHubAccessToken = assertString(in, GITHUB_AUTH_ACCESSTOKEN);
+        String gitHubAccessToken = apiInfo.accessTokenProvider().getToken();
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
         int gitHubPRID = assertInt(in, GITHUB_PRID);
@@ -365,7 +353,7 @@ public class GitHubTask {
     }
 
     private Map<String, Object> merge(Map<String, Object> in, GitHubApiInfo apiInfo) {
-        String gitHubAccessToken = assertString(in, GITHUB_AUTH_ACCESSTOKEN);
+        String gitHubAccessToken = apiInfo.accessTokenProvider().getToken();
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
         String head = assertString(in, GITHUB_MERGEHEAD);
@@ -403,7 +391,7 @@ public class GitHubTask {
 
     @SuppressWarnings("unchecked")
     private static Map<String, Object> getCommit(Map<String, Object> in, GitHubApiInfo apiInfo) {
-        String gitHubAccessToken = assertString(in, GITHUB_AUTH_ACCESSTOKEN);
+        String gitHubAccessToken = apiInfo.accessTokenProvider().getToken();
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
         String gitHubCommitSha = assertString(in, GITHUB_COMMIT_SHA);
@@ -436,7 +424,7 @@ public class GitHubTask {
     }
 
     private Map<String, Object> createTag(Map<String, Object> in, GitHubApiInfo apiInfo) {
-        String gitHubAccessToken = assertString(in, GITHUB_AUTH_ACCESSTOKEN);
+        String gitHubAccessToken = apiInfo.accessTokenProvider().getToken();
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
         String gitHubTagVersion = assertString(in, GITHUB_TAGVERSION);
@@ -508,7 +496,7 @@ public class GitHubTask {
     }
 
     private Map<String, Object> deleteTag(Map<String, Object> in, GitHubApiInfo apiInfo) {
-        String gitHubAccessToken = assertString(in, GITHUB_AUTH_ACCESSTOKEN);
+        String gitHubAccessToken = apiInfo.accessTokenProvider().getToken();
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
         String gitHubTagName = assertString(in, GITHUB_TAGNAME);
@@ -542,7 +530,7 @@ public class GitHubTask {
     }
 
     private Map<String, Object> deleteBranch(Map<String, Object> in, GitHubApiInfo apiInfo) {
-        String gitHubAccessToken = assertString(in, GITHUB_AUTH_ACCESSTOKEN);
+        String gitHubAccessToken = apiInfo.accessTokenProvider().getToken();
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
         String gitHubBranchName = assertString(in, GITHUB_BRANCH);
@@ -573,7 +561,7 @@ public class GitHubTask {
     }
 
     private Map<String, Object> addStatus(Map<String, Object> in, GitHubApiInfo apiInfo) {
-        String gitHubAccessToken = assertString(in, GITHUB_AUTH_ACCESSTOKEN);
+        String gitHubAccessToken = apiInfo.accessTokenProvider().getToken();
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
         String commitSha = assertString(in, GITHUB_COMMIT_SHA);
@@ -623,7 +611,7 @@ public class GitHubTask {
     }
 
     private static Map<String, Object> getStatuses(Map<String, Object> in, GitHubApiInfo apiInfo) {
-        String gitHubAccessToken = assertString(in, GITHUB_AUTH_ACCESSTOKEN);
+        String gitHubAccessToken = apiInfo.accessTokenProvider().getToken();
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
         String commitSha = assertString(in, GITHUB_COMMIT_SHA);
@@ -645,7 +633,7 @@ public class GitHubTask {
     }
 
     private Map<String, Object> forkRepo(Map<String, Object> in, GitHubApiInfo apiInfo) {
-        String gitHubAccessToken = assertString(in, GITHUB_AUTH_ACCESSTOKEN);
+        String gitHubAccessToken = apiInfo.accessTokenProvider().getToken();
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
         String targetOrg = getString(in, GITHUB_FORKTARGETORG);
@@ -710,7 +698,7 @@ public class GitHubTask {
     }
 
     private static Map<String, Object> getTagList(Map<String, Object> in, GitHubApiInfo apiInfo) {
-        String gitHubAccessToken = assertString(in, GITHUB_AUTH_ACCESSTOKEN);
+        String gitHubAccessToken = apiInfo.accessTokenProvider().getToken();
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
 
@@ -740,7 +728,7 @@ public class GitHubTask {
     }
 
     private static Map<String, Object> getPR(Map<String, Object> in, GitHubApiInfo apiInfo) {
-        String gitHubAccessToken = assertString(in, GITHUB_AUTH_ACCESSTOKEN);
+        String gitHubAccessToken = apiInfo.accessTokenProvider().getToken();
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         int gitHubPRNumber = assertInt(in, GITHUB_PRNUMBER);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
@@ -766,7 +754,7 @@ public class GitHubTask {
     }
 
     private static Map<String, Object> getPRList(Map<String, Object> in, GitHubApiInfo apiInfo) {
-        String gitHubAccessToken = assertString(in, GITHUB_AUTH_ACCESSTOKEN);
+        String gitHubAccessToken = apiInfo.accessTokenProvider().getToken();
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
         String state = getString(in, GITHUB_PR_STATE, "open").toLowerCase();
@@ -800,7 +788,7 @@ public class GitHubTask {
     }
 
     private Map<String, Object> getPRFiles(Map<String, Object> in, GitHubApiInfo apiInfo) {
-        String gitHubAccessToken = assertString(in, GITHUB_AUTH_ACCESSTOKEN);
+        String gitHubAccessToken = apiInfo.accessTokenProvider().getToken();
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
         int gitHubPRNumber = assertInt(in, GITHUB_PRNUMBER);
@@ -847,7 +835,7 @@ public class GitHubTask {
     }
 
     private Map<String, Object> createRepo(Map<String, Object> in, GitHubApiInfo apiInfo) {
-        String gitHubAccessToken = assertString(in, GITHUB_AUTH_ACCESSTOKEN);
+        String gitHubAccessToken = apiInfo.accessTokenProvider().getToken();
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
 
@@ -890,7 +878,7 @@ public class GitHubTask {
     }
 
     private Map<String, Object> deleteRepo(Map<String, Object> in, GitHubApiInfo apiInfo) {
-        String gitHubAccessToken = assertString(in, GITHUB_AUTH_ACCESSTOKEN);
+        String gitHubAccessToken = apiInfo.accessTokenProvider().getToken();
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
 
@@ -932,7 +920,7 @@ public class GitHubTask {
     }
 
     private static String getLatestSHAValue(Map<String, Object> in, GitHubApiInfo apiInfo) {
-        String gitHubAccessToken = assertString(in, GITHUB_AUTH_ACCESSTOKEN);
+        String gitHubAccessToken = apiInfo.accessTokenProvider().getToken();
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
         String gitHubBranchName = getString(in, GITHUB_BRANCH, "master");
@@ -964,7 +952,7 @@ public class GitHubTask {
     }
 
     private static Map<String, Object> getContent(Map<String, Object> in, GitHubApiInfo apiInfo) {
-        String gitHubAccessToken = assertString(in, GITHUB_AUTH_ACCESSTOKEN);
+        String gitHubAccessToken = apiInfo.accessTokenProvider().getToken();
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
         String gitHubRef = getString(in, GITHUB_REF);
@@ -1003,7 +991,7 @@ public class GitHubTask {
     }
 
     private Map<String, Object> createHook(Map<String, Object> in, GitHubApiInfo apiInfo) {
-        String gitHubAccessToken = assertString(in, GITHUB_AUTH_ACCESSTOKEN);
+        String gitHubAccessToken = apiInfo.accessTokenProvider().getToken();
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
         String hookUrl = assertString(in, GITHUB_HOOK_URL).trim();
@@ -1053,7 +1041,7 @@ public class GitHubTask {
     }
 
     private Map<String, Object> createIssue(Map<String, Object> in, GitHubApiInfo apiInfo) {
-        String gitHubAccessToken = assertString(in, GITHUB_AUTH_ACCESSTOKEN);
+        String gitHubAccessToken = apiInfo.accessTokenProvider().getToken();
         String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
         String gitHubRepoName = assertString(in, GITHUB_REPONAME);
 

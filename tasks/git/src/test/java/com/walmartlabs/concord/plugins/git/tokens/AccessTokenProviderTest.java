@@ -23,9 +23,8 @@ package com.walmartlabs.concord.plugins.git.tokens;
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.walmartlabs.concord.plugins.git.GitSecretService;
-import com.walmartlabs.concord.plugins.git.model.ImmutableAccessTokenAuth;
+import com.walmartlabs.concord.plugins.git.model.Auth;
 import com.walmartlabs.concord.plugins.git.model.ImmutableAppInstallationAuth;
-import com.walmartlabs.concord.plugins.git.model.ImmutableAppInstallationSecretAuth;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -68,8 +67,8 @@ class AccessTokenProviderTest {
 
     @Test
     void testFromAccessTokenAuth() {
-        var auth = ImmutableAccessTokenAuth.builder()
-                .token("mock-token")
+        var auth = Auth.builder()
+                .accessToken("mock-token")
                 .build();
 
         var provider = AccessTokenProvider.fromAuth(auth, null, null, secretService);
@@ -79,9 +78,11 @@ class AccessTokenProviderTest {
 
     @Test
     void testFromAppInstallationTokenAuth() {
-        var auth = ImmutableAppInstallationAuth.builder()
-                .privateKey("mock-pk")
-                .clientId("mock-client")
+        var auth = Auth.builder()
+                .appInstallation(Auth.AppInstallationAuth.builder()
+                        .privateKey("mock-pk")
+                        .clientId("mock-client")
+                        .build())
                 .build();
 
         var provider = AccessTokenProvider.fromAuth(auth, null, null, secretService);
@@ -91,9 +92,11 @@ class AccessTokenProviderTest {
 
     @Test
     void testFromAppInstallationTokenSecretAuth() throws Exception {
-        var auth = ImmutableAppInstallationSecretAuth.builder()
-                .org("mock-secret-org")
-                .name("mock-secret-name")
+        var auth = Auth.builder()
+                .appInstallationSecret(Auth.AppInstallationSecretAuth.builder()
+                        .org("mock-secret-org")
+                        .name("mock-secret-name")
+                        .build())
                 .build();
 
         when(secretService.exportFile(any(), any(), any()))
@@ -152,7 +155,6 @@ class AccessTokenProviderTest {
 
         var token = provider.getToken();
         assertEquals("mock_token", token);
-
     }
 
     private static String generatePrivateKey() throws Exception {
