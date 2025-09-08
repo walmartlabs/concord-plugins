@@ -15,7 +15,6 @@
 
     <properties>
         <jgit.version>6.10.1.202505221210-r</jgit.version>
-        <egit.github.version>6.1.0.202203080745-r</egit.github.version>
     </properties>
 
     <dependencies>
@@ -72,19 +71,6 @@
             <groupId>org.eclipse.jgit</groupId>
             <artifactId>org.eclipse.jgit.ssh.jsch</artifactId>
             <version>${jgit.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.mylyn.github</groupId>
-            <artifactId>org.eclipse.egit.github.core</artifactId>
-            <version>${egit.github.version}</version>
-        </dependency>
-        <!-- For some reason this isn't included in org.eclipse.egit.github.core's
-             transitive dependencies.
-              https://github.com/eclipse-egit/egit-github/blob/v6.1.0.202203080745-r/org.eclipse.egit.github.core/README.md#core-orgeclipseegitgithubcore -->
-        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <version>2.8.9</version>
         </dependency>
 
         <dependency>
