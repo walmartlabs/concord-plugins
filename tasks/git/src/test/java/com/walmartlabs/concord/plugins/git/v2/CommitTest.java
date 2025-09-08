@@ -23,8 +23,12 @@ package com.walmartlabs.concord.plugins.git.v2;
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.walmartlabs.concord.plugins.git.GitHubTask;
+import com.walmartlabs.concord.plugins.git.GitSecretService;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Map;
@@ -38,6 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@ExtendWith(MockitoExtension.class)
 class CommitTest {
 
     @RegisterExtension
@@ -47,6 +52,9 @@ class CommitTest {
                     .usingFilesUnderClasspath("wiremock/commit")
                     .notifier(new ConsoleNotifier(false))) // set to true for verbose logging
             .build();
+
+    @Mock
+    GitSecretService secretService;
 
     @Test
     void testGet() {
@@ -59,7 +67,7 @@ class CommitTest {
                 "apiUrl", httpRule.baseUrl()
         );
 
-        var result = new GitHubTask().execute(input, Map.of());
+        var result = new GitHubTask().execute(input, Map.of(), secretService);
 
         httpRule.verify(1, getRequestedFor(urlEqualTo("/api/v3/repos/octocat/mock-repo/commits/6dcb09b5b57875f334f61aebed695e2e4193db5e")));
         httpRule.verify(1, getRequestedFor(urlEqualTo("/api/v3/repos/octocat/mock-repo")));
@@ -86,7 +94,7 @@ class CommitTest {
                 "apiUrl", httpRule.baseUrl()
         );
 
-        var result = new GitHubTask().execute(input, Map.of());
+        var result = new GitHubTask().execute(input, Map.of(), secretService);
 
         httpRule.verify(1, postRequestedFor(urlEqualTo("/api/v3/repos/octocat/mock-repo/statuses/6dcb09b5b57875f334f61aebed695e2e4193db5e")));
 
@@ -104,7 +112,7 @@ class CommitTest {
                 "apiUrl", httpRule.baseUrl()
         );
 
-        var result = new GitHubTask().execute(input, Map.of());
+        var result = new GitHubTask().execute(input, Map.of(), secretService);
 
         httpRule.verify(1, getRequestedFor(urlEqualTo("/api/v3/repos/octocat/mock-repo/statuses/6dcb09b5b57875f334f61aebed695e2e4193db5e?per_page=100&page=1")));
 
