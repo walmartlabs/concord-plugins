@@ -1,5 +1,29 @@
 # Change Log
 
+## [2.9.0] - TBD
+
+### Changed
+
+- jsonpath: bump com.jayway.jsonpath:json-path from 2.4.0 to 2.9.0
+([#167](https://github.com/walmartlabs/concord-plugins/pull/167));
+- git: bump com.google.code.gson:gson from 2.8.7 to 2.8.9
+([#168](https://github.com/walmartlabs/concord-plugins/pull/168));
+- project: tone down openapi generator logging
+([#190](https://github.com/walmartlabs/concord-plugins/pull/190));
+- project: update target concord version to 2.25.0
+([#199](https://github.com/walmartlabs/concord-plugins/pull/199));
+- hashivault: add configurable retry interval
+([#201](https://github.com/walmartlabs/concord-plugins/pull/201));
+- git: bump org.eclipse.jgit:org.eclipse.jgit from
+6.5.0.202303070854-r to 6.10.1.202505221210-r
+([#202](https://github.com/walmartlabs/concord-plugins/pull/202));
+- github: GitHub app installation auth support
+([#203](https://github.com/walmartlabs/concord-plugins/pull/203));
+- ssh: add basic SSH and SCP tasks
+([#205](https://github.com/walmartlabs/concord-plugins/pull/205)).
+
+
+
 ## [2.8.0] - 2025-05-29
 
 ### Added
