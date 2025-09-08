@@ -9,6 +9,7 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
+    <name>${project.groupId}:${project.artifactId}</name>
     <artifactId>gremlin-task</artifactId>
     <packaging>jar</packaging>
 
