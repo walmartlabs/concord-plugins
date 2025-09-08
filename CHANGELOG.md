@@ -16,6 +16,8 @@
 ([#201](https://github.com/walmartlabs/concord-plugins/pull/201));
 - git: bump org.eclipse.jgit:org.eclipse.jgit from 6.5.0.202303070854-r to 6.10.1.202505221210-r
 ([#202](https://github.com/walmartlabs/concord-plugins/pull/202));
+- github: GitHub app installation auth support
+([#203](https://github.com/walmartlabs/concord-plugins/pull/203));
 - ssh: add basic SSH and SCP tasks
 ([#205](https://github.com/walmartlabs/concord-plugins/pull/205)).
 
