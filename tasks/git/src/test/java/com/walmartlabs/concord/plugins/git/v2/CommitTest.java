@@ -9,9 +9,9 @@ package com.walmartlabs.concord.plugins.git.v2;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -32,6 +32,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
@@ -67,7 +68,7 @@ class CommitTest {
                 "apiUrl", httpRule.baseUrl()
         );
 
-        var result = new GitHubTask().execute(input, Map.of(), secretService);
+        var result = new GitHubTask(UUID.randomUUID()).execute(input, Map.of(), secretService);
 
         httpRule.verify(1, getRequestedFor(urlEqualTo("/api/v3/repos/octocat/mock-repo/commits/6dcb09b5b57875f334f61aebed695e2e4193db5e")));
         httpRule.verify(1, getRequestedFor(urlEqualTo("/api/v3/repos/octocat/mock-repo")));
@@ -94,7 +95,7 @@ class CommitTest {
                 "apiUrl", httpRule.baseUrl()
         );
 
-        var result = new GitHubTask().execute(input, Map.of(), secretService);
+        var result = new GitHubTask(UUID.randomUUID()).execute(input, Map.of(), secretService);
 
         httpRule.verify(1, postRequestedFor(urlEqualTo("/api/v3/repos/octocat/mock-repo/statuses/6dcb09b5b57875f334f61aebed695e2e4193db5e")));
 
@@ -112,7 +113,7 @@ class CommitTest {
                 "apiUrl", httpRule.baseUrl()
         );
 
-        var result = new GitHubTask().execute(input, Map.of(), secretService);
+        var result = new GitHubTask(UUID.randomUUID()).execute(input, Map.of(), secretService);
 
         httpRule.verify(1, getRequestedFor(urlEqualTo("/api/v3/repos/octocat/mock-repo/statuses/6dcb09b5b57875f334f61aebed695e2e4193db5e?per_page=100&page=1")));
 

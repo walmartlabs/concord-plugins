@@ -9,9 +9,9 @@ package com.walmartlabs.concord.plugins.git.v2;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -28,6 +28,7 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
@@ -61,7 +62,7 @@ class PullRequestTest {
                 "apiUrl", httpRule.baseUrl()
         );
 
-        var result = new GitHubTask().execute(input, Map.of());
+        var result = new GitHubTask(UUID.randomUUID()).execute(input, Map.of());
 
         httpRule.verify(1, postRequestedFor(urlEqualTo("/api/v3/repos/octocat/mock-repo/pulls")));
 
@@ -81,7 +82,7 @@ class PullRequestTest {
                 "apiUrl", httpRule.baseUrl()
         );
 
-        new GitHubTask().execute(input, Map.of());
+        new GitHubTask(UUID.randomUUID()).execute(input, Map.of());
 
         httpRule.verify(1, putRequestedFor(urlEqualTo("/api/v3/repos/octocat/mock-repo/pulls/1347/merge")));
     }
@@ -98,7 +99,7 @@ class PullRequestTest {
                 "apiUrl", httpRule.baseUrl()
         );
 
-        new GitHubTask().execute(input, Map.of());
+        new GitHubTask(UUID.randomUUID()).execute(input, Map.of());
 
         httpRule.verify(1, getRequestedFor(urlEqualTo("/api/v3/repos/octocat/mock-repo/pulls/1347")));
         httpRule.verify(1, postRequestedFor(urlEqualTo("/api/v3/repos/octocat/mock-repo/issues/1347/comments")));
@@ -115,7 +116,7 @@ class PullRequestTest {
                 "apiUrl", httpRule.baseUrl()
         );
 
-        var result = new GitHubTask().execute(input, Map.of());
+        var result = new GitHubTask(UUID.randomUUID()).execute(input, Map.of());
 
         httpRule.verify(1, getRequestedFor(urlEqualTo("/api/v3/repos/octocat/mock-repo/pulls/1347/commits?per_page=100&page=1")));
 
@@ -134,7 +135,7 @@ class PullRequestTest {
                 "apiUrl", httpRule.baseUrl()
         );
 
-        new GitHubTask().execute(input, Map.of());
+        new GitHubTask(UUID.randomUUID()).execute(input, Map.of());
 
         httpRule.verify(1, getRequestedFor(urlEqualTo("/api/v3/repos/octocat/mock-repo/pulls/1347")));
         httpRule.verify(1, postRequestedFor(urlEqualTo("/api/v3/repos/octocat/mock-repo/pulls/1347")));
@@ -151,7 +152,7 @@ class PullRequestTest {
                 "apiUrl", httpRule.baseUrl()
         );
 
-        var result = new GitHubTask().execute(input, Map.of());
+        var result = new GitHubTask(UUID.randomUUID()).execute(input, Map.of());
 
         httpRule.verify(1, getRequestedFor(urlEqualTo("/api/v3/repos/octocat/mock-repo/pulls/1347")));
 
@@ -169,7 +170,7 @@ class PullRequestTest {
                 "apiUrl", httpRule.baseUrl()
         );
 
-        var result = new GitHubTask().execute(input, Map.of());
+        var result = new GitHubTask(UUID.randomUUID()).execute(input, Map.of());
 
         httpRule.verify(1, getRequestedFor(urlEqualTo("/api/v3/repos/octocat/mock-repo/pulls?state=open&per_page=100&page=1")));
 
@@ -189,7 +190,7 @@ class PullRequestTest {
                 "apiUrl", httpRule.baseUrl()
         );
 
-        var result = new GitHubTask().execute(input, Map.of());
+        var result = new GitHubTask(UUID.randomUUID()).execute(input, Map.of());
 
         httpRule.verify(1, getRequestedFor(urlEqualTo("/api/v3/repos/octocat/mock-repo/pulls/1347/files?per_page=100&page=1")));
 

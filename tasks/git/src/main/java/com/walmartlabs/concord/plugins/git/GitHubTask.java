@@ -22,6 +22,7 @@ package com.walmartlabs.concord.plugins.git;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.walmartlabs.concord.plugins.git.actions.ShortCommitShaAction;
 import com.walmartlabs.concord.plugins.git.model.Auth;
 import com.walmartlabs.concord.plugins.git.model.GitHubApiInfo;
 import com.walmartlabs.concord.plugins.git.tokens.AccessTokenProvider;
@@ -43,6 +44,7 @@ import java.util.stream.Stream;
 
 import static com.walmartlabs.concord.plugins.git.Utils.getUrl;
 import static com.walmartlabs.concord.sdk.MapUtils.*;
+import static com.walmartlabs.concord.plugins.git.GitHubTaskAction.Action;
 
 public class GitHubTask {
 
@@ -107,13 +109,15 @@ public class GitHubTask {
     private static final TypeReference<List<Map<String, Object>>> LIST_OF_OBJECT_TYPE = new TypeReference<>() {
     };
 
+    private final UUID txId;
     private final boolean dryRunMode;
 
-    public GitHubTask() {
-        this(false);
+    public GitHubTask(UUID txId) {
+        this(txId, false);
     }
 
-    public GitHubTask(boolean dryRunMode) {
+    public GitHubTask(UUID txId, boolean dryRunMode) {
+        this.txId = txId;
         this.dryRunMode = dryRunMode;
     }
 
@@ -139,6 +143,8 @@ public class GitHubTask {
         GitHubApiInfo apiInfo = createApiInfo(in, defaults, secretService);
 
         log.info("Starting '{}' action on API URL: {}", action, apiInfo.baseUrl());
+
+        var input = VariablesGithubTaskParams.merge(defaults, in);
 
         return switch (action) {
             case CREATEPR -> createPR(in, apiInfo);
@@ -166,6 +172,7 @@ public class GitHubTask {
             case CREATEHOOK -> createHook(in, apiInfo);
             case GETPRFILES -> getPRFiles(in, apiInfo);
             case CREATEAPPTOKEN -> createAppToken(apiInfo);
+            case GETSHORTSHA -> new ShortCommitShaAction().execute(txId, apiInfo, VariablesGithubTaskParams.getShortSha(input));
         };
     }
 
@@ -1189,33 +1196,5 @@ public class GitHubTask {
                 return new IOException(message);
             }
         };
-    }
-
-    public enum Action {
-        CREATEPR,
-        COMMENTPR,
-        MERGEPR,
-        CLOSEPR,
-        GETPRCOMMITLIST,
-        MERGE,
-        CREATEISSUE,
-        CREATETAG,
-        CREATEHOOK,
-        DELETETAG,
-        DELETEBRANCH,
-        GETCOMMIT,
-        ADDSTATUS,
-        GETSTATUSES,
-        FORKREPO,
-        GETBRANCHLIST,
-        GETPR,
-        GETPRLIST,
-        GETPRFILES,
-        GETTAGLIST,
-        GETLATESTSHA,
-        CREATEREPO,
-        DELETEREPO,
-        GETCONTENT,
-        CREATEAPPTOKEN
     }
 }

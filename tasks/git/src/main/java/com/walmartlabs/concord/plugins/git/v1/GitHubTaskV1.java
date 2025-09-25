@@ -9,9 +9,9 @@ package com.walmartlabs.concord.plugins.git.v1;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,10 +21,7 @@ package com.walmartlabs.concord.plugins.git.v1;
  */
 
 import com.walmartlabs.concord.plugins.git.GitHubTask;
-import com.walmartlabs.concord.sdk.Context;
-import com.walmartlabs.concord.sdk.InjectVariable;
-import com.walmartlabs.concord.sdk.SecretService;
-import com.walmartlabs.concord.sdk.Task;
+import com.walmartlabs.concord.sdk.*;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -33,8 +30,6 @@ import java.util.Map;
 @Named("github")
 public class GitHubTaskV1 implements Task {
 
-    private final GitHubTask delegate;
-
     @InjectVariable("githubParams")
     private Map<String, Object> defaults;
 
@@ -42,22 +37,21 @@ public class GitHubTaskV1 implements Task {
 
     @Inject
     public GitHubTaskV1(SecretService secretService) {
-        this.delegate = new GitHubTask();
         this.secretService = secretService;
     }
 
     @Override
     public void execute(Context ctx) {
-        Map<String, Object> result = getDelegate().execute(ctx.toMap(), getDefaults(), new SecretServiceV1(secretService, ctx));
+        Map<String, Object> result = getDelegate(ctx).execute(ctx.toMap(), getDefaults(), new SecretServiceV1(secretService, ctx));
         result.forEach(ctx::setVariable);
     }
 
     public String createAppAccessToken(@InjectVariable("context") Context ctx, Map<String, Object> in) {
-        return getDelegate().createAppToken(in, getDefaults(), new SecretServiceV1(secretService, ctx));
+        return getDelegate(ctx).createAppToken(in, getDefaults(), new SecretServiceV1(secretService, ctx));
     }
 
-    GitHubTask getDelegate() {
-        return delegate;
+    GitHubTask getDelegate(Context ctx) {
+        return new GitHubTask(ContextUtils.getTxId(ctx));
     }
 
     Map<String, Object> getDefaults() {
