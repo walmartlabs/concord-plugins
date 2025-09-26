@@ -1,6 +1,6 @@
 package com.walmartlabs.concord.plugins.git;
 
-public interface GitHubTaskParams {
+public sealed interface GitHubTaskParams {
 
     record GetShortCommitSha(
             String org,
