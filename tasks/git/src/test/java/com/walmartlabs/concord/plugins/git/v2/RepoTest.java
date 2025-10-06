@@ -9,9 +9,9 @@ package com.walmartlabs.concord.plugins.git.v2;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -32,6 +32,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.deleteRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
@@ -69,7 +70,7 @@ class RepoTest {
                 "apiUrl", httpRule.baseUrl()
         );
 
-        var result = new GitHubTask().execute(input, Map.of(), secretService);
+        var result = new GitHubTask(UUID.randomUUID()).execute(input, Map.of(), secretService);
 
         httpRule.verify(1, getRequestedFor(urlEqualTo("/api/v3/repos/mock-org/repo-to-create")));
         httpRule.verify(1, postRequestedFor(urlEqualTo("/api/v3/orgs/mock-org/repos"))
@@ -94,7 +95,7 @@ class RepoTest {
                 "apiUrl", httpRule.baseUrl()
         );
 
-        var result = new GitHubTask().execute(input, Map.of(), secretService);
+        var result = new GitHubTask(UUID.randomUUID()).execute(input, Map.of(), secretService);
 
         httpRule.verify(1, postRequestedFor(urlEqualTo("/api/v3/repos/octocat/mock-repo/hooks")));
 
@@ -117,7 +118,7 @@ class RepoTest {
                 "apiUrl", httpRule.baseUrl()
         );
 
-        new GitHubTask().execute(input, Map.of(), secretService);
+        new GitHubTask(UUID.randomUUID()).execute(input, Map.of(), secretService);
 
         httpRule.verify(1, postRequestedFor(urlEqualTo("/api/v3/repos/octocat/mock-repo/git/tags")));
         httpRule.verify(1, postRequestedFor(urlEqualTo("/api/v3/repos/octocat/mock-repo/git/refs")));
@@ -134,7 +135,7 @@ class RepoTest {
                 "apiUrl", httpRule.baseUrl()
         );
 
-        new GitHubTask().execute(input, Map.of(), secretService);
+        new GitHubTask(UUID.randomUUID()).execute(input, Map.of(), secretService);
 
         httpRule.verify(1, deleteRequestedFor(urlEqualTo("/api/v3/repos/octocat/mock-repo/git/refs/tags/v1.0")));
     }
@@ -149,7 +150,7 @@ class RepoTest {
                 "apiUrl", httpRule.baseUrl()
         );
 
-        var result = new GitHubTask().execute(input, Map.of(), secretService);
+        var result = new GitHubTask(UUID.randomUUID()).execute(input, Map.of(), secretService);
 
         httpRule.verify(1, getRequestedFor(urlEqualTo("/api/v3/repos/octocat/mock-repo/tags?per_page=100&page=1")));
 
@@ -167,7 +168,7 @@ class RepoTest {
                 "apiUrl", httpRule.baseUrl()
         );
 
-        var result = new GitHubTask().execute(input, Map.of(), secretService);
+        var result = new GitHubTask(UUID.randomUUID()).execute(input, Map.of(), secretService);
 
         httpRule.verify(1, getRequestedFor(urlEqualTo("/api/v3/repos/octocat/mock-repo/branches?per_page=100&page=1")));
 
@@ -186,7 +187,7 @@ class RepoTest {
                 "apiUrl", httpRule.baseUrl()
         );
 
-        var result = new GitHubTask().execute(input, Map.of(), secretService);
+        var result = new GitHubTask(UUID.randomUUID()).execute(input, Map.of(), secretService);
 
         httpRule.verify(1, getRequestedFor(urlEqualTo("/api/v3/repos/octocat/mock-repo/branches?per_page=100&page=1")));
 
@@ -206,7 +207,7 @@ class RepoTest {
                 "apiUrl", httpRule.baseUrl()
         );
 
-        var result = new GitHubTask().execute(input, Map.of(), secretService);
+        var result = new GitHubTask(UUID.randomUUID()).execute(input, Map.of(), secretService);
 
         httpRule.verify(1, getRequestedFor(urlEqualTo("/api/v3/repos/octocat/mock-repo/contents/README.md?ref=main")));
 
@@ -227,7 +228,7 @@ class RepoTest {
                 "apiUrl", httpRule.baseUrl()
         );
 
-        new GitHubTask().execute(input, Map.of(), secretService);
+        new GitHubTask(UUID.randomUUID()).execute(input, Map.of(), secretService);
 
         httpRule.verify(1, deleteRequestedFor(urlEqualTo("/api/v3/repos/octocat/mock-repo/git/refs/heads/mock-branch")));
     }
@@ -245,7 +246,7 @@ class RepoTest {
                 "apiUrl", httpRule.baseUrl()
         );
 
-        new GitHubTask().execute(input, Map.of(), secretService);
+        new GitHubTask(UUID.randomUUID()).execute(input, Map.of(), secretService);
 
         httpRule.verify(1, postRequestedFor(urlEqualTo("/api/v3/repos/octocat/mock-repo/merges")));
     }
@@ -261,7 +262,7 @@ class RepoTest {
                 "apiUrl", httpRule.baseUrl()
         );
 
-        var result = new GitHubTask().execute(input, Map.of(), secretService);
+        var result = new GitHubTask(UUID.randomUUID()).execute(input, Map.of(), secretService);
 
         httpRule.verify(1, postRequestedFor(urlEqualTo("/api/v3/repos/octocat/mock-repo/forks?org=new-org")));
 
@@ -278,7 +279,7 @@ class RepoTest {
                 "apiUrl", httpRule.baseUrl()
         );
 
-        new GitHubTask().execute(input, Map.of(), secretService);
+        new GitHubTask(UUID.randomUUID()).execute(input, Map.of(), secretService);
 
         httpRule.verify(1, getRequestedFor(urlEqualTo("/api/v3/repos/octocat/repo-to-delete")));
         httpRule.verify(1, deleteRequestedFor(urlEqualTo("/api/v3/repos/octocat/repo-to-delete")));
@@ -294,7 +295,7 @@ class RepoTest {
                 "apiUrl", httpRule.baseUrl()
         );
 
-        Exception ex = assertThrows(Exception.class, () -> new GitHubTask().execute(input, Map.of()));
+        Exception ex = assertThrows(Exception.class, () -> new GitHubTask(UUID.randomUUID()).execute(input, Map.of()));
 
         assertTrue(ex.getCause().getMessage().contains("very unexpected error"));
 

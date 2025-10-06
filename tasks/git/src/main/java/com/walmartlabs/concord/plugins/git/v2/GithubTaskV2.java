@@ -42,7 +42,7 @@ public class GithubTaskV2 implements Task {
     @Inject
     public GithubTaskV2(Context ctx, SecretService secretService) {
         this.policyDefaults = ctx.defaultVariables().toMap();
-        this.delegate = new GitHubTask(ctx.processConfiguration().dryRun());
+        this.delegate = new GitHubTask(ctx.processInstanceId(), ctx.processConfiguration().dryRun());
         this.secretService = new SecretServiceV2(ctx.secretService());
     }
 
