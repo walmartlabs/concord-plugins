@@ -44,7 +44,7 @@ import java.util.stream.Stream;
 
 import static com.walmartlabs.concord.plugins.git.Utils.getUrl;
 import static com.walmartlabs.concord.sdk.MapUtils.*;
-import static com.walmartlabs.concord.plugins.git.GitHubTaskAction.Action;
+import static com.walmartlabs.concord.plugins.git.VariablesGithubTaskParams.Action;
 
 public class GitHubTask {
 
