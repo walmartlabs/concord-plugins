@@ -1,5 +1,14 @@
 # Change Log
 
+## [2.10.0] - Unreleased
+
+### Added
+
+- git-tasks: add getshortsha action to github task
+([#206](https://github.com/walmartlabs/concord-plugins/pull/206)).
+
+
+
 ## [2.9.0] - 2025-09-08
 
 ### Changed
