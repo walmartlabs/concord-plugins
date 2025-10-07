@@ -1,4 +1,4 @@
-package com.walmartlabs.concord.plugins.git;
+package com.walmartlabs.concord.plugins.git.client;
 
 /*-
  * *****
@@ -20,28 +20,14 @@ package com.walmartlabs.concord.plugins.git;
  * =====
  */
 
-import java.util.regex.Pattern;
+import java.util.List;
+import java.util.Map;
 
-public sealed interface GitHubTaskParams {
+@FunctionalInterface
+public interface PageHandler {
 
-    record GetShortCommitSha(
-            String org,
-            String repo,
-            String sha,
-            int minLength
-    ) implements GitHubTaskParams {
-    }
-
-    record ListCommits(
-            String org,
-            String repo,
-            String shaOrBranch,
-            String since,
-            String fromSha,
-            String toSha,
-            int pageSize,
-            int searchDepth,
-            Pattern filter
-    ) implements GitHubTaskParams {
-    }
+    /**
+     * true - continue, false - stop
+     */
+    boolean onPage(List<Map<String, Object>> pageBody);
 }
