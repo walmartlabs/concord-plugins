@@ -27,7 +27,8 @@ import java.util.Map;
 public interface PageHandler {
 
     /**
-     * true - continue, false - stop
+     * @return {@code true} to continue fetching subsequent pages,
+     *         {@code false} to stop iteration early.
      */
     boolean onPage(List<Map<String, Object>> pageBody);
 }
