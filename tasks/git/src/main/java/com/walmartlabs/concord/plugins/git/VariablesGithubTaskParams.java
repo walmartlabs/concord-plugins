@@ -9,9 +9,9 @@ package com.walmartlabs.concord.plugins.git;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,11 +21,13 @@ package com.walmartlabs.concord.plugins.git;
  */
 
 import com.walmartlabs.concord.runtime.v2.sdk.MapBackedVariables;
+import com.walmartlabs.concord.runtime.v2.sdk.UserDefinedException;
 import com.walmartlabs.concord.runtime.v2.sdk.Variables;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static com.walmartlabs.concord.plugins.git.GitHubTaskParams.*;
@@ -58,7 +60,8 @@ public final class VariablesGithubTaskParams {
         DELETEREPO,
         GETCONTENT,
         CREATEAPPTOKEN,
-        GETSHORTSHA
+        GETSHORTSHA,
+        LISTCOMMITS
     }
 
     public static Variables merge(Map<String, Object> taskDefaults, Map<String, Object> input) {
@@ -78,11 +81,37 @@ public final class VariablesGithubTaskParams {
                 variables.getInt("minLength", 7));
     }
 
+    public static ListCommits listCommits(Variables variables) {
+        return new ListCommits(
+                assertOrg(variables),
+                assertRepo(variables),
+                variables.assertString("sha"),
+                variables.getString("since"),
+                variables.assertString("fromSha"),
+                variables.assertString("toSha"),
+                variables.getInt("pageSize", 100),
+                variables.getInt("searchDepth", 1000),
+                pattern(variables, "filter")
+                );
+    }
+
     private static String assertOrg(Variables variables) {
         return variables.assertString("org");
     }
 
     private static String assertRepo(Variables variables) {
         return variables.assertString("repo");
+    }
+
+    private static Pattern pattern(Variables variables, String key) {
+        var str = variables.getString(key);
+        if (str == null) {
+            return null;
+        }
+        try {
+            return Pattern.compile(str);
+        } catch (Exception e) {
+            throw new UserDefinedException("Invalid '" + key + "' value: " + e.getMessage());
+        }
     }
 }
