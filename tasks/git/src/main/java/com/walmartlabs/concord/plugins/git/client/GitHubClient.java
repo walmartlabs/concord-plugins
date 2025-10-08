@@ -40,6 +40,8 @@ import java.time.Duration;
 import java.util.*;
 import java.util.regex.Pattern;
 
+import static java.util.Objects.requireNonNull;
+
 public class GitHubClient {
 
     private final static Logger log = LoggerFactory.getLogger(GitHubClient.class);
@@ -76,8 +78,8 @@ public class GitHubClient {
     public void forEachPage(String path, Map<String, String> params, int pageSize, PageHandler handler)
             throws IOException, InterruptedException, URISyntaxException {
 
-        Objects.requireNonNull(path, "'path' must not be null");
-        Objects.requireNonNull(params, "'params' must not be null");
+        requireNonNull(path, "'path' must not be null");
+        requireNonNull(params, "'params' must not be null");
 
         var effectiveParams = new HashMap<>(params);
         effectiveParams.put("per_page", String.valueOf(pageSize));
@@ -109,7 +111,7 @@ public class GitHubClient {
             prefix = "/api/v3";
         }
 
-        var scheme = Objects.requireNonNull(uri.getScheme(), "Base URL without schema");
+        var scheme = requireNonNull(uri.getScheme(), "Base URL without schema");
         var port = uri.getPort();
 
         var apiUri = new URI(scheme, null, host, port, joinPaths(prefix, path), null, null);
