@@ -1,0 +1,29 @@
+configuration:
+  runtime: concord-v2
+
+flows:
+  ##
+  #  My flow description
+  #
+  #  in:
+  #    param1: string, mandatory, param1 description
+  #    param2: object, optional
+  #    param2.key: string, mandatory, key description
+  #  out:
+  #    out1: string, mandatory, out1 description
+  #    out2: string, optional
+  ##
+  myFlow:
+    - log: "Hello"
+
+profiles:
+  docs:
+    configuration:
+      extraDependencies:
+        - "mvn://com.walmartlabs.concord.plugins:docs-task:2.7.1-SNAPSHOT"
+    flows:
+      renderFlowDocs:
+        - task: docs
+          in:
+            bookTitle: "My Project Documentation"
+            output: "${workDir}/docs"
