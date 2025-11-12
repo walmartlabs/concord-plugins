@@ -6,7 +6,10 @@
 
 - git-tasks: add getshortsha action to github task
 ([#206](https://github.com/walmartlabs/concord-plugins/pull/206));
-- git-tasks: add list commits action to GitHub task (#209).
+- git-tasks: add list commits action to GitHub task
+([#209](https://github.com/walmartlabs/concord-plugins/pull/209));
+- git-tasks: add create branch action to GitHub task
+([#210](https://github.com/walmartlabs/concord-plugins/pull/210)).
 
 
 
