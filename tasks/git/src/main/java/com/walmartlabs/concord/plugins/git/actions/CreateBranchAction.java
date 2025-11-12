@@ -22,6 +22,7 @@ package com.walmartlabs.concord.plugins.git.actions;
 
 import com.walmartlabs.concord.plugins.git.GitHubTaskAction;
 import com.walmartlabs.concord.plugins.git.GitHubTaskParams;
+import com.walmartlabs.concord.plugins.git.client.GitHubApiException;
 import com.walmartlabs.concord.plugins.git.client.GitHubClient;
 import com.walmartlabs.concord.plugins.git.model.GitHubApiInfo;
 
@@ -35,13 +36,35 @@ public class CreateBranchAction extends GitHubTaskAction<GitHubTaskParams.Create
     public Map<String, Object> execute(UUID txId, GitHubApiInfo apiInfo, GitHubTaskParams.CreateBranch input) {
         var client = new GitHubClient(txId, apiInfo);
         try {
+            var exists = branchExists(client, input.org(), input.repo(), input.branchName());
+            if (exists) {
+                return Map.of("alreadyExists", true);
+            }
+
             var body = Map.of("ref", "refs/heads/" + input.branchName(),
                     "sha", input.sha());
 
-            return client.singleObjectResult("POST", "/repos/" + input.org() + "/" + input.repo() + "/git/refs", body);
+            client.singleObjectResult("POST", "/repos/" + input.org() + "/" + input.repo() + "/git/refs", body);
+            return Map.of();
         } catch (Exception e) {
            throw new RuntimeException("Error while creating new branch '" + input.branchName() + "' for sha '" +
                    input.sha() + " in '" + input.org() + "/" + input.repo() + "': " + e.getMessage());
+        }
+    }
+
+    private static boolean branchExists(GitHubClient client, String owner, String repo, String branch) throws Exception {
+        try {
+            client.singleObjectResult(
+                    "GET",
+                    "/repos/" + owner + "/" + repo + "/git/ref/heads/" + branch,
+                    null
+            );
+            return true;
+        } catch (GitHubApiException e) {
+            if (e.getStatusCode() == 404 ) {
+                return false;
+            }
+            throw e;
         }
     }
 }
