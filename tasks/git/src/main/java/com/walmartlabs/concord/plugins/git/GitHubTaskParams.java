@@ -44,4 +44,12 @@ public sealed interface GitHubTaskParams {
             Pattern filter
     ) implements GitHubTaskParams {
     }
+
+    record CreateBranch(
+            String org,
+            String repo,
+            String branchName,
+            String sha
+    ) implements GitHubTaskParams {
+    }
 }
