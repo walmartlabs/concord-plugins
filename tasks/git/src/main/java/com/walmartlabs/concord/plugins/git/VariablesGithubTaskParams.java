@@ -42,6 +42,7 @@ public final class VariablesGithubTaskParams {
         GETPRCOMMITLIST,
         MERGE,
         CREATEISSUE,
+        CREATEBRANCH,
         CREATETAG,
         CREATEHOOK,
         DELETETAG,
@@ -93,6 +94,15 @@ public final class VariablesGithubTaskParams {
                 variables.getInt("searchDepth", 1000),
                 pattern(variables, "filter")
                 );
+    }
+
+    public static CreateBranch createBranch(Variables variables) {
+        return new CreateBranch(
+                assertOrg(variables),
+                assertRepo(variables),
+                variables.assertString("branchName"),
+                variables.assertString("sha")
+        );
     }
 
     private static String assertOrg(Variables variables) {

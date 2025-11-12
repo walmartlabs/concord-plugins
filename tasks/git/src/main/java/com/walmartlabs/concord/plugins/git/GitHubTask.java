@@ -22,6 +22,7 @@ package com.walmartlabs.concord.plugins.git;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.walmartlabs.concord.plugins.git.actions.CreateBranchAction;
 import com.walmartlabs.concord.plugins.git.actions.ListCommitsAction;
 import com.walmartlabs.concord.plugins.git.actions.ShortCommitShaAction;
 import com.walmartlabs.concord.plugins.git.model.Auth;
@@ -153,6 +154,7 @@ public class GitHubTask {
             case GETPRCOMMITLIST -> getPRCommitList(in, apiInfo);
             case MERGEPR -> mergePR(in, apiInfo);
             case CLOSEPR -> closePR(in, apiInfo);
+            case CREATEBRANCH -> new CreateBranchAction().execute(txId, apiInfo, VariablesGithubTaskParams.createBranch(input));
             case CREATEISSUE -> createIssue(in, apiInfo);
             case CREATETAG -> createTag(in, apiInfo);
             case DELETETAG -> deleteTag(in, apiInfo);
