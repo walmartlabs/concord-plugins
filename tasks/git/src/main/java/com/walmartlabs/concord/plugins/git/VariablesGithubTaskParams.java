@@ -105,6 +105,17 @@ public final class VariablesGithubTaskParams {
         );
     }
 
+    public static CreatePr createPr(Variables variables) {
+        return new CreatePr(
+                assertOrg(variables),
+                assertRepo(variables),
+                variables.assertString("prTitle"),
+                variables.assertString("prBody"),
+                variables.assertString("prDestinationBranch"),
+                variables.assertString("prSourceBranch")
+        );
+    }
+
     private static String assertOrg(Variables variables) {
         return variables.assertString("org");
     }

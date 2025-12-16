@@ -52,4 +52,14 @@ public sealed interface GitHubTaskParams {
             String sha
     ) implements GitHubTaskParams {
     }
+
+    record CreatePr(
+            String org,
+            String repo,
+            String title,
+            String body,
+            String destBranch,
+            String srcBranch
+    ) implements GitHubTaskParams {
+    }
 }

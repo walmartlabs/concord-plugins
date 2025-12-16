@@ -22,17 +22,16 @@ package com.walmartlabs.concord.plugins.git.actions;
 
 import com.walmartlabs.concord.plugins.git.GitHubTaskParams;
 import com.walmartlabs.concord.plugins.git.model.GitHubApiInfo;
-import com.walmartlabs.concord.runtime.v2.sdk.UserDefinedException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 import java.util.Objects;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @EnabledIfEnvironmentVariable(named = "GH_TEST_TOKEN", matches = ".+")
-public class ShortCommitShaActionTest {
+public class CreatePrActionTest {
 
     @Test
     public void testOkAction() {
@@ -41,25 +40,11 @@ public class ShortCommitShaActionTest {
                 .accessTokenProvider(() -> Objects.requireNonNull(System.getenv("GH_TEST_TOKEN")))
                 .build();
 
-        var input = new GitHubTaskParams.GetShortCommitSha("walmartlabs", "concord-plugins", "db89df46a95deb3a35cf31b76274258391ebc61d", 7);
+        var input = new GitHubTaskParams.CreatePr("walmartlabs", "concord-plugins",
+                "[IGNORE ME] test-title", "test body", "master", "brig/test");
 
-        var action = new ShortCommitShaAction();
+        var action = new CreatePrAction();
         var result = action.execute(UUID.randomUUID(), apiInfo, false, input);
         assertNotNull(result);
-        assertEquals("db89df4", result.get("shortSha"));
-    }
-
-    @Test
-    public void testFailAction() {
-        var apiInfo = GitHubApiInfo.builder()
-                .baseUrl("https://github.com")
-                .accessTokenProvider(() -> Objects.requireNonNull(System.getenv("GH_TEST_TOKEN")))
-                .build();
-
-        var input = new GitHubTaskParams.GetShortCommitSha("walmartlabs", "concord-plugins", "0123456789abcdef0123456789abcdef01234567", 7);
-
-        var action = new ShortCommitShaAction();
-        var ex = assertThrows(UserDefinedException.class, () -> action.execute(UUID.randomUUID(), apiInfo, false, input));
-        assertTrue(ex.getMessage().contains("not found in"));
     }
 }

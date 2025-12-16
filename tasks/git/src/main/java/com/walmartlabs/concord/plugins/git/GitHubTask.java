@@ -23,6 +23,7 @@ package com.walmartlabs.concord.plugins.git;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.walmartlabs.concord.plugins.git.actions.CreateBranchAction;
+import com.walmartlabs.concord.plugins.git.actions.CreatePrAction;
 import com.walmartlabs.concord.plugins.git.actions.ListCommitsAction;
 import com.walmartlabs.concord.plugins.git.actions.ShortCommitShaAction;
 import com.walmartlabs.concord.plugins.git.model.Auth;
@@ -59,11 +60,7 @@ public class GitHubTask {
     private static final String GITHUB_REPONAME = "repo";
     private static final String GITHUB_BRANCH = "branch";
     private static final String GITHUB_PRNUMBER = "prNumber";
-    private static final String GITHUB_PRTITLE = "prTitle";
-    private static final String GITHUB_PRBODY = "prBody";
     private static final String GITHUB_PRCOMMENT = "prComment";
-    private static final String GITHUB_PRBASE = "prDestinationBranch";
-    private static final String GITHUB_PRHEAD = "prSourceBranch";
     private static final String GITHUB_PRID = "prId";
     private static final String GITHUB_TAGVERSION = "tagVersion";
     private static final String GITHUB_TAGMESSAGE = "tagMessage";
@@ -149,12 +146,12 @@ public class GitHubTask {
         var input = VariablesGithubTaskParams.merge(defaults, in);
 
         return switch (action) {
-            case CREATEPR -> createPR(in, apiInfo);
+            case CREATEPR -> new CreatePrAction().execute(txId, apiInfo, dryRunMode, VariablesGithubTaskParams.createPr(input));
             case COMMENTPR -> commentPR(in, apiInfo);
             case GETPRCOMMITLIST -> getPRCommitList(in, apiInfo);
             case MERGEPR -> mergePR(in, apiInfo);
             case CLOSEPR -> closePR(in, apiInfo);
-            case CREATEBRANCH -> new CreateBranchAction().execute(txId, apiInfo, VariablesGithubTaskParams.createBranch(input));
+            case CREATEBRANCH -> new CreateBranchAction().execute(txId, apiInfo, dryRunMode, VariablesGithubTaskParams.createBranch(input));
             case CREATEISSUE -> createIssue(in, apiInfo);
             case CREATETAG -> createTag(in, apiInfo);
             case DELETETAG -> deleteTag(in, apiInfo);
@@ -175,8 +172,8 @@ public class GitHubTask {
             case CREATEHOOK -> createHook(in, apiInfo);
             case GETPRFILES -> getPRFiles(in, apiInfo);
             case CREATEAPPTOKEN -> createAppToken(apiInfo);
-            case GETSHORTSHA -> new ShortCommitShaAction().execute(txId, apiInfo, VariablesGithubTaskParams.getShortSha(input));
-            case LISTCOMMITS -> new ListCommitsAction().execute(txId, apiInfo, VariablesGithubTaskParams.listCommits(input));
+            case GETSHORTSHA -> new ShortCommitShaAction().execute(txId, apiInfo, dryRunMode, VariablesGithubTaskParams.getShortSha(input));
+            case LISTCOMMITS -> new ListCommitsAction().execute(txId, apiInfo, dryRunMode, VariablesGithubTaskParams.listCommits(input));
         };
     }
 
@@ -200,47 +197,6 @@ public class GitHubTask {
         Auth a = Utils.getObjectMapper().convertValue(auth, Auth.class);
 
         return AccessTokenProvider.fromAuth(a, baseUrl, owner + "/" + repo, secretService);
-    }
-
-    private Map<String, Object> createPR(Map<String, Object> in, GitHubApiInfo apiInfo) {
-        String gitHubOrgName = assertString(in, GITHUB_ORGNAME);
-        String gitHubRepoName = assertString(in, GITHUB_REPONAME);
-        String gitHubPRTitle = assertString(in, GITHUB_PRTITLE);
-        String gitHubPRBody = assertString(in, GITHUB_PRBODY);
-        String gitHubPRHead = assertString(in, GITHUB_PRHEAD);
-        String gitHubPRBase = assertString(in, GITHUB_PRBASE);
-
-        log.info("Creating PR in {}/{} from {} to {}", gitHubOrgName, gitHubRepoName, gitHubPRHead, gitHubPRBase);
-
-        GitHubClient client = createClient(apiInfo.baseUrl());
-        try {
-            //Connect to GitHub
-            client.setOAuth2Token(apiInfo.accessTokenProvider().getToken());
-            IRepositoryIdProvider repo = RepositoryId.create(gitHubOrgName, gitHubRepoName);
-
-            //Create Pull Request
-            PullRequestService prService = new PullRequestService(client);
-
-            PullRequest pr = new PullRequest();
-            pr.setTitle(gitHubPRTitle);
-            pr.setBody(gitHubPRBody);
-            pr.setHead(new PullRequestMarker().setLabel(gitHubPRHead));
-            pr.setBase(new PullRequestMarker().setLabel(gitHubPRBase));
-
-            if (dryRunMode) {
-                log.info("Dry-run mode enabled: Skipping PR creation");
-                return Map.of("prId", 0); // let's return some `fake` ID
-            }
-
-            PullRequest result = prService.createPullRequest(repo, pr);
-            if (result != null) {
-                log.info("Created PR# {}", result.getNumber());
-                return Collections.singletonMap("prId", result.getNumber());
-            }
-            return Collections.emptyMap();
-        } catch (IOException e) {
-            throw new RuntimeException("Cannot create a pull request: " + e.getMessage());
-        }
     }
 
     private static Map<String, Object> getPRCommitList(Map<String, Object> in, GitHubApiInfo apiInfo) {
