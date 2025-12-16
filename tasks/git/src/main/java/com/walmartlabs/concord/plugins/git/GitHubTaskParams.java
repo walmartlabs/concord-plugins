@@ -20,6 +20,7 @@ package com.walmartlabs.concord.plugins.git;
  * =====
  */
 
+import java.util.Set;
 import java.util.regex.Pattern;
 
 public sealed interface GitHubTaskParams {
@@ -59,7 +60,8 @@ public sealed interface GitHubTaskParams {
             String title,
             String body,
             String destBranch,
-            String srcBranch
+            String srcBranch,
+            Set<String> labels
     ) implements GitHubTaskParams {
     }
 }

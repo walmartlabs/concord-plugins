@@ -24,9 +24,7 @@ import com.walmartlabs.concord.runtime.v2.sdk.MapBackedVariables;
 import com.walmartlabs.concord.runtime.v2.sdk.UserDefinedException;
 import com.walmartlabs.concord.runtime.v2.sdk.Variables;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
@@ -112,7 +110,8 @@ public final class VariablesGithubTaskParams {
                 variables.assertString("prTitle"),
                 variables.assertString("prBody"),
                 variables.assertString("prDestinationBranch"),
-                variables.assertString("prSourceBranch")
+                variables.assertString("prSourceBranch"),
+                new HashSet<>(variables.getList("prLabels", List.of()))
         );
     }
 

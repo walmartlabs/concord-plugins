@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -41,7 +42,7 @@ public class CreatePrActionTest {
                 .build();
 
         var input = new GitHubTaskParams.CreatePr("walmartlabs", "concord-plugins",
-                "[IGNORE ME] test-title", "test body", "master", "brig/test");
+                "[IGNORE ME] test-title", "test body", "master", "brig/test", Set.of("invalid", "wip"));
 
         var action = new CreatePrAction();
         var result = action.execute(UUID.randomUUID(), apiInfo, false, input);

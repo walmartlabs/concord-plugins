@@ -55,7 +55,16 @@ public class CreatePrAction extends GitHubTaskAction<GitHubTaskParams.CreatePr> 
             );
 
             var result = client.singleObjectResult("POST", "/repos/" + input.org() + "/" + input.repo() + "/pulls", body);
-            return Map.of("prId", result.get("id"));
+            var prId = result.get("number");
+
+            log.info("✅ PR Created, id: '{}'", prId);
+
+            if (!input.labels().isEmpty()) {
+                client.singleArrayResult("POST", "/repos/" + input.org() + "/" + input.repo() + "/issues/" + prId + "/labels",
+                        Map.of("labels", input.labels()));
+            }
+
+            return Map.of("prId", prId);
         } catch (Exception e) {
             throw new RuntimeException("Failed to create pull request: " + e.getMessage());
         }
