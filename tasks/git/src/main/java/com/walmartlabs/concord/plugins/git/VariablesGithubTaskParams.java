@@ -111,7 +111,7 @@ public final class VariablesGithubTaskParams {
                 variables.assertString("prBody"),
                 variables.assertString("prDestinationBranch"),
                 variables.assertString("prSourceBranch"),
-                new HashSet<>(variables.getList("prLabels", List.of()))
+                Set.copyOf(variables.getList("prLabels", List.of()))
         );
     }
 
