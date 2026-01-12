@@ -1,6 +1,6 @@
 # Change Log
 
-## [2.10.0] - Unreleased
+## [2.10.0] - 2026-01-12
 
 ### Added
 
@@ -9,7 +9,9 @@
 - git-tasks: add list commits action to GitHub task
 ([#209](https://github.com/walmartlabs/concord-plugins/pull/209));
 - git-tasks: add create branch action to GitHub task
-([#210](https://github.com/walmartlabs/concord-plugins/pull/210)).
+([#210](https://github.com/walmartlabs/concord-plugins/pull/210));
+- git: fix compat with concord 2.35.0 git cli client
+([#215](https://github.com/walmartlabs/concord-plugins/pull/215)).
 
 
 
