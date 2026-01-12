@@ -72,6 +72,26 @@ public class GitTaskV2Test {
     }
 
     @Test
+    public void testNoJgit() throws Exception {
+        Map<String, Object> input = new HashMap<>();
+        input.put(GitTask.ACTION_KEY, GitTask.Action.CLONE.name());
+        input.put(GitTask.GIT_URL, "https://github.com/walmartlabs/concord-plugins.git");
+        input.put("useJGit", false);
+
+        Context context = mock(Context.class);
+        when(context.secretService()).thenReturn(mock(SecretService.class));
+        when(context.workingDirectory()).thenReturn(workDir);
+        when(context.defaultVariables()).thenReturn(new MapBackedVariables(Collections.emptyMap()));
+
+        ProcessConfiguration processConfiguration = mock(ProcessConfiguration.class);
+        when(context.processConfiguration()).thenReturn(processConfiguration);
+
+        GitTaskV2 task = new GitTaskV2(context);
+        TaskResult.SimpleResult result = task.execute(new MapBackedVariables(input));
+        assertTrue(result.ok());
+    }
+
+    @Test
     public void testHideSensitiveData() {
         // some strings which could be a password containing unintentional, invalid regex patterns
         List<String> inputs  = Arrays.asList("simple123", "[_}34@%$");
