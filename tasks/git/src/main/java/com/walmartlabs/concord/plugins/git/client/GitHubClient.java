@@ -9,9 +9,9 @@ package com.walmartlabs.concord.plugins.git.client;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -29,23 +29,30 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
+import java.util.regex.Pattern;
+
+import static java.util.Objects.requireNonNull;
 
 public class GitHubClient {
 
     private final static Logger log = LoggerFactory.getLogger(GitHubClient.class);
 
+    private static final TypeReference<List<Map<String, Object>>> LIST_OF_OBJECTS_TYPE = new TypeReference<>() {
+    };
+
     private static final TypeReference<Map<String, Object>> OBJECT_TYPE = new TypeReference<>() {
     };
 
+    private static final Pattern NEXT_LINK = Pattern.compile("<([^>]+)>;\\s*rel=\"next\"");
     private static final int MAX_RETRY_ATTEMPTS = 5;
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
@@ -63,17 +70,38 @@ public class GitHubClient {
                 .build();
     }
 
-    @SuppressWarnings("unchecked")
     public Map<String, Object> singleObjectResult(String method, String path, Object body) throws IOException, InterruptedException, URISyntaxException {
-        var response = sendRequest(method, path, body);
-        var parsed = parseResponseAsObject(response);
-        if (parsed instanceof Map) {
-            return (Map<String, Object>) parsed;
-        }
-        throw new RuntimeException("Expected single object but got: " + parsed.getClass().getName());
+        var response = sendRequest(method, path, Map.of(), body);
+        return parseResponseAs(response,  OBJECT_TYPE);
     }
 
-    private String buildApiUrl(String baseUrl, String path) throws URISyntaxException {
+    public void forEachPage(String path, Map<String, String> params, int pageSize, PageHandler handler)
+            throws IOException, InterruptedException, URISyntaxException {
+
+        requireNonNull(path, "'path' must not be null");
+        requireNonNull(params, "'params' must not be null");
+
+        var effectiveParams = new HashMap<>(params);
+        effectiveParams.put("per_page", String.valueOf(pageSize));
+
+        var apiUrl = buildApiUrl(apiInfo.baseUrl(), path);
+        var requestUrl = appendParamsToUrl(apiUrl, effectiveParams);
+        while (requestUrl != null) {
+            var response = sendRequest("GET", requestUrl, null);
+            if (response.body() == null || response.body().isBlank()) {
+                throw new RuntimeException("Got empty response from GitHub");
+            }
+
+            boolean keepGoing = handler.onPage(objectMapper.readValue(response.body(), LIST_OF_OBJECTS_TYPE));
+            if (!keepGoing) {
+                break;
+            }
+
+            requestUrl = parseNextLink(response.headers().firstValue("Link").orElse(null));
+        }
+    }
+
+    private static String buildApiUrl(String baseUrl, String path) throws URISyntaxException {
         var uri = new URI(baseUrl);
         var host = uri.getHost();
         String prefix = null;
@@ -83,25 +111,22 @@ public class GitHubClient {
             prefix = "/api/v3";
         }
 
-        var scheme = Objects.requireNonNull(uri.getScheme(), "Base URL without schema");
+        var scheme = requireNonNull(uri.getScheme(), "Base URL without schema");
         var port = uri.getPort();
 
         var apiUri = new URI(scheme, null, host, port, joinPaths(prefix, path), null, null);
         return apiUri.toString();
     }
 
-    private static String joinPaths(String a, String b) {
-        var p2 = b.startsWith("/") ? b : "/" + b;
-        if (a == null) {
-            return p2;
-        }
-        var p1 = a.endsWith("/") ? a.substring(0, a.length() - 1) : a;
-        return p1 + p2;
+    private HttpResponse<String> sendRequest(String method, String path, Map<String, String> params, Object body) throws IOException, InterruptedException, URISyntaxException {
+        var apiUrl = buildApiUrl(apiInfo.baseUrl(), path);
+        var requestUrl = appendParamsToUrl(apiUrl, params);
+        return sendRequest(method, requestUrl, body);
     }
 
-    private HttpResponse<String> sendRequest(String method, String path, Object body) throws IOException, InterruptedException, URISyntaxException {
+    private HttpResponse<String> sendRequest(String method, String requestUrl, Object body) throws IOException, InterruptedException, URISyntaxException {
         var requestBuilder = HttpRequest.newBuilder()
-                .uri(URI.create(buildApiUrl(apiInfo.baseUrl(), path)))
+                .uri(URI.create(requestUrl))
                 .timeout(Duration.ofSeconds(30))
                 .header("Accept", "application/vnd.github+json")
                 .header("Authorization", "Bearer " + apiInfo.accessTokenProvider().getToken())
@@ -148,12 +173,12 @@ public class GitHubClient {
         }
     }
 
-    private Object parseResponseAsObject(HttpResponse<String> response) throws IOException {
+    private <T> T parseResponseAs(HttpResponse<String> response, TypeReference<T> type) throws IOException {
         if (response.body() == null || response.body().isBlank()) {
-            return Map.of();
+            throw new RuntimeException("Got empty response from GitHub");
         }
 
-        return objectMapper.readValue(response.body(), OBJECT_TYPE);
+        return objectMapper.readValue(response.body(), type);
     }
 
     private static boolean isRetryable(String method, int code) {
@@ -212,5 +237,47 @@ public class GitHubClient {
             Thread.currentThread().interrupt();
             throw ie;
         }
+    }
+
+    private static String joinPaths(String a, String b) {
+        var p2 = b.startsWith("/") ? b : "/" + b;
+        if (a == null) {
+            return p2;
+        }
+        var p1 = a.endsWith("/") ? a.substring(0, a.length() - 1) : a;
+        return p1 + p2;
+    }
+
+    private static String appendParamsToUrl(String absoluteUrl, Map<String, String> params) {
+        if (params == null || params.isEmpty()) {
+            return absoluteUrl;
+        }
+
+        var sb = new StringBuilder(absoluteUrl);
+        var sep = absoluteUrl.contains("?") ? '&' : '?';
+
+        for (var e : params.entrySet()) {
+            var k = e.getKey();
+            var v = e.getValue();
+            if (k == null || v == null) {
+                continue;
+            }
+            sb.append(sep).append(urlEncode(k)).append('=').append(urlEncode(v));
+            sep = '&';
+        }
+        return sb.toString();
+    }
+
+    private static String urlEncode(String s) {
+        return URLEncoder.encode(s, StandardCharsets.UTF_8)
+                .replace("+", "%20");
+    }
+
+    static String parseNextLink(String linkHeader) {
+        if (linkHeader == null || linkHeader.isBlank()) {
+            return null;
+        }
+        var m = NEXT_LINK.matcher(linkHeader);
+        return m.find() ? m.group(1) : null;
     }
 }

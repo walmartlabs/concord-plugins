@@ -20,10 +20,14 @@ package com.walmartlabs.concord.plugins.git;
  * =====
  */
 
+import com.walmartlabs.concord.common.AuthTokenProvider.OauthTokenProvider;
+import com.walmartlabs.concord.common.cfg.OauthTokenConfig;
 import com.walmartlabs.concord.repository.FetchRequest;
 import com.walmartlabs.concord.repository.GitClientConfiguration;
 import com.walmartlabs.concord.repository.ImmutableGitClientConfiguration;
 import com.walmartlabs.concord.sdk.Secret;
+import com.walmartlabs.concord.common.AuthTokenProvider;
+import org.immutables.value.Value;
 
 import java.nio.file.Path;
 import java.time.Duration;
@@ -47,7 +51,9 @@ public class GitCliClient implements GitClient {
             secret = null;
         }
 
-        new com.walmartlabs.concord.repository.GitClient(cfg.build())
+        AuthTokenProvider secretTokenProvider = new OauthTokenProvider(OauthTokenConfigImpl.builder().build());
+
+        new com.walmartlabs.concord.repository.GitClient(cfg.build(), secretTokenProvider)
                 .fetch(FetchRequest.builder()
                         .url(uri)
                         .version(FetchRequest.Version.from(branchName))
@@ -56,5 +62,12 @@ public class GitCliClient implements GitClient {
                         .secret(secret)
                         .shallow(shallowClone)
                         .build());
+    }
+
+    @Value.Immutable
+    interface OauthTokenConfigImpl extends OauthTokenConfig {
+        static ImmutableOauthTokenConfigImpl.Builder builder() {
+            return ImmutableOauthTokenConfigImpl.builder();
+        }
     }
 }

@@ -20,6 +20,8 @@ package com.walmartlabs.concord.plugins.git;
  * =====
  */
 
+import java.util.regex.Pattern;
+
 public sealed interface GitHubTaskParams {
 
     record GetShortCommitSha(
@@ -27,6 +29,27 @@ public sealed interface GitHubTaskParams {
             String repo,
             String sha,
             int minLength
+    ) implements GitHubTaskParams {
+    }
+
+    record ListCommits(
+            String org,
+            String repo,
+            String shaOrBranch,
+            String since,
+            String fromSha,
+            String toSha,
+            int pageSize,
+            int searchDepth,
+            Pattern filter
+    ) implements GitHubTaskParams {
+    }
+
+    record CreateBranch(
+            String org,
+            String repo,
+            String branchName,
+            String sha
     ) implements GitHubTaskParams {
     }
 }
