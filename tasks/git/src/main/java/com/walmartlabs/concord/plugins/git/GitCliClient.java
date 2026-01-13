@@ -48,8 +48,8 @@ public class GitCliClient implements GitClient {
 
         ImmutableOauthTokenConfigImpl.Builder oauthBuilder = OauthTokenConfigImpl.builder();
 
-        if (secret instanceof TokenSecret) {
-            String token = ((TokenSecret) secret).getToken();
+        if (secret instanceof TokenSecret tokenSecret) {
+            String token = tokenSecret.getToken();
             cfg.oauthToken(token); // obfuscates in logs
             oauthBuilder.oauthToken(token); // actual provider
             secret = null;
