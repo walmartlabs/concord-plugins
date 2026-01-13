@@ -32,6 +32,7 @@ public class TaskParams {
 
     private static final String ACTION_KEY = "action";
     private static final String IGNORE_ERRORS_KEY = "ignoreErrors";
+    private static final String AUTH_KEY = "auth";
     private static final String CONFLUENCE_PWD = "password";
     private static final String CONFLUENCE_UID = "userId";
     private static final String CLIENT_CONNECTTIMEOUT = "connectTimeout";
@@ -49,31 +50,15 @@ public class TaskParams {
         Variables variables = merge(input, defaults);
 
         Action action = new TaskParams(variables).action();
-        switch (action) {
-            case CREATEPAGE: {
-                return new CreatePageParams(variables);
-            }
-            case UPDATEPAGE: {
-                return new UpdatePageParams(variables);
-            }
-            case ADDCOMMENTSTOPAGE: {
-                return new AddCommentsToPage(variables);
-            }
-            case UPLOADATTACHMENT: {
-                return new UploadAttachmentParams(variables);
-            }
-            case CREATECHILDPAGE: {
-                return new CreateChildPageParams(variables);
-            }
-            case GETPAGECONTENT: {
-                return new GetPageParams(variables);
-            }
-            case DELETEPAGE: {
-                return new DeletePageParams(variables);
-            }
-            default:
-                throw new IllegalArgumentException("Unsupported action type: " + action);
-        }
+        return switch (action) {
+            case CREATEPAGE -> new CreatePageParams(variables);
+            case UPDATEPAGE -> new UpdatePageParams(variables);
+            case ADDCOMMENTSTOPAGE -> new AddCommentsToPage(variables);
+            case UPLOADATTACHMENT -> new UploadAttachmentParams(variables);
+            case CREATECHILDPAGE -> new CreateChildPageParams(variables);
+            case GETPAGECONTENT -> new GetPageParams(variables);
+            case DELETEPAGE -> new DeletePageParams(variables);
+        };
     }
 
     public Action action() {
@@ -98,7 +83,7 @@ public class TaskParams {
     }
 
     public Map<String, Object> auth() {
-        return variables.getMap("auth", Map.of());
+        return variables.getMap(AUTH_KEY, Map.of());
     }
 
     public long connectTimeout() {
