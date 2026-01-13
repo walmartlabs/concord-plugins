@@ -90,11 +90,15 @@ public class TaskParams {
     }
 
     public String userId() {
-        return variables.assertString(CONFLUENCE_UID);
+        return variables.getString(CONFLUENCE_UID);
     }
 
     public String password() {
-        return variables.assertString(CONFLUENCE_PWD);
+        return variables.getString(CONFLUENCE_PWD);
+    }
+
+    public Map<String, Object> auth() {
+        return variables.getMap("auth", Map.of());
     }
 
     public long connectTimeout() {

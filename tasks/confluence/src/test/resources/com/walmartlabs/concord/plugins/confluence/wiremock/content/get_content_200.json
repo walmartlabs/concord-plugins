@@ -1,0 +1,46 @@
+{
+  "id": "12345",
+  "type": "page",
+  "status": "current",
+  "title": "Mock Page Title",
+  "body": {
+    "storage": {
+      "value": "<table></table>",
+      "representation": "storage",
+      "_expandable": {
+        "content": "/rest/api/content/12345"
+      }
+    },
+    "_expandable": {
+      "editor": "",
+      "view": "",
+      "export_view": "",
+      "styled_view": "",
+      "anonymous_export_view": ""
+    }
+  },
+  "extensions": {
+    "position": "none"
+  },
+  "_links": {
+    "webui": "/display/MOCKSPACE/Mock+Page+Title",
+    "edit": "/pages/resumedraft.action?draftId=12345",
+    "tinyui": "/x/UwKIsQ",
+    "collection": "/rest/api/content",
+    "base": "https://confluence.local",
+    "context": "",
+    "self": "https://confluence.local/rest/api/content/12345"
+  },
+  "_expandable": {
+    "container": "/rest/api/space/MOCKSPACE",
+    "metadata": "",
+    "operations": "",
+    "children": "/rest/api/content/12345/child",
+    "restrictions": "/rest/api/content/12345/restriction/byOperation",
+    "history": "/rest/api/content/12345/history",
+    "ancestors": "",
+    "version": "",
+    "descendants": "/rest/api/content/12345/descendant",
+    "space": "/rest/api/space/MOCKSPACE"
+  }
+}
