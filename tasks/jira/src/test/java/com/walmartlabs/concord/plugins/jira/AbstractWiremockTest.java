@@ -26,6 +26,7 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
+import com.walmartlabs.concord.plugins.jira.model.auth.BasicCredentials;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -54,7 +55,7 @@ public abstract class AbstractWiremockTest {
     static WireMockExtension rule = WireMockExtension.newInstance()
             .options(wireMockConfig()
                     .dynamicPort()
-                    .notifier(new ConsoleNotifier(true)))
+                    .notifier(new ConsoleNotifier(false)))
             .build();
 
     protected static final ObjectMapper objectMapper = new ObjectMapper()
@@ -147,7 +148,7 @@ public abstract class AbstractWiremockTest {
 
         Map<String, Object> resp = getClient(jiraClientCfg)
                 .url(rule.baseUrl() + "/issue/issueId?fields=status")
-                .jiraAuth(new JiraCredentials("mock-user", "mock-pass").authHeaderValue())
+                .jiraAuth(new BasicCredentials("mock-user", "mock-pass").authHeaderValue())
                 .successCode(200)
                 .get();
 
@@ -174,7 +175,7 @@ public abstract class AbstractWiremockTest {
 
         Map<String, Object> resp = getClient(jiraClientCfg)
                 .url(rule.baseUrl() + "/issue/")
-                .jiraAuth(new JiraCredentials("mock-user", "mock-pass").authHeaderValue())
+                .jiraAuth(new BasicCredentials("mock-user", "mock-pass").authHeaderValue())
                 .successCode(201)
                 .post(Map.of("field1", "value1"));
 
@@ -198,7 +199,7 @@ public abstract class AbstractWiremockTest {
         getClient(jiraClientCfg)
                 .url(rule.baseUrl() + "/issue/issueId/attachments")
                 .successCode(200)
-                .jiraAuth(new JiraCredentials("mock-user", "mock-pass").authHeaderValue())
+                .jiraAuth(new BasicCredentials("mock-user", "mock-pass").authHeaderValue())
                 .post(Paths.get("src/test/resources/sample.txt").toFile());
 
         ServeEvent event = rule.getAllServeEvents().get(0);
@@ -223,7 +224,7 @@ public abstract class AbstractWiremockTest {
         getClient(jiraClientCfg)
                 .url(rule.baseUrl() + "/issue/issueId")
                 .successCode(204)
-                .jiraAuth(new JiraCredentials("mock-user", "mock-pass").authHeaderValue())
+                .jiraAuth(new BasicCredentials("mock-user", "mock-pass").authHeaderValue())
                 .put(Map.of("aKey", "aValue"));
 
         ServeEvent event = rule.getAllServeEvents().get(0);
@@ -240,7 +241,7 @@ public abstract class AbstractWiremockTest {
         getClient(jiraClientCfg)
                 .url(rule.baseUrl() + "/issue/issueId")
                 .successCode(204)
-                .jiraAuth(new JiraCredentials("mock-user", "mock-pass").authHeaderValue())
+                .jiraAuth(new BasicCredentials("mock-user", "mock-pass").authHeaderValue())
                 .delete();
 
         ServeEvent event = rule.getAllServeEvents().get(0);
