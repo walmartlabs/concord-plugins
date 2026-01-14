@@ -5,8 +5,13 @@
 ### Added
 
 - git-tasks: allow specify labels for createPR action
-([#214](https://github.com/walmartlabs/concord-plugins/pull/214)).
-
+  ([#214](https://github.com/walmartlabs/concord-plugins/pull/214));
+- jira: add auth support for api tokens
+  ([#217](https://github.com/walmartlabs/concord-plugins/pull/217));
+- confluence: add auth support for api tokens
+  ([#216](https://github.com/walmartlabs/concord-plugins/pull/216));
+- git-tasks: fix auth.basic.token input parameter in cli client
+  ([#218](https://github.com/walmartlabs/concord-plugins/pull/218)).
 
 
 # Change Log
