@@ -46,12 +46,16 @@ public class GitCliClient implements GitClient {
                 .httpLowSpeedLimit(0)
                 .sshTimeout(Duration.ofSeconds(600));
 
-        if (secret instanceof TokenSecret) {
-            cfg.oauthToken(((TokenSecret) secret).getToken());
+        ImmutableOauthTokenConfigImpl.Builder oauthBuilder = OauthTokenConfigImpl.builder();
+
+        if (secret instanceof TokenSecret tokenSecret) {
+            String token = tokenSecret.getToken();
+            cfg.oauthToken(token); // obfuscates in logs
+            oauthBuilder.oauthToken(token); // actual provider
             secret = null;
         }
 
-        AuthTokenProvider secretTokenProvider = new OauthTokenProvider(OauthTokenConfigImpl.builder().build());
+        AuthTokenProvider secretTokenProvider = new OauthTokenProvider(oauthBuilder.build());
 
         new com.walmartlabs.concord.repository.GitClient(cfg.build(), secretTokenProvider)
                 .fetch(FetchRequest.builder()

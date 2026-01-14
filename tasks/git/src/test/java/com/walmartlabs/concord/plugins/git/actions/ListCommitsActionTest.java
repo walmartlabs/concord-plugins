@@ -20,10 +20,8 @@ package com.walmartlabs.concord.plugins.git.actions;
  * =====
  */
 
-import com.walmartlabs.concord.common.ConfigurationUtils;
 import com.walmartlabs.concord.plugins.git.GitHubTaskParams;
 import com.walmartlabs.concord.plugins.git.model.GitHubApiInfo;
-import com.walmartlabs.concord.runtime.v2.sdk.UserDefinedException;
 import com.walmartlabs.concord.sdk.MapUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -52,7 +50,7 @@ public class ListCommitsActionTest {
                 2, 20, null);
 
         var action = new ListCommitsAction();
-        var result = action.execute(UUID.randomUUID(), apiInfo, input);
+        var result = action.execute(UUID.randomUUID(), apiInfo, false, input);
         assertNotNull(result);
 
         var commits = MapUtils.<Map<String, Object>>assertList(result, "commits");
@@ -77,7 +75,7 @@ public class ListCommitsActionTest {
                 2, 20, Pattern.compile("^ssh: add basic SSH and SCP tasks.*"));
 
         var action = new ListCommitsAction();
-        var result = action.execute(UUID.randomUUID(), apiInfo, input);
+        var result = action.execute(UUID.randomUUID(), apiInfo, false, input);
         assertNotNull(result);
 
         var commits = MapUtils.<Map<String, Object>>assertList(result, "commits");

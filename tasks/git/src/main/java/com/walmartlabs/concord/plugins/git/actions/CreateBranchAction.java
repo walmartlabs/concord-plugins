@@ -25,6 +25,8 @@ import com.walmartlabs.concord.plugins.git.GitHubTaskParams;
 import com.walmartlabs.concord.plugins.git.client.GitHubApiException;
 import com.walmartlabs.concord.plugins.git.client.GitHubClient;
 import com.walmartlabs.concord.plugins.git.model.GitHubApiInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.UUID;
@@ -32,8 +34,15 @@ import java.util.UUID;
 // https://docs.github.com/en/rest/git/refs?apiVersion=2022-11-28#create-a-reference
 public class CreateBranchAction extends GitHubTaskAction<GitHubTaskParams.CreateBranch> {
 
+    private final static Logger log = LoggerFactory.getLogger(CreateBranchAction.class);
+
     @Override
-    public Map<String, Object> execute(UUID txId, GitHubApiInfo apiInfo, GitHubTaskParams.CreateBranch input) {
+    public Map<String, Object> execute(UUID txId, GitHubApiInfo apiInfo, boolean dryRunMode, GitHubTaskParams.CreateBranch input) {
+        if (dryRunMode) {
+            log.info("Dry-run mode enabled: Skipping branch creation");
+            return Map.of();
+        }
+
         var client = new GitHubClient(txId, apiInfo);
         try {
             var exists = branchExists(client, input.org(), input.repo(), input.branchName());

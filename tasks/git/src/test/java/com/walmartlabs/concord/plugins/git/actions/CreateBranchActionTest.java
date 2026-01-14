@@ -44,7 +44,7 @@ public class CreateBranchActionTest {
                 "test-branch-ab5e8cab-a2c9-4287-9d16-ab62a0952b23", "25f48f41dc78d2b09990dd3a9bb216bd0de96524");
 
         var action = new CreateBranchAction();
-        var result = action.execute(UUID.randomUUID(), apiInfo, input);
+        var result = action.execute(UUID.randomUUID(), apiInfo, false, input);
         assertNotNull(result);
     }
 }

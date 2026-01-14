@@ -21,6 +21,9 @@ package com.walmartlabs.concord.plugins.jira;
  */
 
 import com.walmartlabs.concord.common.ConfigurationUtils;
+import com.walmartlabs.concord.plugins.jira.model.auth.BasicCredentials;
+import com.walmartlabs.concord.plugins.jira.model.auth.JiraCredentials;
+import com.walmartlabs.concord.plugins.jira.model.auth.TokenCredentials;
 import com.walmartlabs.concord.sdk.MapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +49,7 @@ public class JiraTaskCommon {
     private static final String ORG_KEY = "org";
     private static final String USERNAME_KEY = "username";
     private static final String BASIC_KEY = "basic";
+    private static final String ACCESS_TOKEN_KEY = "accessToken";
     private static final String SECRET_KEY = "secret";
 
     private final JiraSecretService secretService;
@@ -440,6 +444,7 @@ public class JiraTaskCommon {
             result.put("issueCount", issueList.size());
             return result;
         } catch (Exception e) {
+            log.error("Error calling", e);
             throw new RuntimeException("Exception occurred while fetching issue ids from project '" + projectKey + "'", e);
         }
     }
@@ -449,13 +454,18 @@ public class JiraTaskCommon {
         return c.authHeaderValue();
     }
 
-    private JiraCredentials credentials(TaskParams in) {
+    JiraCredentials credentials(TaskParams in) {
         Map<String, Object> auth = in.auth();
         if (auth == null) {
             String uid = in.uid();
             String pwd = in.pwd();
 
-            return new JiraCredentials(uid, pwd);
+            return new BasicCredentials(uid, pwd);
+        }
+
+        String token = MapUtils.getString(auth, ACCESS_TOKEN_KEY);
+        if (token != null) {
+            return new TokenCredentials(token);
         }
 
         Map<String, Object> basic = MapUtils.getMap(auth, BASIC_KEY, null);
@@ -467,7 +477,7 @@ public class JiraTaskCommon {
         String username = MapUtils.assertString(basic, USERNAME_KEY);
         String password = MapUtils.assertString(basic, JIRA_PASSWORD_KEY);
 
-        return new JiraCredentials(username, password);
+        return new BasicCredentials(username, password);
     }
 
     private JiraCredentials getSecretData(Map<String, Object> input) {
