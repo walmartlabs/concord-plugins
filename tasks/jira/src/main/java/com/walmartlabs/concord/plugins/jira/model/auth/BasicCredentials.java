@@ -1,17 +1,17 @@
-package com.walmartlabs.concord.plugins.jira;
+package com.walmartlabs.concord.plugins.jira.model.auth;
 
 /*-
  * *****
  * Concord
  * -----
- * Copyright (C) 2017 - 2020 Walmart Inc., Concord Authors
+ * Copyright (C) 2017 - 2026 Walmart Inc., Concord Authors
  * -----
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,34 +20,12 @@ package com.walmartlabs.concord.plugins.jira;
  * =====
  */
 
-import com.walmartlabs.concord.plugins.jira.model.auth.BasicCredentials;
-
 import java.util.Base64;
 
-/**
- * @deprecated Use {@link BasicCredentials} instead.
- */
-@Deprecated(forRemoval = true, since = "2.11.0")
-@SuppressWarnings("unused")
-public class JiraCredentials {
-
-    private final String username;
-    private final String password;
-
-    public JiraCredentials(String username, String password) {
-        this.username = username;
-        this.password = password;
-    }
-
-    public String username() {
-        return username;
-    }
-
-    public String password() {
-        return password;
-    }
+public record BasicCredentials(String username, String password) implements JiraCredentials {
 
     public String authHeaderValue() {
         return "Basic " + Base64.getEncoder().encodeToString((username + ":" + password).getBytes());
     }
+
 }

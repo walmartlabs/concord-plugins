@@ -22,6 +22,9 @@ package com.walmartlabs.concord.plugins.confluence;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.walmartlabs.concord.plugins.confluence.model.auth.Auth;
+import com.walmartlabs.concord.plugins.confluence.model.auth.AuthUtils;
+import com.walmartlabs.concord.plugins.confluence.model.auth.BasicAuth;
 import okhttp3.*;
 import okhttp3.logging.HttpLoggingInterceptor;
 import org.slf4j.Logger;
@@ -29,7 +32,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Base64;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 public class ConfluenceClient {
@@ -41,7 +46,7 @@ public class ConfluenceClient {
     private final OkHttpClient client;
 
     private final String apiUrl;
-    private final String auth;
+    private final Auth auth;
     private String url;
 
     public ConfluenceClient(TaskParams in) {
@@ -57,7 +62,7 @@ public class ConfluenceClient {
             clientBuilder.addInterceptor(logging);
         }
         this.client = clientBuilder.build();
-        this.auth = Credentials.basic(in.userId(), in.password());
+        this.auth = AuthUtils.parseAuth(in, mapper);
     }
 
     public ConfluenceClient url(String url) {
@@ -124,7 +129,7 @@ public class ConfluenceClient {
         Request request = new Request.Builder()
                 .url(buildRequestUrl(apiUrl, url))
                 .post(body)
-                .addHeader(Constants.CLIENT_HEADER_AUTH, auth)
+                .addHeader(Constants.CLIENT_HEADER_AUTH, getAuthorizationValue())
                 .addHeader(Constants.CONFLUENCE_ENTITY_TOKEN_KEY, Constants.CONFLUENCE_ENTITY_TOKEN_VALUE)
                 .build();
 
@@ -142,8 +147,23 @@ public class ConfluenceClient {
 
     private Request.Builder requestBuilder() {
         return new Request.Builder()
-                .addHeader(Constants.CLIENT_HEADER_AUTH, auth)
+                .addHeader(Constants.CLIENT_HEADER_AUTH, getAuthorizationValue())
                 .addHeader(Constants.CLIENT_HEADER_ACCEPT, Constants.CLIENT_MEDIATYPE_JSON);
+    }
+
+    String getAuthorizationValue() {
+        if (auth.accessToken() != null) {
+            return "Bearer " + auth.accessToken();
+        }
+
+        if (auth.basic() != null) {
+            BasicAuth basic = Objects.requireNonNull(auth.basic());
+            String user = basic.username();
+            String pass = basic.password();
+            return "Basic " + Base64.getEncoder().encodeToString((user + ":" + pass).getBytes());
+        }
+
+        throw new IllegalArgumentException("Invalid 'auth' input.");
     }
 
     @SuppressWarnings("unchecked")

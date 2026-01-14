@@ -105,28 +105,14 @@ public class GitTask {
         Action action = getAction(in);
         log.info("Starting '{}' action...", action);
 
-        switch (action) {
-            case INIT: {
-                return doInit(in);
-            }
-            case CLONE: {
-                return doClone(in);
-            }
-            case CREATEBRANCH: {
-                return doCreateNewBranch(in);
-            }
-            case MERGE: {
-                return doMergeNewBranch(in);
-            }
-            case COMMIT: {
-                return doCommit(in);
-            }
-            case PULL: {
-                return doPull(in);
-            }
-            default:
-                throw new IllegalArgumentException("Unsupported action type: " + action);
-        }
+        return switch (action) {
+            case INIT -> doInit(in);
+            case CLONE -> doClone(in);
+            case CREATEBRANCH -> doCreateNewBranch(in);
+            case MERGE -> doMergeNewBranch(in);
+            case COMMIT -> doCommit(in);
+            case PULL -> doPull(in);
+        };
     }
 
     private Map<String, Object> doInit(Map<String, Object> in) {

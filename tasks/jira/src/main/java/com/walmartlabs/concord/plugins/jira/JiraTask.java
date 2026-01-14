@@ -20,6 +20,7 @@ package com.walmartlabs.concord.plugins.jira;
  * =====
  */
 
+import com.walmartlabs.concord.plugins.jira.model.auth.BasicCredentials;
 import com.walmartlabs.concord.runtime.v2.sdk.Variables;
 import com.walmartlabs.concord.sdk.Context;
 import com.walmartlabs.concord.sdk.ContextUtils;
@@ -92,12 +93,12 @@ public class JiraTask implements Task {
         private final Context ctx;
 
         @Override
-        public JiraCredentials exportCredentials(String orgName, String secretName, String password) throws Exception {
+        public BasicCredentials exportCredentials(String orgName, String secretName, String password) throws Exception {
             var txId = ContextUtils.getTxId(ctx).toString();
             var workDir = ContextUtils.getWorkDir(ctx).toString();
 
             var creds = secretService.exportCredentials(ctx, txId, workDir, orgName, secretName, password);
-            return new JiraCredentials(creds.get("username"), creds.get("password"));
+            return new BasicCredentials(creds.get("username"), creds.get("password"));
         }
     }
 
