@@ -20,10 +20,13 @@ package com.walmartlabs.concord.plugins.jira;
  * =====
  */
 
+import com.walmartlabs.concord.plugins.jira.model.auth.BasicCredentials;
 import com.walmartlabs.concord.runtime.v2.sdk.MapBackedVariables;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.Spy;
@@ -61,6 +64,9 @@ class CommonTest {
     @Spy
     JiraTaskCommon delegate = new JiraTaskCommon(jiraSecretService);
 
+    @Captor
+    ArgumentCaptor<String> authCaptor;
+
     Map<String, Object> input;
     Map<String, Object> defaults;
 
@@ -86,6 +92,35 @@ class CommonTest {
     }
 
     @Test
+    void testCreateIssueWithTokenAuth() throws Exception {
+        input.put("action", "createIssue");
+        input.put("projectKey", "mock-proj-key");
+        input.put("summary", "mock-summary");
+        input.put("description", "mock-description");
+        input.put("requestorUid", "mock-uid");
+        input.put("issueType", "bug");
+        input.put(
+                "auth", Map.of(
+                        "accessToken", "mock-token"
+                )
+        );
+
+        when(jiraClient.post(anyMap())).thenReturn(Map.of("key", "\"result-key\""));
+        when(jiraClient.jiraAuth(authCaptor.capture())).thenReturn(jiraClient);
+
+        var result = delegate.execute(TaskParams.of(new MapBackedVariables(input), defaults));
+
+        assertNotNull(result);
+        assertEquals("result-key", result.get("issueId"));
+        assertEquals("Bearer mock-token", authCaptor.getValue());
+
+        verify(jiraSecretService, times(0))
+                .exportCredentials("organization", "secret", null);
+
+        verify(delegate, times(1)).createIssue(any());
+    }
+
+    @Test
     void testCreateIssueWithBasicAuth() throws Exception {
         input.put("action", "createIssue");
         input.put("projectKey", "mock-proj-key");
@@ -95,10 +130,12 @@ class CommonTest {
         input.put("issueType", "bug");
 
         when(jiraClient.post(anyMap())).thenReturn(Map.of("key", "\"result-key\""));
+        when(jiraClient.jiraAuth(authCaptor.capture())).thenReturn(jiraClient);
 
         var result = delegate.execute(TaskParams.of(new MapBackedVariables(input), defaults));
         assertNotNull(result);
         assertEquals("result-key", result.get("issueId"));
+        assertEquals("Basic dXNlcjpwYXNz", authCaptor.getValue());
 
         verify(jiraSecretService, times(0))
                 .exportCredentials("organization", "secret", null);
@@ -121,13 +158,15 @@ class CommonTest {
                 )
         ));
 
-        when(jiraSecretService.exportCredentials(any(), any(), any())).thenReturn(new JiraCredentials("user", "pwd"));
+        when(jiraSecretService.exportCredentials(any(), any(), any())).thenReturn(new BasicCredentials("user", "pass"));
         when(jiraClient.post(anyMap())).thenReturn(Map.of("key", "\"result-key\""));
+        when(jiraClient.jiraAuth(authCaptor.capture())).thenReturn(jiraClient);
         doAnswer(invocation -> jiraSecretService).when(delegate).getSecretService();
 
         var result = delegate.execute(TaskParams.of(new MapBackedVariables(input), defaults));
         assertNotNull(result);
         assertEquals("result-key", result.get("issueId"));
+        assertEquals("Basic dXNlcjpwYXNz", authCaptor.getValue());
 
         verify(jiraSecretService, times(1))
                 .exportCredentials("organization", "secret", null);

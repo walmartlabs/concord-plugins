@@ -25,6 +25,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.walmartlabs.concord.client2.impl.MultipartBuilder;
 import com.walmartlabs.concord.client2.impl.MultipartRequestBodyHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -47,6 +49,7 @@ public class NativeJiraHttpClient implements JiraHttpClient {
     private static final JavaType LIST_OF_MAPS_TYPE = MAPPER.getTypeFactory()
             .constructCollectionType(List.class, MAP_TYPE);
     private static final String CONTENT_TYPE = "Content-Type";
+    private static final Logger log = LoggerFactory.getLogger(NativeJiraHttpClient.class);
 
     private final HttpClient client;
     private final JiraClientCfg cfg;
