@@ -72,7 +72,12 @@ public class GitHubClient {
 
     public Map<String, Object> singleObjectResult(String method, String path, Object body) throws IOException, InterruptedException, URISyntaxException {
         var response = sendRequest(method, path, Map.of(), body);
-        return parseResponseAs(response,  OBJECT_TYPE);
+        return parseResponseAs(response, OBJECT_TYPE);
+    }
+
+    public List<Map<String, Object>> singleArrayResult(String method, String path, Object body) throws IOException, InterruptedException, URISyntaxException {
+        var response = sendRequest(method, path, Map.of(), body);
+        return parseResponseAs(response, LIST_OF_OBJECTS_TYPE);
     }
 
     public void forEachPage(String path, Map<String, String> params, int pageSize, PageHandler handler)

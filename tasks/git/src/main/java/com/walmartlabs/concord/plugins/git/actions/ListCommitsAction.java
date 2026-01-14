@@ -38,7 +38,7 @@ public class ListCommitsAction extends GitHubTaskAction<GitHubTaskParams.ListCom
     private final static Logger log = LoggerFactory.getLogger(ListCommitsAction.class);
 
     @Override
-    public Map<String, Object> execute(UUID txId, GitHubApiInfo apiInfo, GitHubTaskParams.ListCommits input) {
+    public Map<String, Object> execute(UUID txId, GitHubApiInfo apiInfo, boolean dryRunMode, GitHubTaskParams.ListCommits input) {
         if (input.toSha().equals(input.fromSha())) {
             return Map.of(
                     "commits", List.of(),
