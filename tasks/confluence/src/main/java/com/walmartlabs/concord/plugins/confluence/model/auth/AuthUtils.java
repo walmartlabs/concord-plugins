@@ -32,13 +32,12 @@ public class AuthUtils {
     private static final Logger log = LoggerFactory.getLogger(AuthUtils.class);
 
     public static Auth parseAuth(TaskParams in, ObjectMapper mapper) {
-        Map<String, Object> auth = in.auth();
-
         if (in.userId() != null && in.password() != null) {
             log.warn("Deprecated auth credentials provided. Please use the 'auth' input parameter");
             return new Auth(null, new BasicAuth(in.userId(), in.password()));
         }
 
+        Map<String, Object> auth = in.auth();
         if (auth == null || auth.isEmpty()) {
             throw new IllegalArgumentException("Missing 'auth' input.");
         }
@@ -48,6 +47,5 @@ public class AuthUtils {
         }
 
         return mapper.convertValue(auth, Auth.class);
-
     }
 }
