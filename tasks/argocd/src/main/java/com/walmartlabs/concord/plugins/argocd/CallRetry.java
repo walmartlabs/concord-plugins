@@ -45,7 +45,8 @@ public class CallRetry<R> {
      */
     public CallRetry(Callable<R> mainAttempt, Callable<Optional<R>> fallbackAttempt, Set<Class<? extends Exception>> exceptionsToNotRetry) {
         this.mainAttempt = mainAttempt;
-        this.fallbackAttempts = Collections.singleton(fallbackAttempt);
+        this.fallbackAttempts = fallbackAttempt == null ? Collections.emptyList() : Collections.singleton(
+                fallbackAttempt);
         this.exceptionsToNotRetry = exceptionsToNotRetry;
     }
 

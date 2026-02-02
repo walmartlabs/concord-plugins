@@ -61,6 +61,10 @@ public class ArgoCdClient {
 
     private static final int RETRY_LIMIT = 5;
 
+    private static final Duration POLL_WAIT_TIME = Duration.ofSeconds(3);
+
+    private static final Duration MAX_RETRY_TIMEOUT = Duration.ofMinutes(3);
+
     public ArgoCdClient(TaskParams in) throws Exception {
         this.client = createClient(in);
     }
@@ -208,7 +212,39 @@ public class ArgoCdClient {
                 .orElse(false);
     }
 
-    public V1alpha1Application waitForSync(String appName, String resourceVersion,
+    public V1alpha1Application waitForSyncWithPolling(String appName, String resourceVersion, Duration waitTimeout, WaitWatchParams waitParams) {
+        log.info("Waiting for application to sync using polling");
+        Date currentTime = new Date();
+        int pollCount = 0;
+        while ((new Date().getTime()) - currentTime.getTime() > waitTimeout.toMillis()) {
+            V1alpha1Application application = new CallRetry<>(() -> getApp(appName, true),
+                    null,
+                    Set.of()).attemptWithRetry(RETRY_LIMIT, MAX_RETRY_TIMEOUT);
+            boolean isReady = checkResourceStatus(waitParams,
+                    healthStatus(application),
+                    syncStatus(application),
+                    application.getOperation());
+            if (isReady) return application;
+            pollCount++;
+            log.info("Application is not ready. Waiting {} seconds before next try",
+                    POLL_WAIT_TIME.getSeconds() * pollCount);
+            try {
+                //noinspection BusyWait
+                Thread.sleep(pollCount * POLL_WAIT_TIME.toMillis());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        throw new RuntimeException("Application is not ready within " + waitTimeout.getSeconds() + " seconds.");
+    }
+
+    public V1alpha1Application waitForSync(String appName, String resourceVersion, Duration waitTimeout, WaitWatchParams waitParams) {
+        if (waitParams.useStreamApi())
+            return waitForSyncWithStreamApi(appName, resourceVersion, waitTimeout, waitParams);
+        else return waitForSyncWithPolling(appName, resourceVersion, waitTimeout, waitParams);
+    }
+
+    private V1alpha1Application waitForSyncWithStreamApi(String appName, String resourceVersion,
                                            Duration waitTimeout, WaitWatchParams waitParams) {
         log.info("Waiting for application to sync.");
 
