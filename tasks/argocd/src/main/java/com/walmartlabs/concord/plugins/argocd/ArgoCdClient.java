@@ -214,9 +214,9 @@ public class ArgoCdClient {
 
     public V1alpha1Application waitForSyncWithPolling(String appName, String resourceVersion, Duration waitTimeout, WaitWatchParams waitParams) {
         log.info("Waiting for application to sync using polling");
-        Date currentTime = new Date();
+        OffsetDateTime startTime = OffsetDateTime.now();
         int pollCount = 0;
-        while ((new Date().getTime()) - currentTime.getTime() > waitTimeout.toMillis()) {
+        while (OffsetDateTime.now().minus(waitTimeout).isBefore(startTime)) {
             V1alpha1Application application = new CallRetry<>(() -> getApp(appName, true),
                     null,
                     Set.of()).attemptWithRetry(RETRY_LIMIT, MAX_RETRY_TIMEOUT);
@@ -224,7 +224,10 @@ public class ArgoCdClient {
                     healthStatus(application),
                     syncStatus(application),
                     application.getOperation());
-            if (isReady) return application;
+            if (isReady) {
+                log.info("Application is ready within {} seconds", Duration.between(startTime, OffsetDateTime.now()).toSeconds());
+                return application;
+            }
             pollCount++;
             log.info("Application is not ready. Waiting {} seconds before next try",
                     POLL_WAIT_TIME.getSeconds() * pollCount);
@@ -239,6 +242,7 @@ public class ArgoCdClient {
     }
 
     public V1alpha1Application waitForSync(String appName, String resourceVersion, Duration waitTimeout, WaitWatchParams waitParams) {
+        waitTimeout = (waitTimeout == null) ? Duration.ofMinutes(15) : waitTimeout;
         if (waitParams.useStreamApi())
             return waitForSyncWithStreamApi(appName, resourceVersion, waitTimeout, waitParams);
         else return waitForSyncWithPolling(appName, resourceVersion, waitTimeout, waitParams);
@@ -251,7 +255,6 @@ public class ArgoCdClient {
         var paramString = toParameterString(Map.of("name", appName, "resourceVersion", resourceVersion));
         var uri = URI.create(client.getBaseUri() + "/api/v1/stream/applications?" + paramString);
 
-        waitTimeout = (waitTimeout == null) ? Duration.ofMinutes(15) : waitTimeout;
         log.info("Using wait timeout {}", waitTimeout);
         var req = HttpRequest.newBuilder(uri)
                 .GET()
