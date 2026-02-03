@@ -225,7 +225,8 @@ public class ArgoCdClient {
                     syncStatus(application),
                     application.getOperation());
             if (isReady) {
-                log.info("Application is ready within {} seconds", Duration.between(startTime, OffsetDateTime.now()).toSeconds());
+                log.info("Application is ready within {} seconds",
+                        Duration.between(startTime, OffsetDateTime.now()).toSeconds());
                 return application;
             }
             pollCount++;
@@ -235,7 +236,7 @@ public class ArgoCdClient {
                 //noinspection BusyWait
                 Thread.sleep(pollCount * POLL_WAIT_TIME.toMillis());
             } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+                throw new RuntimeException(e);
             }
         }
         throw new RuntimeException("Application is not ready within " + waitTimeout.getSeconds() + " seconds.");
@@ -243,9 +244,11 @@ public class ArgoCdClient {
 
     public V1alpha1Application waitForSync(String appName, String resourceVersion, Duration waitTimeout, WaitWatchParams waitParams) {
         waitTimeout = (waitTimeout == null) ? Duration.ofMinutes(15) : waitTimeout;
-        if (waitParams.useStreamApi())
-            return waitForSyncWithStreamApi(appName, resourceVersion, waitTimeout, waitParams);
-        else return waitForSyncWithPolling(appName, resourceVersion, waitTimeout, waitParams);
+        if (waitParams.useStreamApi()) {
+            return waitForSyncWithStreamApi(appName, resourceVersion, waitTimeout, waitParams)
+        } else {
+            return waitForSyncWithPolling(appName, resourceVersion, waitTimeout, waitParams);
+        }
     }
 
     private V1alpha1Application waitForSyncWithStreamApi(String appName, String resourceVersion,
