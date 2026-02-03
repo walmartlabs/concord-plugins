@@ -55,20 +55,6 @@ spec:
               - key: "oldap.ldif"
                 path: "oldap.ldif"
       containers:
-        - name: lam
-          image: ldapaccountmanager/lam:stable
-          env:
-            - name: LDAP_SERVER
-              value: 'ldap://127.0.0.1:389'
-            - name: LDAP_DOMAIN
-              value: 'example.org'
-            - name: LDAP_BASE_DN
-              value: 'dc=example,dc=org'
-            - name: LDAP_USER
-              value: 'cn=admin,dc=example,dc=org'
-          ports:
-            - containerPort: 80
-              name: lam-ui-http
         - name: oldap
           image: osixia/openldap:1.3.0
           args: ["--copy-service", "--loglevel","debug"]
