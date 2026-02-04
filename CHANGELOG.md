@@ -1,5 +1,13 @@
 # Change Log
 
+## [2.12.0] - TBD
+
+### Added
+
+- argocd: update IT setup script and resources
+  ([#222](https://github.com/walmartlabs/concord-plugins/pull/222)).
+
+
 ## [2.11.0] - 2026-01-14
 
 ### Added
