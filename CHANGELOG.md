@@ -4,9 +4,11 @@
 
 ### Added
 
-- git: get tag action
+- github: add `failIfNotFound` parameter to `getRef` and `getTag` actions
+  ([#227](https://github.com/walmartlabs/concord-plugins/pull/227));
+- github: getTag action
   ([#226](https://github.com/walmartlabs/concord-plugins/pull/226));
-- git-tasks: get-ref action
+- github: getRef action
   ([#223](https://github.com/walmartlabs/concord-plugins/pull/223));
 - argocd: update IT setup script and resources
   ([#222](https://github.com/walmartlabs/concord-plugins/pull/222)).
