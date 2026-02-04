@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.walmartlabs.concord.plugins.git.actions.CreateBranchAction;
 import com.walmartlabs.concord.plugins.git.actions.CreatePrAction;
 import com.walmartlabs.concord.plugins.git.actions.GetRefAction;
+import com.walmartlabs.concord.plugins.git.actions.GetTagAction;
 import com.walmartlabs.concord.plugins.git.actions.ListCommitsAction;
 import com.walmartlabs.concord.plugins.git.actions.ShortCommitShaAction;
 import com.walmartlabs.concord.plugins.git.model.Auth;
@@ -175,6 +176,7 @@ public class GitHubTask {
             case CREATEAPPTOKEN -> createAppToken(apiInfo);
             case GETSHORTSHA -> new ShortCommitShaAction().execute(txId, apiInfo, dryRunMode, VariablesGithubTaskParams.getShortSha(input));
             case LISTCOMMITS -> new ListCommitsAction().execute(txId, apiInfo, dryRunMode, VariablesGithubTaskParams.listCommits(input));
+            case GETTAG -> new GetTagAction().execute(txId, apiInfo, dryRunMode, VariablesGithubTaskParams.getTag(input));
             case GETREF -> new GetRefAction().execute(txId, apiInfo, dryRunMode, VariablesGithubTaskParams.getRef(input));
         };
     }

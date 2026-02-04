@@ -71,4 +71,12 @@ public sealed interface GitHubTaskParams {
             String ref
     ) implements GitHubTaskParams {
     }
+
+    record GetTag(
+            String org,
+            String repo,
+            String tagSha,
+            String tagName
+    ) implements GitHubTaskParams {
+    }
 }
