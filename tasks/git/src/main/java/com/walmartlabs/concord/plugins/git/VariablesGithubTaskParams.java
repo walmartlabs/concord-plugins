@@ -61,6 +61,7 @@ public final class VariablesGithubTaskParams {
         CREATEAPPTOKEN,
         GETSHORTSHA,
         LISTCOMMITS,
+        GETTAG,
         GETREF
     }
 
@@ -101,6 +102,15 @@ public final class VariablesGithubTaskParams {
                 assertRepo(variables),
                 variables.assertString("branchName"),
                 variables.assertString("sha")
+        );
+    }
+
+    public static GetTag getTag(Variables variables) {
+        return new GetTag(
+                assertOrg(variables),
+                assertRepo(variables),
+                variables.getString("tagSha"),
+                variables.getString("tagName")
         );
     }
 
