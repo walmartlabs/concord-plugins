@@ -29,8 +29,7 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import java.util.Objects;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 @EnabledIfEnvironmentVariable(named = "GH_TEST_TOKEN", matches = ".+")
 public class GetTagActionTest {
@@ -42,7 +41,7 @@ public class GetTagActionTest {
                 .accessTokenProvider(() -> Objects.requireNonNull(System.getenv("GH_TEST_TOKEN")))
                 .build();
 
-        var input = new GitHubTaskParams.GetTag("walmartlabs", "concord-plugins", "ab7e34aff888af24a1223839b3afc5588b061db3", null);
+        var input = new GitHubTaskParams.GetTag("walmartlabs", "concord-plugins", "ab7e34aff888af24a1223839b3afc5588b061db3", null, true);
 
         var action = new GetTagAction();
         var result = action.execute(UUID.randomUUID(), apiInfo, false, input);
@@ -59,7 +58,7 @@ public class GetTagActionTest {
                 .accessTokenProvider(() -> Objects.requireNonNull(System.getenv("GH_TEST_TOKEN")))
                 .build();
 
-        var input = new GitHubTaskParams.GetTag("walmartlabs", "concord-plugins", null, "2.11.0");
+        var input = new GitHubTaskParams.GetTag("walmartlabs", "concord-plugins", null, "2.11.0", true);
 
         var action = new GetTagAction();
         var result = action.execute(UUID.randomUUID(), apiInfo, false, input);
@@ -67,5 +66,37 @@ public class GetTagActionTest {
         assertNotNull(result);
         assertEquals("2.11.0", ConfigurationUtils.get(result, "tag", "tag"));
         assertEquals("e19883074c5d45548e630271d73733f2ef3f8e74", ConfigurationUtils.get(result, "tag", "object", "sha"));
+    }
+
+    @Test
+    public void testNotFoundByName() {
+        var apiInfo = GitHubApiInfo.builder()
+                .baseUrl("https://github.com")
+                .accessTokenProvider(() -> Objects.requireNonNull(System.getenv("GH_TEST_TOKEN"), "GH_TEST_TOKEN is enpty"))
+                .build();
+
+        var input = new GitHubTaskParams.GetTag("walmartlabs", "concord-plugins", null, "xyz", false);
+
+        var action = new GetTagAction();
+        var result = action.execute(UUID.randomUUID(), apiInfo, false, input);
+
+        assertNotNull(result);
+        assertNull(result.get("tag"));
+    }
+
+    @Test
+    public void testNotFoundBySha() {
+        var apiInfo = GitHubApiInfo.builder()
+                .baseUrl("https://github.com")
+                .accessTokenProvider(() -> Objects.requireNonNull(System.getenv("GH_TEST_TOKEN"), "GH_TEST_TOKEN is empty"))
+                .build();
+
+        var input = new GitHubTaskParams.GetTag("walmartlabs", "concord-plugins", "1234567890123456789012345678901234567890", null, false);
+
+        var action = new GetTagAction();
+        var result = action.execute(UUID.randomUUID(), apiInfo, false, input);
+
+        assertNotNull(result);
+        assertNull(result.get("tag"));
     }
 }
