@@ -64,4 +64,11 @@ public sealed interface GitHubTaskParams {
             Set<String> labels
     ) implements GitHubTaskParams {
     }
+
+    record GetRef(
+            String org,
+            String repo,
+            String ref
+    ) implements GitHubTaskParams {
+    }
 }
