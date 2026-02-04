@@ -56,26 +56,26 @@ spec:
                 path: "oldap.ldif"
       containers:
         - name: oldap
-          image: bitnami/openldap:latest
+          image: osixia/openldap:1.3.0
+          args: ["--copy-service", "--loglevel","debug"]
           env:
             - name: LDAP_ADMIN_USERNAME
               value: "admin"
             - name: LDAP_ADMIN_PASSWORD
               value: "{{ ldap_admin_password }}"
-            - name: LDAP_ROOT
-              value: "dc=example,dc=org"
+            - name: LDAP_DOMAIN
+              value: "example.org"
             - name: LDAP_ADMIN_DN
               value: "cn=admin,dc=example,dc=org"
           ports:
-            - containerPort: 1389
+            - containerPort: 389
+              name: openldap
+            - containerPort: 636
+              name: openldapssl
           volumeMounts:
             - name: oldap-seed-volume
-              mountPath: "/import_data"
-              readOnly: true
-          lifecycle:
-            postStart:
-              exec:
-                command: ["/bin/sh", "-c", "sleep 5; ldapmodify -a -x -D cn=admin,dc=example,dc=org -w '{{ ldap_admin_password }}'  -H ldap://localhost:1389 -f /import_data/oldap.ldif"]
+              mountPath: "/container/service/slapd/assets/config/bootstrap/ldif/custom/my_oldap.ldif"
+              subPath: oldap.ldif
 ---
 apiVersion: v1
 kind: Service
@@ -85,8 +85,8 @@ spec:
   clusterIP: None # headless service
   ports:
     - name: http
-      port: 1389
+      port: 389
       protocol: TCP
-      targetPort: 1389
+      targetPort: 389
   selector:
     app: oldap
