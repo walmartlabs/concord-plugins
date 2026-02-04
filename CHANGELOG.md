@@ -1,5 +1,12 @@
 # Change Log
 
+## [2.12.0] - TBD
+
+### Added
+
+- git-tasks: get-ref action
+([#223](https://github.com/walmartlabs/concord-plugins/pull/223)).
+
 ## [2.11.0] - 2026-01-14
 
 ### Added
