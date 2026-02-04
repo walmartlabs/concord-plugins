@@ -5,7 +5,7 @@
 ### Added
 
 - git-tasks: get-ref action
-([#223](https://github.com/walmartlabs/concord-plugins/pull/223));
+  ([#223](https://github.com/walmartlabs/concord-plugins/pull/223));
 - argocd: update IT setup script and resources
   ([#222](https://github.com/walmartlabs/concord-plugins/pull/222)).
 
