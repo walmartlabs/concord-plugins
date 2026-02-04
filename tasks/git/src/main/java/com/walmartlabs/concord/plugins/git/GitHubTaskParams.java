@@ -68,7 +68,8 @@ public sealed interface GitHubTaskParams {
     record GetRef(
             String org,
             String repo,
-            String ref
+            String ref,
+            boolean failIfNotFound
     ) implements GitHubTaskParams {
     }
 
@@ -76,7 +77,8 @@ public sealed interface GitHubTaskParams {
             String org,
             String repo,
             String tagSha,
-            String tagName
+            String tagName,
+            boolean failIfNotFound
     ) implements GitHubTaskParams {
     }
 }

@@ -110,7 +110,8 @@ public final class VariablesGithubTaskParams {
                 assertOrg(variables),
                 assertRepo(variables),
                 variables.getString("tagSha"),
-                variables.getString("tagName")
+                variables.getString("tagName"),
+                variables.getBoolean("failIfNotFound", true)
         );
     }
 
@@ -130,7 +131,8 @@ public final class VariablesGithubTaskParams {
         return new GetRef(
                 assertOrg(variables),
                 assertRepo(variables),
-                variables.assertString("ref")
+                variables.assertString("ref"),
+                variables.getBoolean("failIfNotFound", true)
         );
     }
 

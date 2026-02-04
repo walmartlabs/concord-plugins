@@ -22,6 +22,7 @@ package com.walmartlabs.concord.plugins.git.actions;
 
 import com.walmartlabs.concord.plugins.git.GitHubTaskAction;
 import com.walmartlabs.concord.plugins.git.GitHubTaskParams;
+import com.walmartlabs.concord.plugins.git.client.GitHubApiException;
 import com.walmartlabs.concord.plugins.git.client.GitHubClient;
 import com.walmartlabs.concord.plugins.git.model.GitHubApiInfo;
 import com.walmartlabs.concord.runtime.v2.sdk.UserDefinedException;
@@ -48,7 +49,11 @@ public class GetTagAction extends GitHubTaskAction<GitHubTaskParams.GetTag> {
             var targetSha = input.tagSha();
             if (targetSha == null) {
                 log.info("Getting tag by name '{}' from {}/{}", input.tagName(), input.org(), input.repo());
-                var ref = new GetRefAction().execute(txId, apiInfo, dryRunMode, new GitHubTaskParams.GetRef(input.org(), input.repo(), "tags/" + input.tagName()));
+                var ref = new GetRefAction().execute(txId, apiInfo, dryRunMode, new GitHubTaskParams.GetRef(input.org(), input.repo(), "tags/" + input.tagName(), input.failIfNotFound()));
+                if (ref.isEmpty()) {
+                    log.info("Tag '{}' not found in '{}/{}'", input.tagName(), input.org(), input.repo());
+                    return Map.of();
+                }
 
                 var object = MapUtils.<String, Object>getMap(MapUtils.getMap(ref, "ref", Map.of()), "object", Map.of());
                 var type = MapUtils.assertString(object, "type");
@@ -61,8 +66,15 @@ public class GetTagAction extends GitHubTaskAction<GitHubTaskParams.GetTag> {
             log.info("Getting tag by SHA '{}' from {}/{}", targetSha, input.org(), input.repo());
             var tag = client.singleObjectResult("GET", "/repos/" + input.org() + "/" + input.repo() + "/git/tags/" + targetSha, null);
             return Map.of("tag", tag);
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to get tag: " + e.getMessage());
+            if (e instanceof GitHubApiException gae && gae.getStatusCode() == 404 && !input.failIfNotFound()) {
+                return Map.of();
+            }
+            var tag = input.tagName() != null ? input.tagName() : input.tagSha();
+            throw new RuntimeException("Error while getting tag '" + tag + "' for '" +
+                    input.org() + "/" + input.repo() + "': " + e.getMessage());
         }
     }
 }

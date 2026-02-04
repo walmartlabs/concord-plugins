@@ -22,6 +22,7 @@ package com.walmartlabs.concord.plugins.git.actions;
 
 import com.walmartlabs.concord.plugins.git.GitHubTaskAction;
 import com.walmartlabs.concord.plugins.git.GitHubTaskParams;
+import com.walmartlabs.concord.plugins.git.client.GitHubApiException;
 import com.walmartlabs.concord.plugins.git.client.GitHubClient;
 import com.walmartlabs.concord.plugins.git.model.GitHubApiInfo;
 import org.slf4j.Logger;
@@ -43,9 +44,12 @@ public class GetRefAction extends GitHubTaskAction<GitHubTaskParams.GetRef> {
 
             log.info("Getting reference '{}' for '{}/{}'", ref, input.org(), input.repo());
 
-            var result = client.singleObjectResult("GET", "/repos/" + input.org() + "/" + input.repo() + "/git/ref/" + ref, null);
-            return Map.of("ref", result);
+            var refObject = client.singleObjectResult("GET", "/repos/" + input.org() + "/" + input.repo() + "/git/ref/" + ref, null);
+            return Map.of("ref", refObject);
         } catch (Exception e) {
+            if (e instanceof GitHubApiException gae && gae.getStatusCode() == 404 && !input.failIfNotFound()) {
+                return Map.of();
+            }
             throw new RuntimeException("Error while getting reference '" + input.ref() + "' for '" +
                     input.org() + "/" + input.repo() + "': " + e.getMessage());
         }

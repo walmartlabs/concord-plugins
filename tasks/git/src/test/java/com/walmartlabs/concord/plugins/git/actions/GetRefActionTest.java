@@ -43,7 +43,7 @@ public class GetRefActionTest {
                 .accessTokenProvider(() -> Objects.requireNonNull(System.getenv("GH_TEST_TOKEN")))
                 .build();
 
-        var input = new GitHubTaskParams.GetRef("walmartlabs", "concord-plugins", "tags/2.11.0");
+        var input = new GitHubTaskParams.GetRef("walmartlabs", "concord-plugins", "tags/2.11.0", false);
 
         var action = new GetRefAction();
         var result = action.execute(UUID.randomUUID(), apiInfo, false, input);
