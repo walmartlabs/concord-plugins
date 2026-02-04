@@ -60,7 +60,8 @@ public final class VariablesGithubTaskParams {
         GETCONTENT,
         CREATEAPPTOKEN,
         GETSHORTSHA,
-        LISTCOMMITS
+        LISTCOMMITS,
+        GETREF
     }
 
     public static Variables merge(Map<String, Object> taskDefaults, Map<String, Object> input) {
@@ -112,6 +113,14 @@ public final class VariablesGithubTaskParams {
                 variables.assertString("prDestinationBranch"),
                 variables.assertString("prSourceBranch"),
                 Set.copyOf(variables.getList("prLabels", List.of()))
+        );
+    }
+
+    public static GetRef getRef(Variables variables) {
+        return new GetRef(
+                assertOrg(variables),
+                assertRepo(variables),
+                variables.assertString("ref")
         );
     }
 
