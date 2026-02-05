@@ -52,6 +52,8 @@ public class GitHubClient {
     private static final TypeReference<Map<String, Object>> OBJECT_TYPE = new TypeReference<>() {
     };
 
+    private static final String HOST_API = "api.github.com";
+
     private static final Pattern NEXT_LINK = Pattern.compile("<([^>]+)>;\\s*rel=\"next\"");
     private static final int MAX_RETRY_ATTEMPTS = 5;
 
@@ -115,8 +117,11 @@ public class GitHubClient {
         var host = uri.getHost();
         String prefix = null;
         if ("github.com".equals(host) || "gist.github.com".equals(host)) {
-            host = "api.github.com";
-        } else {
+            host = HOST_API;
+        }
+
+        // Use URI prefix on non-standard host names
+        if (!HOST_API.equals(host)) {
             prefix = "/api/v3";
         }
 
