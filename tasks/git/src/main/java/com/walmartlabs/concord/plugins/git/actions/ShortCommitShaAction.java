@@ -68,8 +68,8 @@ public class ShortCommitShaAction extends GitHubTaskAction<GitHubTaskParams.GetS
         } catch (UserDefinedException e) {
             throw e;
         } catch (Exception e) {
-            log.error("❌ Error while getting short SHA for '{}' commit in '{}/{}'",
-                    input.sha(), input.org(), input.repo(), e);
+            log.error("❌ Error while getting short SHA for '{}' commit in '{}/{}': {}",
+                    input.sha(), input.org(), input.repo(), e.getMessage());
 
            throw new RuntimeException("Failed to get short SHA for '" + input.sha() + "' commit: "  + e.getMessage());
         }

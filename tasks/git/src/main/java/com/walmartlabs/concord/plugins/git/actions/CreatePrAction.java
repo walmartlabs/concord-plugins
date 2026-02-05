@@ -42,9 +42,6 @@ public class CreatePrAction extends GitHubTaskAction<GitHubTaskParams.CreatePr> 
             return Map.of("prId", 0); // let's return some `fake` ID
         }
 
-        log.info("Creating PR in {}/{} from {} to {}",
-                input.org(), input.repo(), input.srcBranch(), input.destBranch());
-
         var client = new GitHubClient(txId, apiInfo);
         try {
             var body = Map.of(
@@ -57,7 +54,7 @@ public class CreatePrAction extends GitHubTaskAction<GitHubTaskParams.CreatePr> 
             var result = client.singleObjectResult("POST", "/repos/" + input.org() + "/" + input.repo() + "/pulls", body);
             var prId = result.get("number");
 
-            log.info("✅ PR Created, id: '{}'", prId);
+            log.info("✅ PR #{} created in '{}/{}' ({} -> {})", prId, input.org(), input.repo(), input.srcBranch(), input.destBranch());
 
             if (!input.labels().isEmpty()) {
                 client.singleArrayResult("POST", "/repos/" + input.org() + "/" + input.repo() + "/issues/" + prId + "/labels",
@@ -66,6 +63,7 @@ public class CreatePrAction extends GitHubTaskAction<GitHubTaskParams.CreatePr> 
 
             return Map.of("prId", prId);
         } catch (Exception e) {
+            log.error("❌ Failed to create PR in '{}/{}' ({} -> {}): {}", input.org(), input.repo(), input.srcBranch(), input.destBranch(), e.getMessage());
             throw new RuntimeException("Failed to create pull request: " + e.getMessage());
         }
     }

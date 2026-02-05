@@ -92,7 +92,7 @@ public class ListCommitsAction extends GitHubTaskAction<GitHubTaskParams.ListCom
                     "filterMatches", filterMatches,
                     "searchDepthReached", counted.get() >= input.searchDepth());
         } catch (Exception e) {
-            log.error("❌ Failed to list commits '{}/{}' since '{}'", input.org(), input.repo(), input.since(), e);
+            log.error("❌ Failed to list commits '{}/{}' since '{}': {}", input.org(), input.repo(), input.since(), e.getMessage());
             throw new RuntimeException(" Failed to list commits: "  + e.getMessage());
         }
     }
