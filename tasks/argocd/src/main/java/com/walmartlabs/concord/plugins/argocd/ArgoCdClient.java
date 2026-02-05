@@ -212,6 +212,7 @@ public class ArgoCdClient {
                 .orElse(false);
     }
 
+    @SuppressWarnings("BusyWait")
     public V1alpha1Application waitForSyncWithPolling(String appName, String resourceVersion, Duration waitTimeout, WaitWatchParams waitParams) {
         log.info("Waiting for application to sync using polling");
         OffsetDateTime startTime = OffsetDateTime.now();
@@ -230,11 +231,10 @@ public class ArgoCdClient {
                 return application;
             }
             pollCount++;
-            log.info("Application is not ready. Waiting {} seconds before next try",
-                    POLL_WAIT_TIME.getSeconds() * pollCount);
+            var pollWait = Duration.ofMillis(Math.min(pollCount * POLL_WAIT_TIME.toMillis(), 30_000L));
+            log.info("Application is not ready. Waiting {} seconds before next try", pollWait.toSeconds());
             try {
-                //noinspection BusyWait
-                Thread.sleep(pollCount * POLL_WAIT_TIME.toMillis());
+                Thread.sleep(pollWait.toMillis());
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
