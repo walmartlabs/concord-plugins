@@ -4,13 +4,15 @@
 
 ### Added
 
+- github: `listWebHooks` action
+  ([#231](https://github.com/walmartlabs/concord-plugins/pull/231));
 - github: add 'create repository dispatch' action
   ([#228](https://github.com/walmartlabs/concord-plugins/pull/228));
 - github: add `failIfNotFound` parameter to `getRef` and `getTag` actions
   ([#227](https://github.com/walmartlabs/concord-plugins/pull/227));
-- github: getTag action
+- github: `getTag` action
   ([#226](https://github.com/walmartlabs/concord-plugins/pull/226));
-- github: getRef action
+- github: `getRef` action
   ([#223](https://github.com/walmartlabs/concord-plugins/pull/223));
 - argocd: update IT setup script and resources
   ([#222](https://github.com/walmartlabs/concord-plugins/pull/222)).
