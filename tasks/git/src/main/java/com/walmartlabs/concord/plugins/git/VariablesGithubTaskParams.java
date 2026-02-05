@@ -63,7 +63,8 @@ public final class VariablesGithubTaskParams {
         LISTCOMMITS,
         GETTAG,
         GETREF,
-        CREATEREPOSITORYDISPATCH
+        CREATEREPOSITORYDISPATCH,
+        LISTWEBHOOKS
     }
 
     public static Variables merge(Map<String, Object> taskDefaults, Map<String, Object> input) {
@@ -143,6 +144,13 @@ public final class VariablesGithubTaskParams {
                 assertRepo(variables),
                 variables.assertString("eventType"),
                 variables.getMap("clientPayload", Map.of())
+        );
+    }
+
+    public static ListWebhooks listWebhooks(Variables variables) {
+        return new ListWebhooks(
+                assertOrg(variables),
+                assertRepo(variables)
         );
     }
 

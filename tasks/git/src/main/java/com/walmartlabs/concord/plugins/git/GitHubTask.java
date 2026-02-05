@@ -28,6 +28,7 @@ import com.walmartlabs.concord.plugins.git.actions.CreateRepositoryDispatchActio
 import com.walmartlabs.concord.plugins.git.actions.GetRefAction;
 import com.walmartlabs.concord.plugins.git.actions.GetTagAction;
 import com.walmartlabs.concord.plugins.git.actions.ListCommitsAction;
+import com.walmartlabs.concord.plugins.git.actions.ListWebhooksAction;
 import com.walmartlabs.concord.plugins.git.actions.ShortCommitShaAction;
 import com.walmartlabs.concord.plugins.git.model.Auth;
 import com.walmartlabs.concord.plugins.git.model.GitHubApiInfo;
@@ -180,6 +181,7 @@ public class GitHubTask {
             case GETTAG -> new GetTagAction().execute(txId, apiInfo, dryRunMode, VariablesGithubTaskParams.getTag(input));
             case GETREF -> new GetRefAction().execute(txId, apiInfo, dryRunMode, VariablesGithubTaskParams.getRef(input));
             case CREATEREPOSITORYDISPATCH -> new CreateRepositoryDispatchAction().execute(txId, apiInfo, dryRunMode, VariablesGithubTaskParams.createRepositoryDispatch(input));
+            case LISTWEBHOOKS -> new ListWebhooksAction().execute(txId, apiInfo, dryRunMode, VariablesGithubTaskParams.listWebhooks(input));
         };
     }
 
