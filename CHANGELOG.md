@@ -17,6 +17,8 @@
 
 ### Changed
 
+- githib: unify logging across task actions
+  ([#230](https://github.com/walmartlabs/concord-plugins/pull/230));
 - github: fix api url prefix handling (#229)
   ([#229](https://github.com/walmartlabs/concord-plugins/pull/229)).
   
