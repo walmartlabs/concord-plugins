@@ -89,4 +89,10 @@ public sealed interface GitHubTaskParams {
             java.util.Map<String, Object> clientPayload
     ) implements GitHubTaskParams {
     }
+
+    record ListWebhooks(
+            String org,
+            String repo
+    ) implements GitHubTaskParams {
+    }
 }
