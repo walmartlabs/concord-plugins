@@ -4,6 +4,8 @@
 
 ### Added
 
+- github: add 'create repository dispatch' action
+  ([#228](https://github.com/walmartlabs/concord-plugins/pull/228));
 - github: add `failIfNotFound` parameter to `getRef` and `getTag` actions
   ([#227](https://github.com/walmartlabs/concord-plugins/pull/227));
 - github: getTag action
