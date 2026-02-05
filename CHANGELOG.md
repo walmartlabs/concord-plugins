@@ -15,7 +15,11 @@
 - argocd: update IT setup script and resources
   ([#222](https://github.com/walmartlabs/concord-plugins/pull/222)).
 
+### Changed
 
+- github: fix api url prefix handling (#229)
+  ([#229](https://github.com/walmartlabs/concord-plugins/pull/229)).
+  
 ## [2.11.0] - 2026-01-14
 
 ### Added
