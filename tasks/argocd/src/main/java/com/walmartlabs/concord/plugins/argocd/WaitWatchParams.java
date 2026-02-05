@@ -46,6 +46,9 @@ public interface WaitWatchParams {
         return false;
     }
 
+    @Value.Default
+    default boolean useStreamApi() {return true;}
+
     static ImmutableWaitWatchParams.Builder builder() {
         return ImmutableWaitWatchParams.builder();
     }
