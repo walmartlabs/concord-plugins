@@ -24,6 +24,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.walmartlabs.concord.plugins.git.actions.CreateBranchAction;
 import com.walmartlabs.concord.plugins.git.actions.CreatePrAction;
+import com.walmartlabs.concord.plugins.git.actions.CreateRepositoryDispatchAction;
 import com.walmartlabs.concord.plugins.git.actions.GetRefAction;
 import com.walmartlabs.concord.plugins.git.actions.GetTagAction;
 import com.walmartlabs.concord.plugins.git.actions.ListCommitsAction;
@@ -178,6 +179,7 @@ public class GitHubTask {
             case LISTCOMMITS -> new ListCommitsAction().execute(txId, apiInfo, dryRunMode, VariablesGithubTaskParams.listCommits(input));
             case GETTAG -> new GetTagAction().execute(txId, apiInfo, dryRunMode, VariablesGithubTaskParams.getTag(input));
             case GETREF -> new GetRefAction().execute(txId, apiInfo, dryRunMode, VariablesGithubTaskParams.getRef(input));
+            case CREATEREPOSITORYDISPATCH -> new CreateRepositoryDispatchAction().execute(txId, apiInfo, dryRunMode, VariablesGithubTaskParams.createRepositoryDispatch(input));
         };
     }
 

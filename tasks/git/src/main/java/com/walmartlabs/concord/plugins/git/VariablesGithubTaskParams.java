@@ -62,7 +62,8 @@ public final class VariablesGithubTaskParams {
         GETSHORTSHA,
         LISTCOMMITS,
         GETTAG,
-        GETREF
+        GETREF,
+        CREATEREPOSITORYDISPATCH
     }
 
     public static Variables merge(Map<String, Object> taskDefaults, Map<String, Object> input) {
@@ -133,6 +134,15 @@ public final class VariablesGithubTaskParams {
                 assertRepo(variables),
                 variables.assertString("ref"),
                 variables.getBoolean("failIfNotFound", true)
+        );
+    }
+
+    public static CreateRepositoryDispatch createRepositoryDispatch(Variables variables) {
+        return new CreateRepositoryDispatch(
+                assertOrg(variables),
+                assertRepo(variables),
+                variables.assertString("eventType"),
+                variables.getMap("clientPayload", Map.of())
         );
     }
 

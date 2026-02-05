@@ -81,4 +81,12 @@ public sealed interface GitHubTaskParams {
             boolean failIfNotFound
     ) implements GitHubTaskParams {
     }
+
+    record CreateRepositoryDispatch(
+            String org,
+            String repo,
+            String eventType,
+            java.util.Map<String, Object> clientPayload
+    ) implements GitHubTaskParams {
+    }
 }

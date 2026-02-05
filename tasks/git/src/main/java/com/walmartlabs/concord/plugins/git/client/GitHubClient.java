@@ -80,6 +80,10 @@ public class GitHubClient {
         return parseResponseAs(response, LIST_OF_OBJECTS_TYPE);
     }
 
+    public void voidResult(String method, String path, Object body) throws IOException, InterruptedException, URISyntaxException {
+        sendRequest(method, path, Map.of(), body);
+    }
+
     public void forEachPage(String path, Map<String, String> params, int pageSize, PageHandler handler)
             throws IOException, InterruptedException, URISyntaxException {
 
