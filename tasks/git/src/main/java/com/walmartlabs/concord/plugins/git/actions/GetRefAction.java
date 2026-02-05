@@ -42,14 +42,16 @@ public class GetRefAction extends GitHubTaskAction<GitHubTaskParams.GetRef> {
         try {
             var ref = input.ref();
 
-            log.info("Getting reference '{}' for '{}/{}'", ref, input.org(), input.repo());
-
             var refObject = client.singleObjectResult("GET", "/repos/" + input.org() + "/" + input.repo() + "/git/ref/" + ref, null);
+
+            log.info("✅ Got reference '{}' from '{}/{}'", ref, input.org(), input.repo());
+
             return Map.of("ref", refObject);
         } catch (Exception e) {
             if (e instanceof GitHubApiException gae && gae.getStatusCode() == 404 && !input.failIfNotFound()) {
                 return Map.of();
             }
+            log.error("❌ Error while getting reference '{}' for '{}/{}': {}", input.ref(), input.org(), input.repo(), e.getMessage());
             throw new RuntimeException("Error while getting reference '" + input.ref() + "' for '" +
                     input.org() + "/" + input.repo() + "': " + e.getMessage());
         }

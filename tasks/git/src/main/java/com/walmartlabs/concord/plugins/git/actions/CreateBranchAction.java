@@ -47,6 +47,7 @@ public class CreateBranchAction extends GitHubTaskAction<GitHubTaskParams.Create
         try {
             var exists = branchExists(client, input.org(), input.repo(), input.branchName());
             if (exists) {
+                log.info("✅ Branch '{}' already exists in '{}/{}'", input.branchName(), input.org(), input.repo());
                 return Map.of("alreadyExists", true);
             }
 
@@ -54,9 +55,13 @@ public class CreateBranchAction extends GitHubTaskAction<GitHubTaskParams.Create
                     "sha", input.sha());
 
             client.singleObjectResult("POST", "/repos/" + input.org() + "/" + input.repo() + "/git/refs", body);
+
+            log.info("✅ Branch '{}' created in '{}/{}' (sha: {})", input.branchName(), input.org(), input.repo(), input.sha());
+
             return Map.of();
         } catch (Exception e) {
-           throw new RuntimeException("Error while creating new branch '" + input.branchName() + "' for sha '" +
+            log.error("❌ Error while creating new branch '{}' for sha '{}' in '{}/{}': {}", input.branchName(), input.sha(), input.org(), input.repo(), e.getMessage());
+            throw new RuntimeException("Error while creating new branch '" + input.branchName() + "' for sha '" +
                    input.sha() + " in '" + input.org() + "/" + input.repo() + "': " + e.getMessage());
         }
     }

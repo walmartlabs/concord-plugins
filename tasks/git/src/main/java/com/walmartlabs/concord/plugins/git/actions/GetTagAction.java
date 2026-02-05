@@ -48,7 +48,6 @@ public class GetTagAction extends GitHubTaskAction<GitHubTaskParams.GetTag> {
         try {
             var targetSha = input.tagSha();
             if (targetSha == null) {
-                log.info("Getting tag by name '{}' from {}/{}", input.tagName(), input.org(), input.repo());
                 var ref = new GetRefAction().execute(txId, apiInfo, dryRunMode, new GitHubTaskParams.GetRef(input.org(), input.repo(), "tags/" + input.tagName(), input.failIfNotFound()));
                 if (ref.isEmpty()) {
                     log.info("Tag '{}' not found in '{}/{}'", input.tagName(), input.org(), input.repo());
@@ -63,16 +62,20 @@ public class GetTagAction extends GitHubTaskAction<GitHubTaskParams.GetTag> {
                 targetSha = MapUtils.assertString(object, "sha");
             }
 
-            log.info("Getting tag by SHA '{}' from {}/{}", targetSha, input.org(), input.repo());
             var tag = client.singleObjectResult("GET", "/repos/" + input.org() + "/" + input.repo() + "/git/tags/" + targetSha, null);
+
+            log.info("✅ Got tag '{}' from '{}/{}' (sha: {})", input.tagName() != null ? input.tagName() : targetSha, input.org(), input.repo(), targetSha);
+
             return Map.of("tag", tag);
         } catch (RuntimeException e) {
+            log.error("❌ Error while getting tag from '{}/{}': {}", input.org(), input.repo(), e.getMessage());
             throw e;
         } catch (Exception e) {
             if (e instanceof GitHubApiException gae && gae.getStatusCode() == 404 && !input.failIfNotFound()) {
                 return Map.of();
             }
             var tag = input.tagName() != null ? input.tagName() : input.tagSha();
+            log.error("❌ Error while getting tag '{}' from '{}/{}': {}", tag, input.org(), input.repo(), e.getMessage());
             throw new RuntimeException("Error while getting tag '" + tag + "' for '" +
                     input.org() + "/" + input.repo() + "': " + e.getMessage());
         }

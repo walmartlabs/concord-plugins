@@ -52,11 +52,12 @@ public class CreateRepositoryDispatchAction extends GitHubTaskAction<GitHubTaskP
 
             client.voidResult("POST", "/repos/" + input.org() + "/" + input.repo() + "/dispatches", body);
 
-            log.info("Repository dispatch event created in {}/{} with event type '{}'",
-                    input.org(), input.repo(), input.eventType());
+            log.info("✅ Repository dispatch event '{}' created in '{}/{}'",
+                    input.eventType(), input.org(), input.repo());
 
             return Map.of();
         } catch (Exception e) {
+            log.error("❌ Failed to create repository dispatch event in '{}/{}' (type: {}): {}", input.org(), input.repo(), input.eventType(), e.getMessage());
             throw new RuntimeException("Failed to create repository dispatch event: " + e.getMessage());
         }
     }
