@@ -25,12 +25,16 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.walmartlabs.concord.common.secret.UsernamePassword;
 import com.walmartlabs.concord.sdk.Secret;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Map;
 
 import static com.walmartlabs.concord.sdk.MapUtils.getString;
+import static java.util.Objects.requireNonNull;
 
 public final class Utils {
 
+    private static final String HOST_API = "api.github.com";
     private static final ObjectMapper MAPPER = new ObjectMapper()
             .registerModule(new JavaTimeModule());
 
@@ -58,6 +62,35 @@ public final class Utils {
             throw new IllegalArgumentException("Mandatory parameter '" + k + "' is required");
         }
         return v;
+    }
+
+    public static String buildApiUrl(String baseUrl, String path) throws URISyntaxException {
+        var uri = new URI(baseUrl);
+        var host = uri.getHost();
+        String prefix = null;
+        if ("github.com".equals(host) || "gist.github.com".equals(host)) {
+            host = HOST_API;
+        }
+
+        // Use URI prefix on non-standard host names
+        if (!HOST_API.equals(host)) {
+            prefix = "/api/v3";
+        }
+
+        var scheme = requireNonNull(uri.getScheme(), "Base URL without schema");
+        var port = uri.getPort();
+
+        var apiUri = new URI(scheme, null, host, port, joinPaths(prefix, path), null, null);
+        return apiUri.toString();
+    }
+
+    private static String joinPaths(String a, String b) {
+        var p2 = b.startsWith("/") ? b : "/" + b;
+        if (a == null) {
+            return p2;
+        }
+        var p1 = a.endsWith("/") ? a.substring(0, a.length() - 1) : a;
+        return p1 + p2;
     }
 
     public static String hideSensitiveData(String s, Secret secret) {

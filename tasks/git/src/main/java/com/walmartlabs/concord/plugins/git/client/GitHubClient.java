@@ -40,6 +40,7 @@ import java.time.Duration;
 import java.util.*;
 import java.util.regex.Pattern;
 
+import static com.walmartlabs.concord.plugins.git.Utils.buildApiUrl;
 import static java.util.Objects.requireNonNull;
 
 public class GitHubClient {
@@ -51,8 +52,6 @@ public class GitHubClient {
 
     private static final TypeReference<Map<String, Object>> OBJECT_TYPE = new TypeReference<>() {
     };
-
-    private static final String HOST_API = "api.github.com";
 
     private static final Pattern NEXT_LINK = Pattern.compile("<([^>]+)>;\\s*rel=\"next\"");
     private static final int MAX_RETRY_ATTEMPTS = 5;
@@ -110,26 +109,6 @@ public class GitHubClient {
 
             requestUrl = parseNextLink(response.headers().firstValue("Link").orElse(null));
         }
-    }
-
-    private static String buildApiUrl(String baseUrl, String path) throws URISyntaxException {
-        var uri = new URI(baseUrl);
-        var host = uri.getHost();
-        String prefix = null;
-        if ("github.com".equals(host) || "gist.github.com".equals(host)) {
-            host = HOST_API;
-        }
-
-        // Use URI prefix on non-standard host names
-        if (!HOST_API.equals(host)) {
-            prefix = "/api/v3";
-        }
-
-        var scheme = requireNonNull(uri.getScheme(), "Base URL without schema");
-        var port = uri.getPort();
-
-        var apiUri = new URI(scheme, null, host, port, joinPaths(prefix, path), null, null);
-        return apiUri.toString();
     }
 
     private HttpResponse<String> sendRequest(String method, String path, Map<String, String> params, Object body) throws IOException, InterruptedException, URISyntaxException {
@@ -251,15 +230,6 @@ public class GitHubClient {
             Thread.currentThread().interrupt();
             throw ie;
         }
-    }
-
-    private static String joinPaths(String a, String b) {
-        var p2 = b.startsWith("/") ? b : "/" + b;
-        if (a == null) {
-            return p2;
-        }
-        var p1 = a.endsWith("/") ? a.substring(0, a.length() - 1) : a;
-        return p1 + p2;
     }
 
     private static String appendParamsToUrl(String absoluteUrl, Map<String, String> params) {
