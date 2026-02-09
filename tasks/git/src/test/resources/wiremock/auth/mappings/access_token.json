@@ -2,7 +2,7 @@
     "id": "fd3e46a2-c983-4873-b096-2b8d877a1ce9",
     "name": "github_task_test_auth_access_token",
     "request": {
-        "url": "/app/installations/12345/access_tokens",
+        "url": "/api/v3/app/installations/12345/access_tokens",
         "method": "POST",
         "headers": {
             "Accept": {
