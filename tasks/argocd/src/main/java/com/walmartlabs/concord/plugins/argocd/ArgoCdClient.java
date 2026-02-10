@@ -245,7 +245,7 @@ public class ArgoCdClient {
     public V1alpha1Application waitForSync(String appName, String resourceVersion, Duration waitTimeout, WaitWatchParams waitParams) {
         waitTimeout = (waitTimeout == null) ? Duration.ofMinutes(15) : waitTimeout;
         if (waitParams.useStreamApi()) {
-            return waitForSyncWithStreamApi(appName, resourceVersion, waitTimeout, waitParams)
+            return waitForSyncWithStreamApi(appName, resourceVersion, waitTimeout, waitParams);
         } else {
             return waitForSyncWithPolling(appName, resourceVersion, waitTimeout, waitParams);
         }
