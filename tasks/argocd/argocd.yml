@@ -1963,6 +1963,15 @@ paths:
           name: url
           in: path
           required: true
+        - type: string
+          description: whether to force a cache refresh on repo's connection state
+          name: forceRefresh
+          in: query
+          required: true
+        - type: string
+          description: App project for query
+          name: appProject
+          in: query
       responses:
         '200':
           description: A successful response.
