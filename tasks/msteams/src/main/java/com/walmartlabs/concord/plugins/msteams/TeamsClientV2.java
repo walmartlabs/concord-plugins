@@ -45,14 +45,18 @@ public class TeamsClientV2 implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(TeamsClientV2.class);
 
     private final int retryCount;
+    private final int maxRetryWait;
+    private final int soTimeout;
     private final HttpClient client;
     private final Map<String, String> defaultHeaders;
 
     public TeamsClientV2(TeamsV2Configuration cfg) {
         this.defaultHeaders = new HashMap<>();
         this.retryCount = cfg.retryCount();
+        this.soTimeout = cfg.soTimeout();
+        this.maxRetryWait = cfg.maxRetryWait();
         this.client = createClient(cfg);
-        defaultHeaders.put("Authorization", "Bearer " + generateAccessToken(cfg, client));
+        this.defaultHeaders.put("Authorization", "Bearer " + generateAccessToken(cfg, client));
     }
 
     @Override
@@ -92,6 +96,7 @@ public class TeamsClientV2 implements AutoCloseable {
                 .uri(URI.create(rootApi))
                 .POST(HttpRequest.BodyPublishers.ofString(Utils.mapper().writeValueAsString(params)))
                 .header("Content-Type", "application/json")
+                .timeout(Duration.ofMillis(soTimeout))
                 .build();
 
         for (int i = 0; i < retryCount + 1; i++) {
@@ -100,9 +105,14 @@ public class TeamsClientV2 implements AutoCloseable {
                 var body = response.body();
 
                 if (response.statusCode() == Constants.TOO_MANY_REQUESTS_ERROR) {
-                    int retryAfter = TeamsClient.getRetryAfter(response);
-                    log.warn("exec [params: '{}'] -> too many requests, retry after {} sec", params, retryAfter);
-                    sleep(retryAfter * 1000L);
+                    long retryAfter = TeamsClient.getRetryAfter(response) * 1000L;
+
+                    if (retryAfter > maxRetryWait) {
+                        throw new IllegalStateException("Too many requests. Cannot wait long enough to retry.");
+                    }
+
+                    log.warn("exec [params: '{}'] -> too many requests, retry after {}ms", params, retryAfter);
+                    sleep(retryAfter);
                 } else {
                     if (body == null) {
                         log.error("exec [params: '{}'] -> empty response", params);
@@ -135,7 +145,7 @@ public class TeamsClientV2 implements AutoCloseable {
             }
         }
 
-        return new Result(false, "too many requests", null, null, null);
+        return new Result(false, "retry attempts exhausted", null, null, null);
     }
 
     private static HttpClient createClient(TeamsV2Configuration cfg) {
@@ -150,7 +160,7 @@ public class TeamsClientV2 implements AutoCloseable {
     }
 
     @SuppressWarnings("unchecked")
-    String generateAccessToken(TeamsV2Configuration cfg, HttpClient client) {
+    static String generateAccessToken(TeamsV2Configuration cfg, HttpClient client) {
         Map<String, String> params = new LinkedHashMap<>(); // linked so order is predictable for unit tests
         params.put("client_id", cfg.clientId());
         params.put("client_secret", cfg.clientSecret());
@@ -185,7 +195,7 @@ public class TeamsClientV2 implements AutoCloseable {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         } catch (IOException e) {
-            throw new RuntimeException("IO error while retieving access token: " + e.getMessage(), e);
+            throw new RuntimeException("IO error while retrieving access token: " + e.getMessage(), e);
         }
 
         return null;
