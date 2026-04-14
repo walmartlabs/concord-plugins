@@ -15,7 +15,7 @@
 
     <properties>
         <awssdk.version>1.12.261</awssdk.version>
-        <s3_mock.image.version>latest</s3_mock.image.version>
+        <s3_mock.image.version>5.0.0</s3_mock.image.version>
     </properties>
 
     <dependencies>
