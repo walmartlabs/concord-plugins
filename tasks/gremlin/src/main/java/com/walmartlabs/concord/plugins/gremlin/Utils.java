@@ -239,14 +239,17 @@ public class Utils {
             throw new RuntimeException("Error while resolving targets: " + e.getMessage(), e);
         }
 
+        return filterK8sTargets(in.k8s(), targets);
+    }
+
+    static List<Map<String, Object>> filterK8sTargets(KubernetesParams k8s, List<Map<String, Object>> targets) {
         if (targets.isEmpty()) {
             throw new RuntimeException("No targets");
         }
 
-        KubernetesParams k8s = in.k8s();
         Map<String, Object> cluster = findK8sCluster(k8s.cluster(), targets);
         if (cluster == null) {
-            throw new IllegalArgumentException("Can't find cluster with name '" + cluster + "'");
+            throw new IllegalArgumentException("Can't find cluster with name '" + k8s.cluster() + "'");
         }
 
         List<Map<String, Object>> objects = assertList(cluster, "objects");
@@ -262,38 +265,33 @@ public class Utils {
 
         List<Map<String, Object>> result = new ArrayList<>();
         if (!k8s.deployments().isEmpty()) {
-            result = objects.stream()
-                    .filter(o -> DEPLOYMENT.name().equals(getString(o, "kind")))
-                    .filter(o -> k8s.deployments().contains(getString(o, "name")))
-                    .collect(Collectors.toList());
+            addMatchingTargets(result, objects, DEPLOYMENT.name(), k8s.deployments());
         }
 
         if (!k8s.daemonSets().isEmpty()) {
-            result = objects.stream()
-                    .filter(o -> DAEMONSET.name().equals(getString(o, "kind")))
-                    .filter(o -> k8s.daemonSets().contains(getString(o, "name")))
-                    .collect(Collectors.toList());
+            addMatchingTargets(result, objects, DAEMONSET.name(), k8s.daemonSets());
         }
 
         if (!k8s.statefulSets().isEmpty()) {
-            result = objects.stream()
-                    .filter(o -> STATEFULSET.name().equals(getString(o, "kind")))
-                    .filter(o -> k8s.daemonSets().contains(getString(o, "name")))
-                    .collect(Collectors.toList());
+            addMatchingTargets(result, objects, STATEFULSET.name(), k8s.statefulSets());
         }
 
         if (!k8s.pods().isEmpty()) {
-            result = objects.stream()
-                    .filter(o -> POD.name().equals(getString(o, "kind")))
-                    .filter(o -> k8s.daemonSets().contains(getString(o, "name")))
-                    .collect(Collectors.toList());
+            addMatchingTargets(result, objects, POD.name(), k8s.pods());
         }
 
-        if (targets.isEmpty()) {
+        if (result.isEmpty()) {
             throw new RuntimeException("Filtered no targets");
         }
 
         return result;
+    }
+
+    private static void addMatchingTargets(List<Map<String, Object>> result, List<Map<String, Object>> objects, String kind, List<String> names) {
+        result.addAll(objects.stream()
+                .filter(o -> kind.equals(getString(o, "kind")))
+                .filter(o -> names.contains(getString(o, "name")))
+                .collect(Collectors.toList()));
     }
 
     private static Map<String, Object> findK8sCluster(String cluster, List<Map<String, Object>> items) {
