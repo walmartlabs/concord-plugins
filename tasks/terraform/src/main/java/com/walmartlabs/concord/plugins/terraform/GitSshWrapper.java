@@ -42,6 +42,8 @@ public class GitSshWrapper {
 
     public static final String PRIVATE_KEYS_KEY = "privateKeys";
     public static final String SECRETS_KEY = "secrets";
+    public static final String KNOWN_HOSTS_KEY = "knownHosts";
+    public static final String STRICT_HOST_KEY_CHECKING_KEY = "strictHostKeyChecking";
 
     private static final String ORG_KEY = "org";
     private static final String SECRET_NAME_KEY = "secretName";
@@ -64,8 +66,10 @@ public class GitSshWrapper {
 
         List<Path> externalKeys = getExternalPrivateKeys(workDir, m, debug);
         List<Path> exportedKeys = exportSecrets(secretProvider, m, debug);
+        Path knownHosts = getKnownHosts(workDir, m);
+        boolean strictHostKeyChecking = getBoolean(m, STRICT_HOST_KEY_CHECKING_KEY, true);
 
-        return new GitSshWrapper(externalKeys, exportedKeys, debug);
+        return new GitSshWrapper(externalKeys, exportedKeys, knownHosts, strictHostKeyChecking, debug);
     }
 
     @SuppressWarnings("unchecked")
@@ -154,14 +158,22 @@ public class GitSshWrapper {
 
     private final List<Path> externalPrivateKeys;
     private final List<Path> exportedPrivateKeys;
+    private final Path knownHosts;
+    private final boolean strictHostKeyChecking;
     private final boolean debug;
 
     // path to the generated SSH wrapper script, removed in cleanup()
     private Path wrapperPath;
 
-    private GitSshWrapper(List<Path> externalPrivateKeys, List<Path> exportedPrivateKeys, boolean debug) {
+    private GitSshWrapper(List<Path> externalPrivateKeys,
+                          List<Path> exportedPrivateKeys,
+                          Path knownHosts,
+                          boolean strictHostKeyChecking,
+                          boolean debug) {
         this.externalPrivateKeys = externalPrivateKeys;
         this.exportedPrivateKeys = exportedPrivateKeys;
+        this.knownHosts = knownHosts;
+        this.strictHostKeyChecking = strictHostKeyChecking;
         this.debug = debug;
     }
 
@@ -190,13 +202,15 @@ public class GitSshWrapper {
         StringBuilder sb = new StringBuilder("#!/bin/sh").append(lineSeparator())
                 .append("ssh");
 
-        // disable host key checking
-        sb.append(" -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no");
+        if (knownHosts != null) {
+            sb.append(" -o UserKnownHostsFile=").append(shellQuote(knownHosts.toString()));
+        }
+        sb.append(" -o StrictHostKeyChecking=").append(strictHostKeyChecking ? "yes" : "no");
 
         externalPrivateKeys.forEach(p -> addIdentityFile(sb, p));
         exportedPrivateKeys.forEach(p -> addIdentityFile(sb, p));
 
-        sb.append(" $@");
+        sb.append(" \"$@\"");
 
         String cmd = sb.toString();
 
@@ -208,7 +222,50 @@ public class GitSshWrapper {
     }
 
     private static void addIdentityFile(StringBuilder sb, Path p) {
-        sb.append(" -o IdentityFile=").append(p.toString());
+        sb.append(" -o IdentityFile=").append(shellQuote(p.toString()));
+    }
+
+    static String shellQuote(String value) {
+        return "'" + value.replace("'", "'\\''") + "'";
+    }
+
+    private static Path getKnownHosts(Path workDir, Map<String, Object> m) {
+        Object v = m.get(KNOWN_HOSTS_KEY);
+        if (v == null) {
+            return null;
+        }
+
+        Path p;
+        if (v instanceof Path) {
+            p = (Path) v;
+        } else if (v instanceof String) {
+            p = workDir.resolve((String) v);
+        } else {
+            throw new IllegalArgumentException("'" + TaskConstants.GIT_SSH_KEY + "." + KNOWN_HOSTS_KEY + "' must be a path, got: " + v);
+        }
+
+        if (!Files.exists(p) || !Files.isReadable(p)) {
+            throw new IllegalArgumentException("The known hosts file is not readable: " + p);
+        }
+
+        return p.toAbsolutePath();
+    }
+
+    private static boolean getBoolean(Map<String, Object> m, String k, boolean defaultValue) {
+        Object v = m.get(k);
+        if (v == null) {
+            return defaultValue;
+        }
+
+        if (v instanceof Boolean) {
+            return (Boolean) v;
+        }
+
+        if (v instanceof String) {
+            return Boolean.parseBoolean((String) v);
+        }
+
+        throw new IllegalArgumentException("Expected a boolean value '" + k + "', got: " + v);
     }
 
     private static String removeString(Map<String, Object> m, String k) {

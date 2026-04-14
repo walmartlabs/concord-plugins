@@ -25,10 +25,9 @@ import com.walmartlabs.concord.sdk.MapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -40,7 +39,7 @@ public class TerraformBinaryResolver {
 
     private static final Logger log = LoggerFactory.getLogger(TerraformBinaryResolver.class);
 
-    private static final String DEFAULT_TERRAFORM_VERSION = "0.12.5";
+    private static final String DEFAULT_TERRAFORM_VERSION = "1.14.8";
     private static final String DEFAULT_TOOL_URL_TEMPLATE = "https://releases.hashicorp.com/terraform/%s/terraform_%s_%s_amd64.zip";
 
     private final Map<String, Object> cfg;
@@ -72,8 +71,8 @@ public class TerraformBinaryResolver {
      * During the init we might download the version of Terraform specified by the user if defined, otherwise
      * we will download the default version. Terraform URLs look like the following:
      * <p>
-     * https://releases.hashicorp.com/terraform/0.12.5/terraform_0.12.5_linux_amd64.zip
-     * https://releases.hashicorp.com/terraform/0.11.2/terraform_0.11.2_linux_amd64.zip
+     * https://releases.hashicorp.com/terraform/1.14.8/terraform_1.14.8_linux_amd64.zip
+     * https://releases.hashicorp.com/terraform/1.13.5/terraform_1.13.5_linux_amd64.zip
      * <p>
      * So we can generalize to:
      * <p>
@@ -154,42 +153,26 @@ public class TerraformBinaryResolver {
         }
     }
 
-    /**
-     * Tries to run {@code which terraform} to determine whether the binary is present in $PATH or not.
-     */
-    private Path findBinaryInPath() throws InterruptedException {
-        try {
-            Process proc = new ProcessBuilder().command(CMD_WHICH, "terraform")
-                    .start();
+    private Path findBinaryInPath() {
+        String path = System.getenv("PATH");
+        if (path == null || path.isBlank()) {
+            return null;
+        }
 
-            int code = proc.waitFor();
-            if (code != 0) {
-                if (debug) {
-                    log.info("findBinaryInPath -> non-zero exit code: {}", code);
-                }
-                return null;
-            }
-
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(proc.getInputStream()))) {
-                String s = reader.readLine();
-                if (s == null) {
-                    throw new RuntimeException("Unable to locate terraform binary.");
-                }
-
-                Path p = Paths.get(s.trim());
-
+        for (String dir : path.split(File.pathSeparator)) {
+            Path p = Paths.get(dir, terraformExecutableName());
+            if (Files.isRegularFile(p) && Files.isExecutable(p)) {
                 if (debug) {
                     log.info("init -> using the existing PATH binary {}", p);
                 }
-
                 return p;
             }
-        } catch (IOException e) {
-            if (debug) {
-                log.warn("findBinaryInPath -> error: {}", e.getMessage());
-            }
-            return null;
         }
+        return null;
+    }
+
+    private static String terraformExecutableName() {
+        return System.getProperty("os.name").toLowerCase().contains("win") ? "terraform.exe" : "terraform";
     }
 
     private Path findInDockerContainerPath(String dockerImage) throws Exception {
@@ -232,7 +215,7 @@ public class TerraformBinaryResolver {
         return null;
     }
 
-    private static String defaultToolUrl(Map<String, Object> cfg) {
+    static String defaultToolUrl(Map<String, Object> cfg) {
         String tfOs;
         String os = System.getProperty("os.name").toLowerCase();
         if (os.contains("mac")) {
