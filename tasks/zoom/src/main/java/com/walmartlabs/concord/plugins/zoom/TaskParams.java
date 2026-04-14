@@ -58,6 +58,7 @@ public class TaskParams implements ZoomConfiguration {
     public static final String VAR_CONNECTION_TIMEOUT = "connectTimeout";
     public static final String VAR_SO_TIMEOUT = "soTimeout";
     public static final String VAR_RETRY_COUNT = "retryCount";
+    public static final String VAR_VERIFY_SSL = "verifySsl";
 
     protected final Variables variables;
 
@@ -127,6 +128,11 @@ public class TaskParams implements ZoomConfiguration {
     @Override
     public int retryCount() {
         return variables.getInt(VAR_RETRY_COUNT, Constants.DEFAULT_RETRY_COUNT);
+    }
+
+    @Override
+    public boolean verifySsl() {
+        return variables.getBoolean(VAR_VERIFY_SSL, true);
     }
 
     public static class SendMessageParams extends TaskParams {

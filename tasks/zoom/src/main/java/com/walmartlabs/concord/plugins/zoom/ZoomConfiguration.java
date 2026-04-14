@@ -44,4 +44,6 @@ public interface ZoomConfiguration {
     int soTimeout();
 
     int retryCount();
+
+    boolean verifySsl();
 }

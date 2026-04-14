@@ -68,7 +68,7 @@ public class ZoomClient implements AutoCloseable {
     public ZoomClient(ZoomConfiguration cfg, boolean dryRunMode) {
         this.retryCount = cfg.retryCount();
         this.dryRunMode = dryRunMode;
-        this.connManager = createConnManager();
+        this.connManager = createConnManager(cfg.verifySsl());
         this.client = createClient(cfg, connManager);
     }
 
@@ -167,7 +167,11 @@ public class ZoomClient implements AutoCloseable {
         }
     }
 
-    private static PoolingHttpClientConnectionManager createConnManager() {
+    static PoolingHttpClientConnectionManager createConnManager(boolean verifySsl) {
+        if (verifySsl) {
+            return new PoolingHttpClientConnectionManager();
+        }
+
         try {
             SSLContext sslContext = SSLContext.getInstance("TLS");
             sslContext.init(new KeyManager[0], new TrustManager[]{new DefaultTrustManager()}, new SecureRandom());
