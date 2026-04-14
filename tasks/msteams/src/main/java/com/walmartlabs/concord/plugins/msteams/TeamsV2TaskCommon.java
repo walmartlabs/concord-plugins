@@ -32,8 +32,6 @@ public class TeamsV2TaskCommon {
 
     private static final Logger log = LoggerFactory.getLogger(TeamsV2TaskCommon.class);
 
-    private TeamsClientV2 client;
-
     public Result execute(TeamsV2TaskParams in) {
         Map<String, Object> activity = in.activity();
 
@@ -102,10 +100,7 @@ public class TeamsV2TaskCommon {
     }
 
     TeamsClientV2 getClient(TeamsV2TaskParams in) {
-        if (client == null) {
-            client = new TeamsClientV2(in);
-        }
-        return client;
+        return new TeamsClientV2(in);
     }
 
 }

@@ -43,6 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -173,6 +174,19 @@ class CommonV2Test {
         verify(common, times(2)).getClient(any(TeamsV2TaskParams.class));
         verify(client, times(1)).exec(any(), any());
         verify(client, times(0)).sleep(anyLong());
+    }
+
+    @Test
+    void getClientCreatesFreshClient() {
+        common = new TeamsV2TaskCommon();
+        stubForAuth();
+
+        var params = TeamsV2TaskParams.of(new MapBackedVariables(defaultParams()), Map.of());
+
+        try (var first = common.getClient(params);
+             var second = common.getClient(params)) {
+            assertNotSame(first, second);
+        }
     }
 
     private Map<String, Object> defaultParams() {
