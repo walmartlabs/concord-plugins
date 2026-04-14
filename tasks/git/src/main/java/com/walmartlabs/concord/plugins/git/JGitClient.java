@@ -38,6 +38,8 @@ import java.util.Properties;
 
 public class JGitClient implements GitClient {
 
+    static final String STRICT_HOST_KEY_CHECKING_PROPERTY = "concord.git.ssh.strictHostKeyChecking";
+
     @Override
     public void cloneRepo(String uri, String branchName, Secret secret, Path dst) throws Exception {
         try (Git repo = Git.cloneRepository()
@@ -107,12 +109,16 @@ public class JGitClient implements GitClient {
 
             @Override
             protected void configure(OpenSshConfig.Host hc, Session session) {
-                Properties config = new Properties();
-                config.put("StrictHostKeyChecking", "no");
-                session.setConfig(config);
+                session.setConfig(createSshSessionConfig());
             }
         };
 
         t.setSshSessionFactory(f);
+    }
+
+    static Properties createSshSessionConfig() {
+        Properties config = new Properties();
+        config.put("StrictHostKeyChecking", System.getProperty(STRICT_HOST_KEY_CHECKING_PROPERTY, "yes"));
+        return config;
     }
 }

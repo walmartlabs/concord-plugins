@@ -50,7 +50,8 @@ public class GithubTaskV2 implements Task {
     @SensitiveData(keys = {"token"})
     public TaskResult execute(Variables input) {
         Map<String, Object> result = getDelegate().execute(input.toMap(), policyDefaults, secretService);
-        return TaskResult.success().values(result);
+        return TaskResult.of(getBoolean(result, "ok", true), getString(result, "error"))
+                .values(result);
     }
 
     @SensitiveData
@@ -60,5 +61,21 @@ public class GithubTaskV2 implements Task {
 
     GitHubTask getDelegate() {
         return delegate;
+    }
+
+    private static boolean getBoolean(Map<String, Object> values, String key, boolean defaultValue) {
+        Object value = values.get(key);
+        if (value == null) {
+            return defaultValue;
+        }
+        if (value instanceof Boolean) {
+            return (Boolean) value;
+        }
+        return Boolean.parseBoolean(value.toString());
+    }
+
+    private static String getString(Map<String, Object> values, String key) {
+        Object value = values.get(key);
+        return value != null ? value.toString() : null;
     }
 }

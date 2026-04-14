@@ -37,6 +37,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -77,6 +78,17 @@ class GithubTaskV2Test {
         assertEquals("value", result.values().get("data"));
         verify(delegate, times(1))
                 .execute(any(), any(), any());
+    }
+
+    @Test
+    void testExecutePreservesFailedDelegateResult() {
+        when(delegate.execute(any(), any(), any()))
+                .thenReturn(Map.of("ok", false, "error", "failed"));
+
+        var result = assertInstanceOf(TaskResult.SimpleResult.class, task.execute(new MapBackedVariables(Map.of())));
+
+        assertFalse(result.ok());
+        assertEquals("failed", result.error());
     }
 
     @Test
