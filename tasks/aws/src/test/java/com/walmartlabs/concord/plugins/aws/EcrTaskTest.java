@@ -23,18 +23,26 @@ package com.walmartlabs.concord.plugins.aws;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.walmartlabs.concord.runtime.v2.sdk.MapBackedVariables;
 import com.walmartlabs.concord.runtime.v2.sdk.TaskResult;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-@Disabled("requires AWS credentials")
 public class EcrTaskTest {
 
     @Test
+    void testUnsupportedAction() {
+        var task = new EcrTask(new MockContext(), new ObjectMapper());
+        var input = new MapBackedVariables(Map.of("action", "unknown"));
+
+        assertThrows(IllegalArgumentException.class, () -> task.execute(input));
+    }
+
+    @Test
+    @org.junit.jupiter.api.Disabled("requires AWS credentials")
     public void testDescribeImages() {
         var task = new EcrTask(new MockContext(), new ObjectMapper());
         var input = new MapBackedVariables(Map.of(
