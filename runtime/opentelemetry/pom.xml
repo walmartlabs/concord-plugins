@@ -16,7 +16,6 @@
 
     <properties>
         <opentelemetry.version>1.43.0</opentelemetry.version>
-        <opentelemetry.exporter.version>1.14.0</opentelemetry.exporter.version>
     </properties>
 
     <dependencies>
@@ -132,8 +131,8 @@
         </dependency>
         <dependency>
             <groupId>io.opentelemetry</groupId>
-            <artifactId>opentelemetry-exporter-otlp-http-trace</artifactId>
-            <version>${opentelemetry.exporter.version}</version>
+            <artifactId>opentelemetry-exporter-otlp</artifactId>
+            <version>${opentelemetry.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.jetbrains.kotlin</groupId>

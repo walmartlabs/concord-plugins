@@ -21,8 +21,9 @@ package com.walmartlabs.concord.plugins.opentelemetry;
  */
 
 import io.opentelemetry.api.common.AttributeKey;
+import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.trace.*;
-import io.opentelemetry.sdk.internal.AttributesMap;
 import io.opentelemetry.sdk.resources.Resource;
 import io.opentelemetry.sdk.trace.IdGenerator;
 import io.opentelemetry.sdk.trace.data.StatusData;
@@ -110,19 +111,24 @@ public class ConcordSpanBuilder {
     }
 
     public ConcordSpan build() {
-        AttributesMap attrs = AttributesMap.create(attributes.size(), Integer.MAX_VALUE);
-        attrs.putAll(attributes);
+        AttributesBuilder attrs = Attributes.builder();
+        attributes.forEach((key, value) -> putAttribute(attrs, key, value));
         return ImmutableConcordSpan.builder()
                 .resource(resource)
                 .name(spanName)
                 .kind(spanKind)
                 .spanContext(buildContext(traceId, spanId))
                 .parentSpanContext(buildContext(traceId, parentSpanId))
-                .attributes(attrs)
+                .attributes(attrs.build())
                 .startEpochNanos(startEpochNanos)
                 .endEpochNanos(endEpochNanos)
                 .status(status)
                 .build();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> void putAttribute(AttributesBuilder attrs, AttributeKey<T> key, Object value) {
+        attrs.put(key, (T) value);
     }
 
     private static SpanContext buildContext(String traceId, String spanId) {
