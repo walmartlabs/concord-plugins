@@ -58,7 +58,7 @@ public class AkeylessTask implements Task {
 
         AkeylessTaskResult result = delegate.execute(params, secretExporter);
 
-        return TaskResult.success()
+        return TaskResult.of(Boolean.TRUE.equals(result.getOk()), result.getError())
                 .values(Collections.singletonMap("data", result.getData()));
     }
 

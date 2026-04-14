@@ -26,12 +26,8 @@ import com.walmartlabs.concord.plugins.akeyless.model.SecretCache;
 import com.walmartlabs.concord.plugins.akeyless.model.SecretCacheImpl;
 import com.walmartlabs.concord.plugins.akeyless.model.SecretCacheNoop;
 import com.walmartlabs.concord.runtime.v2.sdk.SecretService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class SecretExporterV2 implements SecretExporter {
-    private static final Logger log = LoggerFactory.getLogger(SecretExporterV2.class);
-
     private final SecretService secretService;
 
     private SecretCache<Secret.StringSecret> stringCache;
@@ -70,10 +66,8 @@ public class SecretExporterV2 implements SecretExporter {
                 SecretService.UsernamePassword up = secretService.exportCredentials(o, n, p);
                 return new Secret.CredentialsSecret(up.username(), up.password());
             } catch (Exception e) {
-                log.error("error exporting credentials secret: {}", e.getMessage());
+                throw new RuntimeException(String.format("Error exporting credentials secret '%s/%s': %s", o, n, e.getMessage()), e);
             }
-
-            return new Secret.CredentialsSecret(null, null);
         });
     }
 }

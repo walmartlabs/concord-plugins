@@ -24,8 +24,6 @@ import com.walmartlabs.concord.plugins.akeyless.api.V2Api;
 import com.walmartlabs.concord.plugins.akeyless.model.*;
 import com.walmartlabs.concord.plugins.akeyless.model.auth.ApiKeyAuth;
 import com.walmartlabs.concord.plugins.akeyless.model.auth.LdapAuth;
-import com.walmartlabs.concord.runtime.v2.sdk.MapBackedVariables;
-import com.walmartlabs.concord.runtime.v2.sdk.Variables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +40,7 @@ public class AkeylessCommon {
     private TaskParams params;
     private ApiClient apiClient;
     private SecretExporter secretExporter;
-    private static final Map<String, BiFunction<Variables, SecretExporter, Auth>> authBuilders = createAuthBuilders();
+    private static final Map<String, BiFunction<MapVariables, SecretExporter, Auth>> authBuilders = createAuthBuilders();
     private final boolean dryRunMode;
 
     public AkeylessCommon() {
@@ -53,8 +51,8 @@ public class AkeylessCommon {
         this.dryRunMode = dryRunMode;
     }
 
-    private static Map<String, BiFunction<Variables, SecretExporter, Auth>> createAuthBuilders() {
-        Map<String, BiFunction<Variables, SecretExporter, Auth>> result = new HashMap<>();
+    private static Map<String, BiFunction<MapVariables, SecretExporter, Auth>> createAuthBuilders() {
+        Map<String, BiFunction<MapVariables, SecretExporter, Auth>> result = new HashMap<>();
         result.put("apiKey", ApiKeyAuth::of);
         result.put("ldap", LdapAuth::of);
         return result;
@@ -263,13 +261,13 @@ public class AkeylessCommon {
 
         String authType = authParams.keySet().iterator().next();
 
-        BiFunction<Variables, SecretExporter, Auth> builder = authBuilders.get(authType);
+        BiFunction<MapVariables, SecretExporter, Auth> builder = authBuilders.get(authType);
         if (builder == null) {
             throw new IllegalArgumentException("Unknown auth type '" + authType + "'. Available: " + authBuilders.keySet());
         }
 
-        Map<String, Object> authTypeParams = new MapBackedVariables(authParams).assertMap(authType);
-        Auth auth = builder.apply(new MapBackedVariables(authTypeParams), secretExporter);
+        Map<String, Object> authTypeParams = new MapVariables(authParams).assertMap(authType);
+        Auth auth = builder.apply(new MapVariables(authTypeParams), secretExporter);
 
         return api.auth(auth);
     }

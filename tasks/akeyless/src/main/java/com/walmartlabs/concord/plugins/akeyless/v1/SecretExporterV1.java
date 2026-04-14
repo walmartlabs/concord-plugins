@@ -26,15 +26,12 @@ import com.walmartlabs.concord.plugins.akeyless.model.SecretCache;
 import com.walmartlabs.concord.plugins.akeyless.model.SecretCacheImpl;
 import com.walmartlabs.concord.sdk.Context;
 import com.walmartlabs.concord.sdk.SecretService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.UUID;
 
 public class SecretExporterV1 implements SecretExporter {
-    private static final Logger log = LoggerFactory.getLogger(SecretExporterV1.class);
     private final Context ctx;
     private final String txId;
     private final String workDir;
@@ -76,10 +73,8 @@ public class SecretExporterV1 implements SecretExporter {
                 Map<String, String> up = secretService.exportCredentials(ctx, txId, workDir, o, n, p);
                 return new Secret.CredentialsSecret(up.get("username"), up.get("password"));
             } catch (Exception e) {
-                log.error("error exporting credentials secret: {}", e.getMessage());
+                throw new RuntimeException(String.format("Error exporting credentials secret '%s/%s': %s", o, n, e.getMessage()), e);
             }
-
-            return new Secret.CredentialsSecret(null, null);
         });
     }
 }

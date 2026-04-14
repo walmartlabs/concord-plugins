@@ -22,7 +22,7 @@ package com.walmartlabs.concord.plugins.akeyless.model.auth;
 
 import com.walmartlabs.concord.plugins.akeyless.SecretExporter;
 import com.walmartlabs.concord.plugins.akeyless.model.Auth;
-import com.walmartlabs.concord.runtime.v2.sdk.Variables;
+import com.walmartlabs.concord.plugins.akeyless.model.MapVariables;
 
 import static com.walmartlabs.concord.plugins.akeyless.Util.stringOrSecret;
 
@@ -30,7 +30,7 @@ public class ApiKeyAuth {
     private static final String ACCESS_ID_KEY = "accessId";
     private static final String ACCESS_KEY_KEY = "accessKey";
 
-    public static Auth of(Variables vars, SecretExporter secretExporter) {
+    public static Auth of(MapVariables vars, SecretExporter secretExporter) {
         return new Auth()
                 .accessId(stringOrSecret(vars.get(ACCESS_ID_KEY), secretExporter))
                 .accessKey(stringOrSecret(vars.get(ACCESS_KEY_KEY), secretExporter));

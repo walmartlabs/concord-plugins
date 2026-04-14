@@ -21,8 +21,6 @@ package com.walmartlabs.concord.plugins.akeyless.model;
  */
 
 import com.walmartlabs.concord.plugins.akeyless.Util;
-import com.walmartlabs.concord.runtime.v2.sdk.MapBackedVariables;
-import com.walmartlabs.concord.runtime.v2.sdk.Variables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +46,7 @@ public class TaskParamsImpl implements TaskParams {
         Map<String, Object> mergedVars = new HashMap<>(policyDefaults != null ? policyDefaults : Collections.emptyMap());
         mergedVars.putAll(defaults);
         mergedVars.putAll(input);
-        MapBackedVariables vars = new MapBackedVariables(mergedVars);
+        MapVariables vars = new MapVariables(mergedVars);
 
         TaskParams params;
 
@@ -84,9 +82,9 @@ public class TaskParamsImpl implements TaskParams {
         return params;
     }
 
-    final Variables input;
+    final MapVariables input;
 
-    protected TaskParamsImpl(Variables input) {
+    protected TaskParamsImpl(MapVariables input) {
         this.input = input;
     }
 
@@ -154,7 +152,7 @@ public class TaskParamsImpl implements TaskParams {
     private static class GetSecretParamsImpl extends TaskParamsImpl implements GetSecretParams {
         private static final String PATH_KEY = "path";
 
-        GetSecretParamsImpl(Variables input) {
+        GetSecretParamsImpl(MapVariables input) {
             super(input);
         }
 
@@ -167,7 +165,7 @@ public class TaskParamsImpl implements TaskParams {
     private static class GetSecretsParamsImpl extends TaskParamsImpl implements GetSecretsParams {
         private static final String PATHS_KEY = "paths";
 
-        GetSecretsParamsImpl(Variables input) {
+        GetSecretsParamsImpl(MapVariables input) {
             super(input);
         }
 
@@ -185,7 +183,7 @@ public class TaskParamsImpl implements TaskParams {
         private static final String TAGS_KEY = "tags";
         private static final String PROTECTION_KEY_KEY = "protectionKey";
 
-        CreateSecretParamsImpl(Variables input) {
+        CreateSecretParamsImpl(MapVariables input) {
             super(input);
         }
 
@@ -227,7 +225,7 @@ public class TaskParamsImpl implements TaskParams {
         private static final String MULTILINE_KEY = "multiline";
         private static final String KEEP_PREVIOUS_VERSION_KEY = "keepPreviousVersion";
 
-        UpdateSecretParamsImpl(Variables input) {
+        UpdateSecretParamsImpl(MapVariables input) {
             super(input);
         }
 
@@ -263,7 +261,7 @@ public class TaskParamsImpl implements TaskParams {
         private static final String DELETE_IMMEDIATELY_KEY = "deleteImmediately";
         private static final String DELETE_IN_DAYS_KEY = "deleteInDays";
 
-        DeleteItemParamsImpl(Variables input) {
+        DeleteItemParamsImpl(MapVariables input) {
             super(input);
         }
 
@@ -292,7 +290,7 @@ public class TaskParamsImpl implements TaskParams {
         }
     }
 
-    private static Action action(Variables variables) {
+    private static Action action(MapVariables variables) {
         String action = variables.getString(ACTION_KEY, Action.GETSECRET.name());
         try {
             return Action.valueOf(action.trim().toUpperCase());
