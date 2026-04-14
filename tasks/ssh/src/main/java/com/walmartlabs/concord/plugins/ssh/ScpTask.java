@@ -48,6 +48,8 @@ public class ScpTask implements Task {
         var user = input.assertString("user");
         var password = input.getString("password");
         var identities = input.getList("identities", List.<String>of());
+        var knownHosts = input.getString("knownHosts");
+        var strictHostKeyChecking = input.getBoolean("strictHostKeyChecking", true);
         var port = input.getInt("port", 22);
         var timeout = input.getInt("timeout", 30000);
         var src = input.assertString("src");
@@ -69,11 +71,15 @@ public class ScpTask implements Task {
 
         var lastModified = Files.getLastModifiedTime(localPath).toMillis();
         var fileSize = Files.size(localPath);
+        var fileName = localPath.getFileName().toString();
+        if (fileName.contains("\n") || fileName.contains("\r")) {
+            throw new IOException("The 'src' file name must not contain newlines: " + fileName);
+        }
 
-        var jsch = initJsch(identities);
-        try (var exec = sshExec(jsch, user, password, host, port, timeout)) {
+        var jsch = initJsch(identities, knownHosts);
+        try (var exec = sshExec(jsch, user, password, host, port, timeout, strictHostKeyChecking)) {
             var channel = exec.channel();
-            channel.setCommand("scp -p -t " + dest);
+            channel.setCommand(scpSinkCommand(dest));
             channel.connect();
 
             var out = channel.getOutputStream();
@@ -87,7 +93,7 @@ public class ScpTask implements Task {
             checkAck(in);
 
             // file size
-            out.write(("C0644 " + fileSize + " " + localPath.getFileName().toString() + "\n").getBytes());
+            out.write(("C0644 " + fileSize + " " + fileName + "\n").getBytes());
             out.flush();
             checkAck(in);
 
@@ -130,5 +136,13 @@ public class ScpTask implements Task {
         }
 
         throw new IllegalStateException("Unknown SCP error");
+    }
+
+    static String scpSinkCommand(String dest) {
+        return "scp -p -t " + shellQuote(dest);
+    }
+
+    private static String shellQuote(String value) {
+        return "'" + value.replace("'", "'\\''") + "'";
     }
 }

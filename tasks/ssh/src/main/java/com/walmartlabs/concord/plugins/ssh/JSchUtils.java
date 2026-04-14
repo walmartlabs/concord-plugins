@@ -35,7 +35,7 @@ public final class JSchUtils {
 
     private static final Logger log = LoggerFactory.getLogger(JSchUtils.class);
 
-    public static Exec sshExec(JSch jsch, String user, String password, String host, int port, int timeout) throws JSchException {
+    public static Exec sshExec(JSch jsch, String user, String password, String host, int port, int timeout, boolean strictHostKeyChecking) throws JSchException {
         Session session = null;
         try {
             session = jsch.getSession(user, host, port);
@@ -43,7 +43,12 @@ public final class JSchUtils {
                 session.setPassword(password);
                 session.setConfig("PreferredAuthentications", "password");
             }
-            session.setHostKeyRepository(new NoopHostKeyRepository());
+            if (strictHostKeyChecking) {
+                session.setConfig("StrictHostKeyChecking", "yes");
+            } else {
+                session.setConfig("StrictHostKeyChecking", "no");
+                session.setHostKeyRepository(new NoopHostKeyRepository());
+            }
 
             session.connect(timeout);
 
@@ -57,8 +62,16 @@ public final class JSchUtils {
         }
     }
 
-    public static JSch initJsch(List<String> identities) {
+    public static JSch initJsch(List<String> identities, String knownHosts) throws JSchException {
         var jsch = new JSch();
+
+        if (knownHosts != null && !knownHosts.isBlank()) {
+            var p = Paths.get(knownHosts);
+            if (!Files.exists(p) || !Files.isReadable(p)) {
+                throw new JSchException("The 'knownHosts' file is not readable: " + knownHosts);
+            }
+            jsch.setKnownHosts(p.toString());
+        }
 
         identities.stream()
                 .map(Paths::get)

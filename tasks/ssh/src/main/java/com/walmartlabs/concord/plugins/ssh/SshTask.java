@@ -48,14 +48,16 @@ public class SshTask implements Task {
         var user = input.assertString("user");
         var password = input.getString("password");
         var identities = input.getList("identities", List.<String>of());
+        var knownHosts = input.getString("knownHosts");
+        var strictHostKeyChecking = input.getBoolean("strictHostKeyChecking", true);
         var port = input.getInt("port", 22);
         var timeout = input.getInt("timeout", 30000);
 
         var stdout = new StringBuilder();
         var stderr = new StringBuilder();
 
-        var jsch = initJsch(identities);
-        try (var exec = sshExec(jsch, user, password, host, port, timeout)) {
+        var jsch = initJsch(identities, knownHosts);
+        try (var exec = sshExec(jsch, user, password, host, port, timeout, strictHostKeyChecking)) {
             var channel = exec.channel();
             channel.setCommand(command);
 

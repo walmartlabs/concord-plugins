@@ -34,6 +34,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SshTest {
@@ -67,6 +68,7 @@ public class SshTest {
                 "port", sshd.getMappedPort(22),
                 "user", TEST_USER,
                 "password", TEST_PASSWORD,
+                "strictHostKeyChecking", false,
                 "run", "echo 'Hello from SSH!'"
         )));
         var stdout = result.values().get("stdout").toString();
@@ -86,6 +88,7 @@ public class SshTest {
                 "port", sshd.getMappedPort(22),
                 "user", TEST_USER,
                 "password", TEST_PASSWORD,
+                "strictHostKeyChecking", false,
                 "src", src.toAbsolutePath().toString(),
                 "dest", "/tmp/test.txt"
         )));
@@ -98,9 +101,16 @@ public class SshTest {
                 "port", sshd.getMappedPort(22),
                 "user", TEST_USER,
                 "password", TEST_PASSWORD,
+                "strictHostKeyChecking", false,
                 "run", "cat /tmp/test.txt"
         )));
         var stdout = result.values().get("stdout").toString();
         assertTrue(stdout.contains("Hello from SCP!"));
+    }
+
+    @Test
+    public void scpSinkCommandQuotesDestination() {
+        assertEquals("scp -p -t '/tmp/a'\\''; touch /tmp/pwned'",
+                ScpTask.scpSinkCommand("/tmp/a'; touch /tmp/pwned"));
     }
 }
