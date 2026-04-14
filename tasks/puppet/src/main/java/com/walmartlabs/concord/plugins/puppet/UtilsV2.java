@@ -56,7 +56,7 @@ public class UtilsV2 {
             Map<String, Object> dParams) {
 
         // start with default params or an empty map
-        Map<String, Object> merged = dParams != null ? dParams : new HashMap<>();
+        Map<String, Object> merged = dParams != null ? new HashMap<>(dParams) : new HashMap<>();
 
         // add values from input parameters, overriding defaults if value is non-null
         // then add values from public function parameters, overriding existing value

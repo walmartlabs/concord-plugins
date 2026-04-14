@@ -24,6 +24,8 @@ import com.walmartlabs.concord.sdk.InjectVariable;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -38,6 +40,25 @@ class UtilsTest {
         assertEquals(normalizedUrlWithPort, Utils.normalizeUrl("https://my-api.com:8080/"));
         assertEquals(normalizedUrl, Utils.normalizeUrl("https://my-api.com"));
         assertEquals(normalizedUrlWithPort, Utils.normalizeUrl("https://my-api.com:8080"));
+    }
+
+    @Test
+    void v2MergeParamsDoesNotMutateDefaults() {
+        Map<String, Object> defaults = new HashMap<>();
+        defaults.put(Constants.Keys.DATABASE_URL_KEY, "https://default.example.com");
+        defaults.put(Constants.Keys.HTTP_RETRIES_KEY, 1);
+
+        Map<String, Object> input = Map.of(
+                Constants.Keys.DATABASE_URL_KEY, "https://input.example.com",
+                Constants.Keys.USERNAME_KEY, "puppet-user"
+        );
+
+        Map<String, Object> merged = UtilsV2.mergeParams(input, defaults);
+
+        assertEquals("https://input.example.com", merged.get(Constants.Keys.DATABASE_URL_KEY));
+        assertEquals("puppet-user", merged.get(Constants.Keys.USERNAME_KEY));
+        assertEquals("https://default.example.com", defaults.get(Constants.Keys.DATABASE_URL_KEY));
+        assertEquals(1, defaults.get(Constants.Keys.HTTP_RETRIES_KEY));
     }
 
     static void injectVariable(Object target, String key, Object value) {
