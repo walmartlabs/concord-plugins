@@ -190,7 +190,7 @@ public class TaskParams implements LdapSearchParams {
 
     private static Variables merge(Variables variables, Map<String, Object> defaults, Map<String, Object> policyDefaults) {
         Map<String, Object> mergedVars = new HashMap<>(policyDefaults != null ? policyDefaults : Collections.emptyMap());
-        mergedVars.putAll(defaults);
+        mergedVars.putAll(defaults != null ? defaults : Collections.emptyMap());
         mergedVars.putAll(variables.toMap());
         return new MapBackedVariables(mergedVars);
     }

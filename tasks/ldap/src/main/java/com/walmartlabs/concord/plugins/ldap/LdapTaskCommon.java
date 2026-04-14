@@ -102,13 +102,13 @@ public class LdapTaskCommon {
     private SearchResult searchByDn(LdapConnectionCfg cfg, String searchBase, String dn) {
         try {
             // create custom filter for dn
-            String searchFilter = "(distinguishedName=" + dn + ")";
+            String searchFilter = "(distinguishedName=" + escapeFilterValue(dn) + ")";
 
             // use private method search
-            NamingEnumeration<SearchResult> results = withRetry(MAX_RETRIES, RETRY_DELAY, () -> search(cfg, searchBase, searchFilter));
+            List<SearchResult> results = withRetry(MAX_RETRIES, RETRY_DELAY, () -> search(cfg, searchBase, searchFilter));
 
-            if (results.hasMoreElements()) {
-                return results.nextElement();
+            if (!results.isEmpty()) {
+                return results.get(0);
             }
 
             return null;
@@ -120,19 +120,20 @@ public class LdapTaskCommon {
     private SearchResult getUser(LdapConnectionCfg cfg, String searchBase, String user) {
         try {
             // create custom filter for user
+            String escapedUser = escapeFilterValue(user);
             String searchFilter = "(|"
-                    + "(userPrincipalName=" + user + ")"
-                    + "(sAMAccountName=" + user + ")"
-                    + "(mailNickname=" + user + ")"
-                    + "(proxyAddresses=smtp:" + user + ")"
-                    + "(mail=" + user + ")"
+                    + "(userPrincipalName=" + escapedUser + ")"
+                    + "(sAMAccountName=" + escapedUser + ")"
+                    + "(mailNickname=" + escapedUser + ")"
+                    + "(proxyAddresses=smtp:" + escapedUser + ")"
+                    + "(mail=" + escapedUser + ")"
                     + ")";
 
             // use private method search
-            NamingEnumeration<SearchResult> results = withRetry(MAX_RETRIES, RETRY_DELAY, () -> search(cfg, searchBase, searchFilter));
+            List<SearchResult> results = withRetry(MAX_RETRIES, RETRY_DELAY, () -> search(cfg, searchBase, searchFilter));
 
-            if (results.hasMoreElements()) {
-                return results.nextElement();
+            if (!results.isEmpty()) {
+                return results.get(0);
             }
 
             return null;
@@ -144,13 +145,12 @@ public class LdapTaskCommon {
     private SearchResult getGroup(LdapConnectionCfg cfg, String searchBase, String group, List<String> securityGroupTypes, boolean securityEnabled) {
         try {
             // create custom filter for group
-            String searchFilter = "(name=" + group + ")";
+            String searchFilter = "(name=" + escapeFilterValue(group) + ")";
 
             // use private method search
-            NamingEnumeration<SearchResult> results = withRetry(MAX_RETRIES, RETRY_DELAY, () -> search(cfg, searchBase, searchFilter));
+            List<SearchResult> results = withRetry(MAX_RETRIES, RETRY_DELAY, () -> search(cfg, searchBase, searchFilter));
 
-            while (results.hasMoreElements()) {
-                SearchResult result = results.nextElement();
+            for (SearchResult result : results) {
 
                 String dn = getAttrValue(result, "distinguishedName");
                 if (dn != null && dn.toLowerCase().contains("ou=security") == securityEnabled) {
@@ -189,7 +189,7 @@ public class LdapTaskCommon {
         }
     }
 
-    private NamingEnumeration<SearchResult> search(LdapConnectionCfg cfg, String searchBase, String searchFilter) {
+    private List<SearchResult> search(LdapConnectionCfg cfg, String searchBase, String searchFilter) {
         LdapContext connection = null;
         try {
             connection = establishConnection(cfg);
@@ -197,7 +197,12 @@ public class LdapTaskCommon {
             searchControls.setSearchScope(SearchControls.SUBTREE_SCOPE);
 
             // create SearchRequest
-            return connection.search(searchBase, searchFilter, searchControls);
+            List<SearchResult> result = new ArrayList<>();
+            NamingEnumeration<SearchResult> searchResults = connection.search(searchBase, searchFilter, searchControls);
+            while (searchResults.hasMoreElements()) {
+                result.add(searchResults.nextElement());
+            }
+            return result;
         } catch (Exception e) {
             throw new IllegalArgumentException("Error occurred while searching " + e);
         } finally {
@@ -221,14 +226,21 @@ public class LdapTaskCommon {
             List<String> servers = getLdapServers(dnsSrvName, protocol, port);
 
             int index = 0;
+            CommunicationException lastCommunicationException = null;
             while (index < servers.size()) {
                 try {
                     return establishConnection(cfg, servers.get(index));
                 } catch (CommunicationException ce) {
                     log.warn("Error while establishing connection with ldap AD server: {}, Exception: {}", servers.get(index), ce.getMessage());
+                    lastCommunicationException = ce;
+                    index++;
                 } catch (Exception e) {
                     throw new IllegalArgumentException("Error while establishing connection " + e);
                 }
+            }
+
+            if (lastCommunicationException != null) {
+                throw new IllegalArgumentException("Error while establishing connection", lastCommunicationException);
             }
         }
 
@@ -280,6 +292,22 @@ public class LdapTaskCommon {
             return s;
         }
         return s.substring(0, s.length() - 1);
+    }
+
+    static String escapeFilterValue(String value) {
+        StringBuilder result = new StringBuilder(value.length());
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            switch (c) {
+                case '\\' -> result.append("\\5c");
+                case '*' -> result.append("\\2a");
+                case '(' -> result.append("\\28");
+                case ')' -> result.append("\\29");
+                case '\u0000' -> result.append("\\00");
+                default -> result.append(c);
+            }
+        }
+        return result.toString();
     }
 
     private static String getAttrValue(SearchResult result, String id) {
