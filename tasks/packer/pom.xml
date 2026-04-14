@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.walmartlabs.concord.plugins</groupId>
         <artifactId>concord-plugins-parent</artifactId>
-        <version>1.32.4-SNAPSHOT</version>
+        <version>2.12.2-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -12,90 +12,9 @@
 
     <name>${project.groupId}:${project.artifactId}</name>
     <artifactId>packer-task</artifactId>
-    <packaging>jar</packaging>
-
-    <properties>
-        <concord.version>1.36.0</concord.version>
-    </properties>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>com.walmartlabs.concord</groupId>
-                <artifactId>concord-targetplatform</artifactId>
-                <version>${concord.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
-
-    <dependencies>
-        <dependency>
-            <groupId>com.walmartlabs.concord</groupId>
-            <artifactId>concord-sdk</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.walmartlabs.concord</groupId>
-            <artifactId>concord-common</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>ca.vanzyl.concord.plugins</groupId>
-            <artifactId>concord-plugin-support</artifactId>
-            <version>0.0.7</version>
-        </dependency>
-        <dependency>
-            <groupId>javax.inject</groupId>
-            <artifactId>javax.inject</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-annotations</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-        </dependency>
-        <!-- Testing -->
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.assertj</groupId>
-            <artifactId>assertj-core</artifactId>
-            <version>3.15.0</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>ca.vanzyl.concord.plugins</groupId>
-            <artifactId>concord-plugin-testing</artifactId>
-            <version>0.0.5</version>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>dev.ybrig.concord</groupId>
-                <artifactId>concord-maven-plugin</artifactId>
-            </plugin>
-        </plugins>
-    </build>
+    <packaging>pom</packaging>
+    <description>
+        Archived Packer plugin sources. This module is intentionally POM-only until the
+        legacy ca.vanzyl.concord.plugins tool support dependency is replaced or restored.
+    </description>
 </project>
