@@ -35,17 +35,36 @@ import java.util.Map;
 public class JenkinsTaskV2 implements Task {
 
     private final Context context;
-    private final JenkinsTaskCommon delegate = new JenkinsTaskCommon();
+    private final JenkinsTaskCommon delegate;
 
     @Inject
     public JenkinsTaskV2(Context context) {
+        this(context, new JenkinsTaskCommon());
+    }
+
+    JenkinsTaskV2(Context context, JenkinsTaskCommon delegate) {
         this.context = context;
+        this.delegate = delegate;
     }
 
     @Override
     public TaskResult execute(Variables input) throws Exception {
         Map<String, Object> result = delegate.execute(JenkinsConfiguration.of(input, context.defaultVariables().toMap()));
-        return TaskResult.success()
+        boolean ok = isSuccess(result);
+        String error = ok ? null : "Jenkins job finished with status " + result.get("status");
+
+        return TaskResult.of(ok, error)
                 .values(result);
+    }
+
+    private static boolean isSuccess(Map<String, Object> result) {
+        Object value = result.get("isSuccess");
+        if (value == null) {
+            return true;
+        }
+        if (value instanceof Boolean) {
+            return (Boolean) value;
+        }
+        return Boolean.parseBoolean(value.toString());
     }
 }
