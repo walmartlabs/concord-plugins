@@ -88,7 +88,7 @@ public class HashiVaultTaskCommon {
                     .read(params.path());
             final int status = r.getRestResponse().getStatus();
 
-            if (status > 400 && status < 599) {
+            if (isErrorStatus(status)) {
                 // why didn't vault throw a VaultException?
                 String body = new String(r.getRestResponse().getBody(), Charset.defaultCharset());
                 throw new VaultException(body, status);
@@ -117,7 +117,7 @@ public class HashiVaultTaskCommon {
                     .write(params.path(), params.kvPairs());
             final int status = r.getRestResponse().getStatus();
 
-            if (status > 400 && status < 599) {
+            if (isErrorStatus(status)) {
                 // why didn't vault throw a VaultException?
                 String body = new String(r.getRestResponse().getBody(), Charset.defaultCharset());
                 throw new VaultException(body, status);
@@ -133,5 +133,9 @@ public class HashiVaultTaskCommon {
         }
 
         return HashiVaultTaskResult.of(true, null, null, params);
+    }
+
+    static boolean isErrorStatus(int status) {
+        return status >= 400 && status < 600;
     }
 }

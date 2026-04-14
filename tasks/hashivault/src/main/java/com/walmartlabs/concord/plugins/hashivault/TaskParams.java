@@ -20,8 +20,6 @@ package com.walmartlabs.concord.plugins.hashivault;
  * =====
  */
 
-import com.walmartlabs.concord.runtime.v2.sdk.MapBackedVariables;
-import com.walmartlabs.concord.runtime.v2.sdk.Variables;
 import com.walmartlabs.concord.sdk.MapUtils;
 
 import java.util.Collections;
@@ -55,22 +53,22 @@ public class TaskParams {
     public static final String RETRY_COUNT_KEY = "retryCount";
     public static final String RETRY_INTERVAL_MS_KEY = "retryIntervalMs";
 
-    protected final Variables variables;
+    protected final MapVariables variables;
 
-    private TaskParams(Variables variables) {
+    private TaskParams(MapVariables variables) {
         this.variables = variables;
     }
 
-    public static TaskParams of(Variables input, Map<String, Object> defaults, SecretExporter secretExporter) {
+    public static TaskParams of(Map<String, Object> input, Map<String, Object> defaults, SecretExporter secretExporter) {
         Map<String, Object> variablesMap = new HashMap<>(defaults != null ? defaults : Collections.emptyMap());
-        variablesMap.putAll(input.toMap());
+        variablesMap.putAll(input);
 
         if (variablesMap.containsKey(API_TOKEN_SECRET_KEY)) {
             Map<String, Object> tokenSecret = MapUtils.assertMap(variablesMap, API_TOKEN_SECRET_KEY);
             variablesMap.put(API_TOKEN_KEY, exportToken(secretExporter, tokenSecret));
         }
 
-        Variables variables = new MapBackedVariables(variablesMap);
+        MapVariables variables = new MapVariables(variablesMap);
         TaskParams p = new TaskParams(variables);
 
         return switch (p.action()) {

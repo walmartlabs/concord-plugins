@@ -59,7 +59,7 @@ public class HashiVaultTask implements Task {
 
     private TaskParams createParams(Variables input) {
         final var exporterV2 = new SecretExporterV2(secretService);
-        return TaskParams.of(input, defaults, exporterV2);
+        return TaskParams.of(input.toMap(), defaults, exporterV2);
     }
 
     public Map<String, Object> readKV(String path) {
@@ -68,7 +68,7 @@ public class HashiVaultTask implements Task {
                 TaskParams.PATH_KEY, path
         ));
         final TaskParams params = createParams(input);
-        final HashiVaultTaskResult result = new HashiVaultTaskCommon().execute(params);
+        final HashiVaultTaskResult result = new HashiVaultTaskCommon(dryRunMode).execute(params);
         return result.data();
     }
 
@@ -79,7 +79,7 @@ public class HashiVaultTask implements Task {
                 TaskParams.KEY_KEY, field
         ));
         final TaskParams params = createParams(input);
-        final HashiVaultTaskResult result = new HashiVaultTaskCommon().execute(params);
+        final HashiVaultTaskResult result = new HashiVaultTaskCommon(dryRunMode).execute(params);
         return result.data();
     }
 
@@ -90,7 +90,7 @@ public class HashiVaultTask implements Task {
                 TaskParams.KV_PAIRS_KEY, kvPairs
         ));
         final TaskParams params = createParams(input);
-        final HashiVaultTaskCommon delegate = new HashiVaultTaskCommon();
+        final HashiVaultTaskCommon delegate = new HashiVaultTaskCommon(dryRunMode);
         delegate.execute(params);
     }
 

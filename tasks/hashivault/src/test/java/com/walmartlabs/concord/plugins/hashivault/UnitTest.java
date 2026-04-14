@@ -21,11 +21,16 @@ package com.walmartlabs.concord.plugins.hashivault;
  */
 
 import com.walmartlabs.concord.runtime.v2.sdk.MapBackedVariables;
+import com.walmartlabs.concord.runtime.v2.sdk.Context;
+import com.walmartlabs.concord.runtime.v2.sdk.SecretService;
+import com.walmartlabs.concord.plugins.hashivault.v2.HashiVaultTask;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class UnitTest {
 
@@ -36,20 +41,20 @@ class UnitTest {
     void defaultActionTest() {
         var vars = Map.<String, Object>of("baseUrl", "http://example.com:8200");
 
-        var params = TaskParams.of(new MapBackedVariables(vars), null, exporter);
+        var params = TaskParams.of(vars, null, exporter);
         assertEquals(TaskParams.Action.READKV, params.action());
     }
 
     @Test
     void invalidActionTest() {
-        var vars = new MapBackedVariables(Map.of("action", "not-an-action"));
+        var vars = Map.<String, Object>of("action", "not-an-action");
 
         assertThrows(IllegalArgumentException.class, () -> TaskParams.of(vars, null, exporter));
     }
 
     @Test
     void requiredParametersTest() {
-        var params = TaskParams.of(new MapBackedVariables(Map.of()), null, exporter);
+        var params = TaskParams.of(Map.of(), null, exporter);
 
         var e1 = assertThrows(IllegalArgumentException.class, params::baseUrl);
         assertTrue(e1.getMessage().contains("'baseUrl' is required"));
@@ -64,13 +69,13 @@ class UnitTest {
 
         // kvPairs required when action is writeKv
         params = TaskParams.of(
-                new MapBackedVariables(Map.of("action", "writeKv")), null, exporter);
+                Map.of("action", "writeKv"), null, exporter);
         var e4 = assertThrows(IllegalArgumentException.class, params::kvPairs);
         assertTrue(e4.getMessage().contains("'kvPairs' is required"));
 
         // cubbyhole is a v1 engine
-        params = TaskParams.of(new MapBackedVariables(
-                Map.of("path", "cubbyhole/mysecret", "engineVersion", 2)), null, exporter);
+        params = TaskParams.of(
+                Map.of("path", "cubbyhole/mysecret", "engineVersion", 2), null, exporter);
         assertEquals(1, params.engineVersion());
     }
 
@@ -81,7 +86,7 @@ class UnitTest {
      */
     @Test
     void mapDataTest(){
-        var vars = new MapBackedVariables(Map.of("path", "secret/mysecret"));
+        var vars = Map.<String, Object>of("path", "secret/mysecret");
         var params = TaskParams.of(vars, null, exporter);
 
         var result = HashiVaultTaskResult
@@ -95,8 +100,7 @@ class UnitTest {
 
     @Test
     void stringDataTest() {
-        var vars = new MapBackedVariables(
-                Map.of("path", "secret/mysecret", "key", "top_secret"));
+        var vars = Map.<String, Object>of("path", "secret/mysecret", "key", "top_secret");
         var params = TaskParams.of(vars, null, exporter);
 
         var result = HashiVaultTaskResult
@@ -104,6 +108,30 @@ class UnitTest {
         var s = assertInstanceOf(String.class, result.data(),
                 "data should be String when key param is given");
         assertEquals("value", s);
+    }
+
+    @Test
+    void vaultHttp400IsErrorStatus() {
+        assertFalse(HashiVaultTaskCommon.isErrorStatus(399));
+        assertTrue(HashiVaultTaskCommon.isErrorStatus(400));
+        assertTrue(HashiVaultTaskCommon.isErrorStatus(500));
+        assertFalse(HashiVaultTaskCommon.isErrorStatus(600));
+    }
+
+    @Test
+    void v2WriteKvHelperHonorsDryRunMode() {
+        Context ctx = mock(Context.class, org.mockito.Answers.RETURNS_DEEP_STUBS);
+        when(ctx.variables()).thenReturn(new MapBackedVariables(Map.of(
+                TaskParams.DEFAULT_PARAMS_KEY, Map.of(
+                        TaskParams.BASE_URL_KEY, "http://127.0.0.1:1",
+                        TaskParams.API_TOKEN_KEY, "token"
+                )
+        )));
+        when(ctx.processConfiguration().dryRun()).thenReturn(true);
+
+        HashiVaultTask task = new HashiVaultTask(ctx, mock(SecretService.class));
+
+        assertDoesNotThrow(() -> task.writeKV("secret/test", Map.of("key", "value")));
     }
 
 }

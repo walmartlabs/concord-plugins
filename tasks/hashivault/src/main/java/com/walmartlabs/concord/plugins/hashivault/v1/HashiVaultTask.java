@@ -23,7 +23,6 @@ package com.walmartlabs.concord.plugins.hashivault.v1;
 import com.walmartlabs.concord.plugins.hashivault.HashiVaultTaskCommon;
 import com.walmartlabs.concord.plugins.hashivault.HashiVaultTaskResult;
 import com.walmartlabs.concord.plugins.hashivault.TaskParams;
-import com.walmartlabs.concord.runtime.v2.sdk.MapBackedVariables;
 import com.walmartlabs.concord.sdk.*;
 
 import javax.inject.Inject;
@@ -54,9 +53,8 @@ public class HashiVaultTask implements Task {
     }
 
     private TaskParams createParams(Context ctx, Map<String, Object> input) {
-        final MapBackedVariables vars = new MapBackedVariables(input);
         final SecretExporterV1 exporterV1 = new SecretExporterV1(ctx, secretService);
-        return TaskParams.of(vars, defaults, exporterV1);
+        return TaskParams.of(input, defaults, exporterV1);
     }
 
     public Map<String, Object> readKV(@InjectVariable("context") Context ctx, String path) {
