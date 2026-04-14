@@ -327,12 +327,14 @@ public class ArgoCdTask implements Task {
         }
     }
 
-    private static void addOrReplaceParam(List<V1alpha1HelmParameter> appHelmParams, TaskParams.SetAppParams.HelmParam p) {
+    static void addOrReplaceParam(List<V1alpha1HelmParameter> appHelmParams, TaskParams.SetAppParams.HelmParam p) {
         for (V1alpha1HelmParameter appParam : appHelmParams) {
             if (p.name().equals(appParam.getName())) {
                 appParam.setValue(p.value().toString());
+                return;
             }
         }
+
         V1alpha1HelmParameter helmParameter = new V1alpha1HelmParameter();
         helmParameter.setName(p.name());
         helmParameter.setValue(p.value().toString());

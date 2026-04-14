@@ -70,36 +70,40 @@ public class CallRetry<R> {
         Throwable lastError = null;
 
         var executor = Executors.newSingleThreadExecutor();
-        long startMillis = System.currentTimeMillis();
+        try {
+            long startMillis = System.currentTimeMillis();
 
-        int attemptsMade = 0;
-        while (attemptsMade++ < maxTries) {
-            long actualTimeout = Math.max(1000, totalTimeout.toMillis() - (System.currentTimeMillis() - startMillis));
+            int attemptsMade = 0;
+            while (attemptsMade++ < maxTries) {
+                long actualTimeout = Math.max(1000, totalTimeout.toMillis() - (System.currentTimeMillis() - startMillis));
 
-            try {
-                return executor.submit(mainAttempt).get(actualTimeout, MILLISECONDS);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            } catch (ExecutionException e) { // error within callable execution
-                lastError = e.getCause();
-            } catch (TimeoutException e) {
-                return executeFallback().orElseThrow(() -> new RuntimeException("Call attempt timed out after " + totalTimeout.toMillis() + "ms"));
-            } catch (Exception e) {
-                lastError = e;
+                try {
+                    return executor.submit(mainAttempt).get(actualTimeout, MILLISECONDS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } catch (ExecutionException e) { // error within callable execution
+                    lastError = e.getCause();
+                } catch (TimeoutException e) {
+                    return executeFallback().orElseThrow(() -> new RuntimeException("Call attempt timed out after " + totalTimeout.toMillis() + "ms"));
+                } catch (Exception e) {
+                    lastError = e;
+                }
+
+                assertIsRetryable(lastError);
+
+                // if any of these returns cleanly then that's good enough
+                var fallbackResult = executeFallback();
+                if (fallbackResult.isPresent()) {
+                    return fallbackResult.get();
+                }
+
+                log.warn("Retrying [{}/{}]...", attemptsMade, maxTries);
             }
 
-            assertIsRetryable(lastError);
-
-            // if any of these returns cleanly then that's good enough
-            var fallbackResult = executeFallback();
-            if (fallbackResult.isPresent()) {
-                return fallbackResult.get();
-            }
-
-            log.warn("Retrying [{}/{}]...", attemptsMade, maxTries);
+            throw new RuntimeException("Too many attempts. Last error: ", lastError);
+        } finally {
+            executor.shutdownNow();
         }
-
-        throw new RuntimeException("Too many attempts. Last error: ", lastError);
     }
 
     private Optional<R> executeFallback() {
