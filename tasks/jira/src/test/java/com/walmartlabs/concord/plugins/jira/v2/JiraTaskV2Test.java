@@ -34,6 +34,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -82,6 +83,20 @@ class JiraTaskV2Test {
 
         assertTrue(simpleResult.ok());
         assertEquals("customResultValue", simpleResult.values().get("customResult"));
+    }
+
+    @Test
+    void testExecutePreservesFailedDelegateResult() {
+        input.put("action", "deleteIssue");
+        when(task.getDelegate()).thenReturn(common);
+        when(context.defaultVariables()).thenReturn(defaultVariables);
+        when(common.execute(any(TaskParams.DeleteIssueParams.class))).thenReturn(Map.of("ok", false, "error", "failed"));
+
+        var result = assertDoesNotThrow(() -> task.execute(new MapBackedVariables(input)));
+        var simpleResult = assertInstanceOf(TaskResult.SimpleResult.class, result);
+
+        assertFalse(simpleResult.ok());
+        assertEquals("failed", simpleResult.error());
     }
 
     @Test

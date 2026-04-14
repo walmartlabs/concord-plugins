@@ -55,12 +55,28 @@ public class JiraTaskV2 implements Task {
 
         var result = getDelegate().execute(TaskParams.of(input.toMap(), globalDefaults, policyDefaults));
 
-        return TaskResult.success()
+        return TaskResult.of(getBoolean(result, "ok", true), getString(result, "error"))
                 .values(result);
     }
 
     JiraTaskCommon getDelegate() {
         return delegate;
+    }
+
+    private static boolean getBoolean(Map<String, Object> values, String key, boolean defaultValue) {
+        Object value = values.get(key);
+        if (value == null) {
+            return defaultValue;
+        }
+        if (value instanceof Boolean) {
+            return (Boolean) value;
+        }
+        return Boolean.parseBoolean(value.toString());
+    }
+
+    private static String getString(Map<String, Object> values, String key) {
+        Object value = values.get(key);
+        return value != null ? value.toString() : null;
     }
 
     static class V2SecretService implements JiraSecretService {
