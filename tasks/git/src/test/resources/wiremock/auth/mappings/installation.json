@@ -2,7 +2,7 @@
     "id": "531f98a7-5a61-47e4-bcdc-faed0ef9ae81",
     "name": "github_task_test_auth_installation",
     "request": {
-        "url": "/repos/octocat/mock-repo/installation",
+        "url": "/api/v3/repos/octocat/mock-repo/installation",
         "method": "GET",
         "headers": {
             "Accept": {
