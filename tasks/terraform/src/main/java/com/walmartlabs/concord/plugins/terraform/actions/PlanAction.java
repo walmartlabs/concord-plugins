@@ -56,11 +56,12 @@ public class PlanAction extends Action {
     }
 
     public TerraformActionResult exec(Terraform terraform, Backend backend) throws Exception {
+        Path varsFile = null;
         try {
             init(env, terraform, backend);
 
             // save 'extraVars' into a file that can be automatically picked up by TF
-            createVarsFile(getExtraVars());
+            varsFile = createVarsFile(getExtraVars());
 
             Path dirOrPlanAbsolute = getPwd().resolve(plan != null ? plan : getTFDir());
             List<Path> userSuppliedVarFiles = Utils.resolve(getPwd(), userSuppliedVarFileNames);
@@ -94,6 +95,8 @@ public class PlanAction extends Action {
             }
 
             return TerraformActionResult.error(e.getMessage());
+        } finally {
+            cleanup(varsFile, backend);
         }
     }
 

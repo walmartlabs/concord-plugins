@@ -106,7 +106,7 @@ public class ConcordV2Backend implements Backend {
                 Collections.singletonMap("backend",
                         Collections.singletonMap("http", params)));
 
-        Path configFile = tfDir.resolve("concord_override.tf.json").toAbsolutePath();
+        Path configFile = tfDir.resolve(OVERRIDE_FILE_NAME).toAbsolutePath();
 
         Path parentDir = configFile.getParent();
         if (parentDir != null && !Files.exists(parentDir)) {

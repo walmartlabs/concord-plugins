@@ -87,7 +87,7 @@ public class CommonBackend implements Backend {
                 Collections.singletonMap("backend",
                         Collections.singletonMap(id, backendParameters)));
 
-        Path p = tfDir.resolve("concord_override.tf.json");
+        Path p = tfDir.resolve(OVERRIDE_FILE_NAME);
         try (OutputStream out = Files.newOutputStream(p, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
             objectMapper.writeValue(out, cfg);
         }
