@@ -31,16 +31,10 @@ public class TeamsV2TaskParams implements TeamsV2Configuration {
         Variables variables = Utils.merge(input, defaults);
 
         Action action = new TeamsV2TaskParams(variables).action();
-        switch (action) {
-            case CREATECONVERSATION: {
-                return new CreateConversationParams(variables);
-            }
-            case REPLYTOCONVERSATION: {
-                return new ReplayToConversationParams(variables);
-            }
-            default:
-                throw new IllegalArgumentException("Unsupported action type: " + action);
-        }
+        return switch (action) {
+            case CREATECONVERSATION -> new CreateConversationParams(variables);
+            case REPLYTOCONVERSATION -> new ReplayToConversationParams(variables);
+        };
     }
 
     private static final String ACTION_KEY = "action";
@@ -56,6 +50,7 @@ public class TeamsV2TaskParams implements TeamsV2Configuration {
     private static final String CONNECTION_TIMEOUT_KEY = "connectTimeout";
     private static final String SO_TIMEOUT_KEY = "soTimeout";
     private static final String RETRY_COUNT_KEY = "retryCount";
+    private static final String MAX_RETRY_WAIT = "maxRetryWait";
 
     protected final Variables variables;
 
@@ -129,6 +124,11 @@ public class TeamsV2TaskParams implements TeamsV2Configuration {
     @Override
     public int retryCount() {
         return variables.getInt(RETRY_COUNT_KEY, Constants.DEFAULT_RETRY_COUNT);
+    }
+
+    @Override
+    public int maxRetryWait() {
+        return variables.getInt(MAX_RETRY_WAIT, Constants.DEFAULT_MAX_RETRY_WAIT);
     }
 
     public static class CreateConversationParams extends TeamsV2TaskParams {
