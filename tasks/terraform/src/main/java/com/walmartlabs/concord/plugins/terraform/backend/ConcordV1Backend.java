@@ -26,6 +26,7 @@ import com.walmartlabs.concord.sdk.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -87,7 +88,7 @@ public class ConcordV1Backend implements Backend {
                 Collections.singletonMap("backend",
                         Collections.singletonMap("http", params)));
 
-        Path configFile = tfDir.resolve("concord_override.tf.json").toAbsolutePath();
+        Path configFile = tfDir.resolve(OVERRIDE_FILE_NAME).toAbsolutePath();
 
         Path parentDir = configFile.getParent();
         if (parentDir != null && !Files.exists(parentDir)) {
@@ -102,6 +103,11 @@ public class ConcordV1Backend implements Backend {
         if (debug) {
             log.info("init -> created backend configuration file in {}", configFile.toAbsolutePath().toString());
         }
+    }
+
+    @Override
+    public void cleanup(Path tfDir) throws IOException {
+        Files.deleteIfExists(tfDir.resolve(OVERRIDE_FILE_NAME));
     }
 
     private static String getStateId(Context ctx) {
