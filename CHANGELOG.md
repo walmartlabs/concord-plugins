@@ -1,5 +1,17 @@
 # Change Log
 
+## [2.12.2] - TBD
+
+### Changed
+
+- git-tasks: handle enterprise url base path for access token
+ installation
+([#233](https://github.com/walmartlabs/concord-plugins/pull/233));
+- terraform-task: backendConfig & toolArch params, arm64 support, tmp files cleanup
+([#239](https://github.com/walmartlabs/concord-plugins/pull/239)).
+
+
+
 ## [2.12.1] - 2026-04-09
 
 ### Changed
