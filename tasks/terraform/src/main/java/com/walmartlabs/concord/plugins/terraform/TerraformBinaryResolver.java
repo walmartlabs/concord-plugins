@@ -73,7 +73,7 @@ public class TerraformBinaryResolver {
      * we will download the default version. Terraform URLs look like the following:
      * <p>
      * https://releases.hashicorp.com/terraform/0.12.5/terraform_0.12.5_linux_amd64.zip
-     * https://releases.hashicorp.com/terraform/0.12.5/terraform_0.12.5_linux_arm64.zip
+     * https://releases.hashicorp.com/terraform/1.0.11/terraform_1.0.11_linux_arm64.zip
      * <p>
      * So we can generalize to:
      * <p>

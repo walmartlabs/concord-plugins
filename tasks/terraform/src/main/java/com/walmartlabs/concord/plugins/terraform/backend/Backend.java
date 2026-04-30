@@ -21,7 +21,6 @@ package com.walmartlabs.concord.plugins.terraform.backend;
  */
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Map;
@@ -49,7 +48,7 @@ public interface Backend {
      * @param tfDir a directory with Terraform files
      */
     default void cleanup(Path tfDir) throws IOException {
-        Files.deleteIfExists(tfDir.resolve(OVERRIDE_FILE_NAME));
+        // do nothing
     }
 
     /**
