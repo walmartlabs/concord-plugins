@@ -63,7 +63,7 @@ forms:
 configuration:
   runtime: concord-v2
   dependencies:
-    - mvn://com.walmartlabs.concord.plugins:argocd-task:1.54.0-SNAPSHOT
+    -  коmvn://com.walmartlabs.concord.plugins:argocd-task:1.54.0-SNAPSHOT
   arguments:
     defaults:
       baseUrl: "https://argocd.demo.com:30443"  # replace with actual url
