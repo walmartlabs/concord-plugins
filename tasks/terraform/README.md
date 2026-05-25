@@ -4,6 +4,12 @@ Based on the internal version by:
 - [Prasanth Pendam](https://github.com/ppendha)
 - [Yury Brigadirenko](https://github.com/brig)
 
+## Actions
+
+The task supports `init`, `plan`, `apply`, `output`, and `destroy`.
+`init` initializes the configured backend and runs `terraform init` without running
+plan/apply/destroy.
+
 ## Testing
 
 ### TerraformTaskIT
