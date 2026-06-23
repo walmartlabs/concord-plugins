@@ -46,10 +46,11 @@ public class DestroyAction extends Action {
     }
 
     public TerraformActionResult exec(Terraform terraform, Backend backend) throws Exception {
+        Path varsFile = null;
         try {
             init(env, terraform, backend);
 
-            createVarsFile(getExtraVars());
+            varsFile = createVarsFile(getExtraVars());
 
             Path dirAbsolute = getPwd().resolve(getTFDir());
             List<Path> userSuppliedVarFiles = Utils.resolve(getPwd(), userSuppliedVarFileNames);
@@ -64,6 +65,8 @@ public class DestroyAction extends Action {
             }
 
             return TerraformActionResult.error(e.getMessage());
+        } finally {
+            cleanup(varsFile, backend);
         }
     }
 }

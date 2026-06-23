@@ -104,6 +104,28 @@ public class BackendManagerTest {
     }
 
     @Test
+    public void cleanupDeletesGeneratedBackendConfiguration() throws Exception {
+        Backend backend = backendManager.getBackend(s3BackendConfiguration());
+        backend.init(dstDir);
+
+        Path overrides = dstDir.resolve("concord_override.tf.json");
+        assertTrue(Files.exists(overrides));
+
+        backend.cleanup(dstDir);
+        assertFalse(Files.exists(overrides));
+    }
+
+    @Test
+    public void dummyBackendCleanupDoesNotDeleteExistingConfiguration() throws Exception {
+        Backend backend = new DummyBackend();
+        Path overrides = dstDir.resolve("concord_override.tf.json");
+        Files.write(overrides, Collections.singletonList("{}"));
+
+        backend.cleanup(dstDir);
+        assertTrue(Files.exists(overrides));
+    }
+
+    @Test
     public void validateRemoteBackendTfCliConfigFile() throws Exception {
         Map<String, Object> cfg = remoteBackendConfiguration();
 

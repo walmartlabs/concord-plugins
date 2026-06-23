@@ -51,12 +51,13 @@ public class ApplyAction extends Action {
     }
 
     public TerraformActionResult exec(Terraform terraform, Backend backend) throws Exception {
+        Path varsFile = null;
         try {
             init(env, terraform, backend);
             if (plan == null) {
                 // running without a previously created plan file
                 // save 'extraVars' into a file that can be automatically picked up by TF
-                createVarsFile(getExtraVars());
+                varsFile = createVarsFile(getExtraVars());
             }
 
             Path dirOrPlanAbsolute = getPwd().resolve(plan != null ? plan : getTFDir());
@@ -72,6 +73,8 @@ public class ApplyAction extends Action {
             }
 
             return TerraformActionResult.error(e.getMessage());
+        } finally {
+            cleanup(varsFile, backend);
         }
     }
 }

@@ -25,16 +25,19 @@ import com.walmartlabs.concord.plugins.terraform.Terraform.Result;
 import com.walmartlabs.concord.plugins.terraform.TerraformArgs;
 
 import java.nio.file.Path;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 public class InitCommand {
 
     private final Path pwd;
     private final Path dir;
+    private final List<String> backendConfig;
     private final Map<String, String> env;
     private final boolean silent;
 
-    public InitCommand(Path pwd, Path dir, Map<String, String> env, boolean silent) {
+    public InitCommand(Path pwd, Path dir, List<String> backendConfig, Map<String, String> env, boolean silent) {
         this.silent = silent;
         if (!pwd.isAbsolute()) {
             throw new IllegalArgumentException("'pwd' must be an absolute path, got: " + pwd);
@@ -46,6 +49,7 @@ public class InitCommand {
         }
         this.dir = dir;
 
+        this.backendConfig = backendConfig != null ? backendConfig : Collections.emptyList();
         this.env = env;
     }
 
@@ -53,6 +57,10 @@ public class InitCommand {
         TerraformArgs args = terraform.buildArgs(Terraform.CliAction.INIT, dir);
 
         args.add("-input", "false");
+
+        for (String cfg : backendConfig) {
+            args.add("-backend-config", cfg);
+        }
 
         if (!args.hasChdir()) {
             args.add(dir);

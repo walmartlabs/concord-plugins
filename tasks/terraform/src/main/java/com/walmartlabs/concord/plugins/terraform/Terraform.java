@@ -123,11 +123,18 @@ public class Terraform {
 
         Process p = pb.start();
 
+        Thread shutdownHook = new Thread(() -> p.destroyForcibly());
+        Runtime.getRuntime().addShutdownHook(shutdownHook);
+
         Future<String> stderr = executor.submit(new StreamReader(logPrefix, false, p.getErrorStream()));
         Future<String> stdout = executor.submit(new StreamReader(logPrefix, silent, p.getInputStream()));
 
-        int code = p.waitFor();
-        return new Result(code, stdout.get(), stderr.get());
+        try {
+            int code = p.waitFor();
+            return new Result(code, stdout.get(), stderr.get());
+        } finally {
+            Runtime.getRuntime().removeShutdownHook(shutdownHook);
+        }
     }
 
     public Result execDocker(Path pwd, String logPrefix, boolean silent, Map<String, String> env, TerraformArgs args) throws Exception {
