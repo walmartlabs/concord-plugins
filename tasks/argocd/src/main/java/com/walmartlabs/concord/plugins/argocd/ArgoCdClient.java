@@ -378,10 +378,10 @@ public class ArgoCdClient {
         var apiKey = createApiKey(in, httpBuilder);
         return new ApiClient(httpBuilder, MAPPER.getDelegate(), in.baseUrl())
                 .setReadTimeout(Duration.ofSeconds(in.readTimeout()))
-                .setRequestInterceptor(builder -> injectDefaultHeaders(builder, apiKey));
+                .setRequestInterceptor(builder -> injectDefaultHeaders(builder, apiKey, in));
     }
 
-    private static void injectDefaultHeaders(HttpRequest.Builder builder, String apiKey) {
+    private static void injectDefaultHeaders(HttpRequest.Builder builder, String apiKey, TaskParams in) {
         builder.header("Authorization", "Bearer " + apiKey);
 
         // This kind of stinks. GET and DELETE requests typically *shouldn't* have
@@ -394,6 +394,14 @@ public class ArgoCdClient {
 
         if (contentType.isEmpty() || contentType.get().isBlank()) {
             builder.header("Content-Type", "application/json");
+        }
+        if (in instanceof TaskParams.DeleteAppParams deleteParm) {
+            if (!deleteParm.forceRefresh().isEmpty() && !deleteParm.forceRefresh().isBlank()) {
+                builder.header("forceRefresh", deleteParm.forceRefresh());
+            }
+            if (!deleteParm.appProject().isEmpty() && !deleteParm.appProject().isBlank()) {
+                builder.header("appProject", deleteParm.appProject());
+            }
         }
     }
 

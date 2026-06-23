@@ -863,6 +863,8 @@ public class TaskParamsImpl implements TaskParams {
         private static final String APP_KEY = "app";
         private static final String CASCADE_KEY = "cascade";
         private static final String PROPAGATION_POLICY = "propagationPolicy";
+        private static final String FORCE_REFRESH = "forceRefresh";
+        private static final String APP_PROJECT = "appProject";
 
         protected DeleteParamsImpl(Variables variables) {
             super(variables);
@@ -882,6 +884,16 @@ public class TaskParamsImpl implements TaskParams {
         public String propagationPolicy() {
             return variables.getString(PROPAGATION_POLICY);
         }
+
+        @Override
+        public String forceRefresh() {
+            return variables.getString(FORCE_REFRESH);
+        }
+        @Override
+        public String appProject() {
+            return variables.getString(APP_PROJECT);
+        }
+
     }
 
     private static class SyncParamsImpl extends TaskParamsImpl implements SyncParams {
