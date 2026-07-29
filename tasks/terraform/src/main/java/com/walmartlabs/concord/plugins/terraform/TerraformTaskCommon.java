@@ -50,6 +50,10 @@ public final class TerraformTaskCommon {
             backend.lock();
 
             switch (action) {
+                case INIT: {
+                    InitAction a = new InitAction(workDir, cfg, env);
+                    return a.exec(terraform, backend);
+                }
                 case PLAN: {
                     PlanAction a = new PlanAction(workDir, cfg, env);
                     return a.exec(terraform, backend);
