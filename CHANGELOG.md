@@ -9,10 +9,10 @@
 ([#233](https://github.com/walmartlabs/concord-plugins/pull/233));
 - terraform-task: backendConfig & toolArch params, arm64 support, tmp files cleanup
 ([#239](https://github.com/walmartlabs/concord-plugins/pull/239));
+- project: versions bump
+([#241](https://github.com/walmartlabs/concord-plugins/pull/241));
 - project: update concord-targetplatform to 2.42.0 and JDK25 compat
 ([#243](https://github.com/walmartlabs/concord-plugins/pull/243)).
-
-
 
 ## [2.12.1] - 2026-04-09
 
