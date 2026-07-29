@@ -12,7 +12,9 @@
 - project: versions bump
 ([#241](https://github.com/walmartlabs/concord-plugins/pull/241));
 - project: update concord-targetplatform to 2.42.0 and JDK25 compat
-([#243](https://github.com/walmartlabs/concord-plugins/pull/243)).
+([#243](https://github.com/walmartlabs/concord-plugins/pull/243));
+- terraform-task: init action
+([#245](https://github.com/walmartlabs/concord-plugins/pull/245)).
 
 ## [2.12.1] - 2026-04-09
 
