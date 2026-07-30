@@ -53,6 +53,7 @@ public class TeamsTaskParams implements TeamsConfiguration {
     private static final String CONNECTION_TIMEOUT_KEY = "connectTimeout";
     private static final String SO_TIMEOUT_KEY = "soTimeout";
     private static final String RETRY_COUNT_KEY = "retryCount";
+    private static final String MAX_RETRY_WAIT = "maxRetryWait";
 
     protected final Variables variables;
 
@@ -122,6 +123,11 @@ public class TeamsTaskParams implements TeamsConfiguration {
     @Override
     public int retryCount() {
         return variables.getInt(RETRY_COUNT_KEY, Constants.DEFAULT_RETRY_COUNT);
+    }
+
+    @Override
+    public int maxRetryWait() {
+        return variables.getInt(MAX_RETRY_WAIT, Constants.DEFAULT_MAX_RETRY_WAIT);
     }
 
     public static class SendMessageParams extends TeamsTaskParams {
