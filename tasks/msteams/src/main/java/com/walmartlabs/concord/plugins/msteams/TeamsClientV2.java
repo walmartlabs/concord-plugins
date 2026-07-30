@@ -79,6 +79,11 @@ public class TeamsClientV2 implements AutoCloseable {
         return exec(activity, rootApi);
     }
 
+    public Result updateActivity(Map<String, Object> activity, String rootApi, String conversationId, String activityId) throws IOException {
+        rootApi = rootApi + "/" + conversationId + "/activities/" + activityId;
+        return exec(activity, rootApi, "PUT");
+    }
+
     private HttpRequest.Builder buildRequest() {
         var builder = HttpRequest.newBuilder();
 
@@ -88,9 +93,13 @@ public class TeamsClientV2 implements AutoCloseable {
     }
 
     Result exec(Map<String, Object> params, String rootApi) throws IOException {
+        return exec(params, rootApi, "POST");
+    }
+
+    Result exec(Map<String, Object> params, String rootApi, String method) throws IOException {
         var request = buildRequest()
                 .uri(URI.create(rootApi))
-                .POST(HttpRequest.BodyPublishers.ofString(Utils.mapper().writeValueAsString(params)))
+                .method(method, HttpRequest.BodyPublishers.ofString(Utils.mapper().writeValueAsString(params)))
                 .header("Content-Type", "application/json")
                 .build();
 
@@ -109,7 +118,10 @@ public class TeamsClientV2 implements AutoCloseable {
                         return new Result(false, "empty response", null, null, null);
                     }
 
-                    if (response.statusCode() != Constants.TEAMS_SUCCESS_STATUS_CODE_V2) {
+                    // activity updates (PUT) return 200, other calls return 201
+                    var success = response.statusCode() == Constants.TEAMS_SUCCESS_STATUS_CODE_V2
+                            || ("PUT".equals(method) && response.statusCode() == Constants.TEAMS_SUCCESS_STATUS_CODE);
+                    if (!success) {
                         log.error("exec [params: '{}'] -> failed response", params);
                         return new Result(false, body, null, null, null);
                     }

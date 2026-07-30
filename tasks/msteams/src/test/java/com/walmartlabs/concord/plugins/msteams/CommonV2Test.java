@@ -22,6 +22,7 @@ package com.walmartlabs.concord.plugins.msteams;
 
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
 import com.github.tomakehurst.wiremock.http.Fault;
+import com.github.tomakehurst.wiremock.http.RequestMethod;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.walmartlabs.concord.runtime.v2.sdk.MapBackedVariables;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,6 +38,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.put;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -136,6 +138,52 @@ class CommonV2Test {
         var messageEvent = rule.getAllServeEvents().get(0);
         assertNotNull(messageEvent);
         assertEquals("/amer/v3/conversations/" + MOCK_CONVERSATION_ID + "/activities", messageEvent.getRequest().getUrl());
+    }
+
+    @Test
+    void testUpdateActivity() throws Exception {
+        stubForAuth();
+        stubForUpdateActivity();
+
+        var input = new HashMap<>(defaultParams());
+        input.put("action", "updateActivity");
+        input.put("conversationId", MOCK_CONVERSATION_ID);
+        input.put("activityId", MOCK_ACTIVITY_ID);
+        input.put("activity", Map.of(
+                "type", "message",
+                "text", "mock updated text"
+        ));
+
+        Result r = common.execute(TeamsV2TaskParams.of(new MapBackedVariables(input), Map.of()));
+
+        assertTrue(r.isOk());
+
+        verify(common, times(1)).getClient(any(TeamsV2TaskParams.class));
+        verify(common, times(1)).updateActivity(any(TeamsV2TaskParams.UpdateActivityParams.class));
+        verify(client, times(1)).exec(any(), any(), any());
+        verify(client, times(0)).sleep(anyLong());
+
+        var authEvent = rule.getAllServeEvents().get(1);
+        assertNotNull(authEvent);
+        assertEquals("/botframework.com/oauth2/v2.0/token", authEvent.getRequest().getUrl());
+
+        var messageEvent = rule.getAllServeEvents().get(0);
+        assertNotNull(messageEvent);
+        assertEquals(RequestMethod.PUT, messageEvent.getRequest().getMethod());
+        assertEquals("/amer/v3/conversations/" + MOCK_CONVERSATION_ID + "/activities/" + MOCK_ACTIVITY_ID,
+                messageEvent.getRequest().getUrl());
+    }
+
+    @Test
+    void testUpdateActivityMissingActivityId() {
+        var input = new HashMap<>(defaultParams());
+        input.put("action", "updateActivity");
+        input.put("conversationId", MOCK_CONVERSATION_ID);
+
+        var params = TeamsV2TaskParams.of(new MapBackedVariables(input), Map.of());
+
+        var expected = assertThrows(IllegalArgumentException.class, () -> common.execute(params));
+        assertTrue(expected.getMessage().contains("activityId"));
     }
 
     @Test
@@ -250,6 +298,20 @@ class CommonV2Test {
                                 "id", MOCK_REPLY_ID
                         )))));
 
+    }
+
+    void stubForUpdateActivity() throws Exception {
+        rule.stubFor(put(urlEqualTo("/amer/v3/conversations/" + MOCK_CONVERSATION_ID + "/activities/" + MOCK_ACTIVITY_ID))
+                .withRequestBody(equalToJson(Utils.mapper().writeValueAsString(Map.of(
+                        "type", "message",
+                        "text", "mock updated text"
+                )), true, false))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json; charset=utf-8")
+                        .withJsonBody(Utils.mapper().valueToTree(Map.of(
+                                "id", MOCK_ACTIVITY_ID
+                        )))));
     }
 
     void stubForTooManyRequests() {

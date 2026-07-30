@@ -38,6 +38,9 @@ public class TeamsV2TaskParams implements TeamsV2Configuration {
             case REPLYTOCONVERSATION: {
                 return new ReplayToConversationParams(variables);
             }
+            case UPDATEACTIVITY: {
+                return new UpdateActivityParams(variables);
+            }
             default:
                 throw new IllegalArgumentException("Unsupported action type: " + action);
         }
@@ -167,8 +170,22 @@ public class TeamsV2TaskParams implements TeamsV2Configuration {
         }
     }
 
+    public static class UpdateActivityParams extends ReplayToConversationParams {
+
+        private static final String VAR_ACTIVITY_ID = "activityId";
+
+        public UpdateActivityParams(Variables variables) {
+            super(variables);
+        }
+
+        public String activityId() {
+            return variables.assertString(VAR_ACTIVITY_ID);
+        }
+    }
+
     public enum Action {
         CREATECONVERSATION,
-        REPLYTOCONVERSATION
+        REPLYTOCONVERSATION,
+        UPDATEACTIVITY
     }
 }
