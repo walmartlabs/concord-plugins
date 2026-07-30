@@ -86,14 +86,14 @@ public class TeamsClient implements AutoCloseable {
                 var response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
                 if (response.statusCode() == Constants.TOO_MANY_REQUESTS_ERROR) {
-                    long retryAfter = TeamsClient.getRetryAfter(response) * 1000L;
+                    var retryAfter = TeamsClient.getRetryAfterDuration(response);
 
-                    if (retryAfter > maxRetryWait) {
+                    if (retryAfter.toMillis() > maxRetryWait) {
                         throw new IllegalStateException("Too many requests. Cannot wait long enough to retry.");
                     }
 
-                    log.warn("exec [webhookUrl: '{}', params: '{}'] -> too many requests, retry after {} sec", webhookUrl, params, retryAfter);
-                    sleep(retryAfter);
+                    log.warn("exec [webhookUrl: '{}', params: '{}'] -> too many requests, retry after {}s", webhookUrl, params, retryAfter.toSeconds());
+                    sleep(retryAfter.toMillis());
                 } else {
                     var body = response.body();
                     if (body == null) {
@@ -148,6 +148,10 @@ public class TeamsClient implements AutoCloseable {
             log.warn("getRetryAfter -> can't parse retry value '{}'", retryAfterHeader.get());
             return Constants.DEFAULT_RETRY_AFTER;
         }
+    }
+
+    protected static Duration getRetryAfterDuration(HttpResponse<String> response) {
+        return Duration.ofMillis(getRetryAfter(response));
     }
 
     void sleep(long t) {

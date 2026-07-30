@@ -45,7 +45,7 @@ public class TeamsClientV2 implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(TeamsClientV2.class);
 
     private final int retryCount;
-    private final int maxRetryWait;
+    private final long maxRetryWait;
     private final int soTimeout;
     private final HttpClient client;
     private final Map<String, String> defaultHeaders;
@@ -105,14 +105,14 @@ public class TeamsClientV2 implements AutoCloseable {
                 var body = response.body();
 
                 if (response.statusCode() == Constants.TOO_MANY_REQUESTS_ERROR) {
-                    long retryAfter = TeamsClient.getRetryAfter(response) * 1000L;
+                    var retryAfter = TeamsClient.getRetryAfterDuration(response);
 
-                    if (retryAfter > maxRetryWait) {
+                    if (retryAfter.toMillis() > maxRetryWait) {
                         throw new IllegalStateException("Too many requests. Cannot wait long enough to retry.");
                     }
 
-                    log.warn("exec [params: '{}'] -> too many requests, retry after {}ms", params, retryAfter);
-                    sleep(retryAfter);
+                    log.warn("exec [params: '{}'] -> too many requests, retry after {}s", params, retryAfter.toSeconds());
+                    sleep(retryAfter.toMillis());
                 } else {
                     if (body == null) {
                         log.error("exec [params: '{}'] -> empty response", params);

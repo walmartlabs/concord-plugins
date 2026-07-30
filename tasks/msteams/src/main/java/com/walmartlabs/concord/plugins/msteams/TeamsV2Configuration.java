@@ -41,5 +41,5 @@ public interface TeamsV2Configuration {
      * Max duration to wait, in milliseconds, for retrying calls which failed due to
      * <code>429</code> response codes.
      */
-    int maxRetryWait();
+    long maxRetryWait();
 }

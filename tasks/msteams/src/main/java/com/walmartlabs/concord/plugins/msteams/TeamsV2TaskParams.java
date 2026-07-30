@@ -127,8 +127,8 @@ public class TeamsV2TaskParams implements TeamsV2Configuration {
     }
 
     @Override
-    public int maxRetryWait() {
-        return variables.getInt(MAX_RETRY_WAIT, Constants.DEFAULT_MAX_RETRY_WAIT);
+    public long maxRetryWait() {
+        return variables.getLong(MAX_RETRY_WAIT, Constants.DEFAULT_MAX_RETRY_WAIT);
     }
 
     public static class CreateConversationParams extends TeamsV2TaskParams {
