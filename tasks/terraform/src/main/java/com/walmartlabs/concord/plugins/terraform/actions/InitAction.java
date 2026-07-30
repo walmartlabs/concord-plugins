@@ -4,7 +4,7 @@ package com.walmartlabs.concord.plugins.terraform.actions;
  * *****
  * Concord
  * -----
- * Copyright (C) 2017 - 2019 Walmart Inc.
+ * Copyright (C) 2017 - 2026 Walmart Inc., Concord Authors
  * -----
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,45 +20,25 @@ package com.walmartlabs.concord.plugins.terraform.actions;
  * =====
  */
 
-import com.walmartlabs.concord.plugins.terraform.TaskConstants;
 import com.walmartlabs.concord.plugins.terraform.Terraform;
-import com.walmartlabs.concord.plugins.terraform.Utils;
 import com.walmartlabs.concord.plugins.terraform.backend.Backend;
-import com.walmartlabs.concord.plugins.terraform.commands.DestroyCommand;
-import com.walmartlabs.concord.sdk.MapUtils;
 
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Map;
 
-public class DestroyAction extends Action {
+public class InitAction extends Action {
 
-    private final String target;
-    private final List<String> userSuppliedVarFileNames;
     private final Map<String, String> env;
 
-    @SuppressWarnings("unchecked")
-    public DestroyAction(Path workDir, Map<String, Object> cfg, Map<String, String> env) {
+    public InitAction(Path workDir, Map<String, Object> cfg, Map<String, String> env) {
         super(workDir, cfg);
         this.env = env;
-        this.target = MapUtils.getString(cfg, TaskConstants.TARGET_KEY);
-        this.userSuppliedVarFileNames = MapUtils.get(cfg, TaskConstants.VARS_FILES, null, List.class);
     }
 
     public TerraformActionResult exec(Terraform terraform, Backend backend) throws Exception {
-        Path varsFile = null;
         try {
             init(env, terraform, backend);
-
-            varsFile = createVarsFile(getExtraVars());
-
-            Path dirAbsolute = getPwd().resolve(getTFDir());
-            List<Path> userSuppliedVarFiles = Utils.resolve(getPwd(), userSuppliedVarFileNames);
-
-            Terraform.Result r = new DestroyCommand(getPwd(), dirAbsolute, target, userSuppliedVarFiles, env)
-                    .exec(terraform);
-
-            return handleBasicCommandResult(r, env, terraform, backend);
+            return TerraformActionResult.ok(null);
         } catch (Exception e) {
             if (!isIgnoreErrors()) {
                 throw e;
@@ -66,7 +46,7 @@ public class DestroyAction extends Action {
 
             return TerraformActionResult.error(e.getMessage());
         } finally {
-            cleanup(varsFile, backend);
+            cleanup(null, backend);
         }
     }
 }

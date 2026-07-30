@@ -35,6 +35,7 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.List;
 import java.util.Map;
 
 import static com.walmartlabs.concord.plugins.terraform.Utils.getAbsolute;
@@ -52,6 +53,7 @@ public abstract class Action {
     private final boolean debug;
     private final boolean saveOutput;
     private final Map<String, Object> extraVars;
+    private final List<String> backendConfig;
     private final boolean ignoreErrors;
     private final ObjectMapper objectMapper;
 
@@ -68,6 +70,7 @@ public abstract class Action {
         this.debug = MapUtils.get(cfg, TaskConstants.DEBUG_KEY, false, Boolean.class);
         this.saveOutput = MapUtils.get(cfg, TaskConstants.SAVE_OUTPUT_KEY, false, Boolean.class);
         this.extraVars = MapUtils.get(cfg, TaskConstants.EXTRA_VARS_KEY, null);
+        this.backendConfig = MapUtils.get(cfg, TaskConstants.BACKEND_CONFIG_KEY, null, List.class);
         this.ignoreErrors = MapUtils.get(cfg, TaskConstants.IGNORE_ERRORS_KEY, false, Boolean.class);
         this.objectMapper = new ObjectMapper();
     }
@@ -116,15 +119,36 @@ public abstract class Action {
      * Saves the provided map object as a JSON file. The resulting file name uses the TF naming convention for
      * variable files: *.auto.tfvars.json.
      */
-    protected void createVarsFile(Map<String, Object> m) throws IOException {
+    protected Path createVarsFile(Map<String, Object> m) throws IOException {
         if (m == null || m.isEmpty()) {
-            return;
+            return null;
         }
 
         Path p = Files.createTempFile(getTFDir(), ".vars", ".auto.tfvars.json");
         log.info("Saving 'extraVars' as {}...", p);
         try (OutputStream out = Files.newOutputStream(p, StandardOpenOption.TRUNCATE_EXISTING)) {
             objectMapper.writeValue(out, m);
+        }
+        return p;
+    }
+
+    /**
+     * Best-effort cleanup of temp files and backend state. Safe to call from
+     * a finally block: failures are logged but never thrown, so the original
+     * exception (if any) is preserved.
+     */
+    protected void cleanup(Path varsFile, Backend backend) {
+        if (varsFile != null) {
+            try {
+                Files.deleteIfExists(varsFile);
+            } catch (IOException e) {
+                log.warn("Failed to delete vars file {}: {}", varsFile, e.getMessage());
+            }
+        }
+        try {
+            backend.cleanup(Utils.getAbsolute(pwd, dir));
+        } catch (IOException e) {
+            log.warn("Backend cleanup failed: {}", e.getMessage());
         }
     }
 
@@ -134,7 +158,7 @@ public abstract class Action {
         Path absTFDir = Utils.getAbsolute(pwd, dir);
         backend.init(absTFDir);
 
-        Terraform.Result r = new InitCommand(pwd, absTFDir, env, !verbose).exec(terraform);
+        Terraform.Result r = new InitCommand(pwd, absTFDir, backendConfig, env, !verbose).exec(terraform);
         if (r.getCode() != 0) {
             throw new RuntimeException("Initialization finished with code " + r.getCode() + ": " + r.getStderr());
         }

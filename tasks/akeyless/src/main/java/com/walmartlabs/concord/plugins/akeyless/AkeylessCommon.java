@@ -85,8 +85,10 @@ public class AkeylessCommon {
             var clientBuilder = HttpClient.newBuilder()
                     .connectTimeout(Duration.ofSeconds(params.connectTimeout()));
 
-            apiClient = new ApiClient(clientBuilder, JSON.getDefault().getMapper(), params.apiBasePath())
+            apiClient = new ApiClient()
+                    .setHttpClientBuilder(clientBuilder)
                     .setReadTimeout(Duration.ofSeconds(params.readTimeout()));
+            apiClient.updateBaseUri(params.apiBasePath());
         }
 
         return new V2Api(apiClient);

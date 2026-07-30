@@ -41,7 +41,7 @@ public class TerraformBinaryResolver {
     private static final Logger log = LoggerFactory.getLogger(TerraformBinaryResolver.class);
 
     private static final String DEFAULT_TERRAFORM_VERSION = "0.12.5";
-    private static final String DEFAULT_TOOL_URL_TEMPLATE = "https://releases.hashicorp.com/terraform/%s/terraform_%s_%s_amd64.zip";
+    private static final String DEFAULT_TOOL_URL_TEMPLATE = "https://releases.hashicorp.com/terraform/%s/terraform_%s_%s_%s.zip";
 
     private final Map<String, Object> cfg;
     private final Path workDir;
@@ -73,14 +73,17 @@ public class TerraformBinaryResolver {
      * we will download the default version. Terraform URLs look like the following:
      * <p>
      * https://releases.hashicorp.com/terraform/0.12.5/terraform_0.12.5_linux_amd64.zip
-     * https://releases.hashicorp.com/terraform/0.11.2/terraform_0.11.2_linux_amd64.zip
+     * https://releases.hashicorp.com/terraform/1.0.11/terraform_1.0.11_linux_arm64.zip
      * <p>
      * So we can generalize to:
      * <p>
-     * https://releases.hashicorp.com/terraform/${version}/terraform_${version}_linux_amd64.zip
+     * https://releases.hashicorp.com/terraform/${version}/terraform_${version}_${os}_${arch}.zip
+     * <p>
+     * The arch is auto-detected from the JVM system property "os.arch" (aarch64/arm64 -> arm64, everything else -> amd64).
+     * It can be overridden via the "toolArch" parameter.
      * <p>
      * We will also allow the user to specify the full URL if they want to download the tool zip from
-     * and internal repository manager or other internally managed host.
+     * an internal repository manager or other internally managed host.
      *
      * @return
      * @throws Exception
@@ -247,9 +250,15 @@ public class TerraformBinaryResolver {
             throw new IllegalArgumentException("Your operating system is not supported: " + os);
         }
 
+        String tfArch = MapUtils.getString(cfg, TaskConstants.TOOL_ARCH_KEY, null);
+        if (tfArch == null) {
+            String arch = System.getProperty("os.arch").toLowerCase();
+            tfArch = (arch.equals("aarch64") || arch.equals("arm64")) ? "arm64" : "amd64";
+        }
+
         // check to see if the user has specified a version of the tool to use, if not use the default version.
         String toolVersion = MapUtils.getString(cfg, TaskConstants.TOOL_VERSION_KEY, DEFAULT_TERRAFORM_VERSION);
-        return String.format(DEFAULT_TOOL_URL_TEMPLATE, toolVersion, toolVersion, tfOs);
+        return String.format(DEFAULT_TOOL_URL_TEMPLATE, toolVersion, toolVersion, tfOs, tfArch);
     }
 
     public interface BinaryDownloader {

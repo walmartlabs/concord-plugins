@@ -20,11 +20,14 @@ package com.walmartlabs.concord.plugins.terraform.backend;
  * =====
  */
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Map;
 
 public interface Backend {
+
+    String OVERRIDE_FILE_NAME = "concord_override.tf.json";
 
     String getId();
 
@@ -38,6 +41,15 @@ public interface Backend {
      * @param tfDir a directory with Terraform files
      */
     void init(Path tfDir) throws Exception;
+
+    /**
+     * Cleans up any files created by {@link #init(Path)}.
+     *
+     * @param tfDir a directory with Terraform files
+     */
+    default void cleanup(Path tfDir) throws IOException {
+        // do nothing
+    }
 
     /**
      * Prepares the backend-specific environment variables.

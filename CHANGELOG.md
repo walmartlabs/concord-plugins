@@ -1,5 +1,15 @@
 # Change Log
 
+## [2.12.1] - 2026-04-09
+
+### Changed
+
+- s3: update s3mock dependencies
+  ([#237](https://github.com/walmartlabs/concord-plugins/pull/237));
+- akeyless: use ApiClient default object mapper
+  ([#236](https://github.com/walmartlabs/concord-plugins/pull/229)).
+
+
 ## [2.12.0] - 2026-02-05
 
 ### Added
@@ -19,11 +29,12 @@
 
 ### Changed
 
-- githib: unify logging across task actions
+- github: unify logging across task actions
   ([#230](https://github.com/walmartlabs/concord-plugins/pull/230));
-- github: fix api url prefix handling (#229)
+- github: fix api url prefix handling
   ([#229](https://github.com/walmartlabs/concord-plugins/pull/229)).
-  
+
+
 ## [2.11.0] - 2026-01-14
 
 ### Added

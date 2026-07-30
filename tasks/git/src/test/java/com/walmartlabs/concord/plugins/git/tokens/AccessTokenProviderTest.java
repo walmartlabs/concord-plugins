@@ -39,6 +39,7 @@ import java.security.KeyPairGenerator;
 import java.util.Base64;
 
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -125,16 +126,18 @@ class AccessTokenProviderTest {
 
     @Test
     void testGetAccessTokenUrl() {
-        var url = AppInstallationTokenProvider.accessTokenUrl(httpRule.baseUrl(), "octocat/mock-repo", "mock-jwt");
+        var url = assertDoesNotThrow(() ->
+                AppInstallationTokenProvider.accessTokenUrl(httpRule.baseUrl(),
+                        "octocat/mock-repo", "mock-jwt"));
 
         assertNotNull(url);
-        assertEquals(httpRule.baseUrl() + "/app/installations/12345/access_tokens", url);
+        assertEquals(httpRule.baseUrl() + "/api/v3/app/installations/12345/access_tokens", url);
     }
 
     @Test
     void testCreateAccessToken() {
         // TODO assert auth/jwt request header
-        var token = AppInstallationTokenProvider.createAccessToken(httpRule.baseUrl() + "/app/installations/12345/access_tokens", "mock-jwt");
+        var token = AppInstallationTokenProvider.createAccessToken(httpRule.baseUrl() + "/api/v3/app/installations/12345/access_tokens", "mock-jwt");
 
         assertNotNull(token);
         assertEquals("mock_token", token.token());

@@ -33,6 +33,7 @@ import com.walmartlabs.concord.plugins.git.model.Auth;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -49,6 +50,7 @@ public class AppInstallationTokenProvider implements AccessTokenProvider {
     private final String ghBaseUrl;
     private final String installationRepo;
     private AppInstallationAccessToken lastToken;
+
     public AppInstallationTokenProvider(Auth.AppInstallationAuth auth,
                                         String ghBaseUrl,
                                         String installationRepo) {
@@ -85,8 +87,11 @@ public class AppInstallationTokenProvider implements AccessTokenProvider {
                 .isAfter(token.expiresAt().minusSeconds(buffer));
     }
 
-    static String accessTokenUrl(String baseUrl, String installationRepo, String jwt) {
-        var req = HttpRequest.newBuilder().GET().uri(URI.create(baseUrl + "/repos/" + installationRepo + "/installation"))
+    static String accessTokenUrl(String baseUrl, String installationRepo, String jwt) throws URISyntaxException {
+        var uri = URI.create(Utils.buildApiUrl(baseUrl, "/repos/" + installationRepo + "/installation"));
+        var req = HttpRequest.newBuilder()
+                .GET()
+                .uri(uri)
                 .header("Authorization", "Bearer " + jwt)
                 .header("Accept", "application/vnd.github+json")
                 .header("X-GitHub-Api-Version", "2022-11-28")

@@ -25,12 +25,14 @@ import com.walmartlabs.concord.plugins.terraform.TaskConstants;
 import com.walmartlabs.concord.sdk.MapUtils;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 public abstract class BackendFactory {
 
     private final static String DEFAULT_BACKEND = "concord";
+    private final static String NONE_BACKEND = "none";
 
     private final Set<String> commonBackends;
     private final ObjectMapper objectMapper;
@@ -43,7 +45,13 @@ public abstract class BackendFactory {
     public Backend getBackend(Map<String, Object> cfg) {
         boolean debug = MapUtils.get(cfg, TaskConstants.DEBUG_KEY, false, Boolean.class);
 
-        String backendId = DEFAULT_BACKEND;
+        // if backendConfig is specified and backend is not explicitly set,
+        // skip creating the override file -- the backend is fully managed
+        // via -backend-config CLI flags
+        List<String> backendConfig = MapUtils.get(cfg, TaskConstants.BACKEND_CONFIG_KEY, null, List.class);
+        boolean hasBackendConfig = backendConfig != null && !backendConfig.isEmpty();
+
+        String backendId = hasBackendConfig ? NONE_BACKEND : DEFAULT_BACKEND;
         if (cfg.get(TaskConstants.BACKEND_KEY) != null) {
             // check if the `backend` value is a map/object
             if (Map.class.isAssignableFrom(cfg.get(TaskConstants.BACKEND_KEY).getClass())) {
@@ -67,10 +75,10 @@ public abstract class BackendFactory {
         }
 
         switch (backendId) {
-            case "none": {
+            case NONE_BACKEND: {
                 return new DummyBackend();
             }
-            case "concord": {
+            case DEFAULT_BACKEND: {
                 return createConcordBackend(debug, cfg, objectMapper);
             }
             default: {
