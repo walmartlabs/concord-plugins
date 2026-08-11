@@ -16,7 +16,7 @@
 
     <properties>
         <jaxrs-api.version>1.0.1.Final</jaxrs-api.version>
-        <okhttp.version>3.11.0</okhttp.version>
+        <okhttp.version>4.9.2</okhttp.version>
     </properties>
 
     <dependencies>
