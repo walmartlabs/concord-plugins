@@ -61,6 +61,10 @@ public class ArgoCdClient {
 
     private static final int RETRY_LIMIT = 5;
 
+    private static final Duration POLL_WAIT_TIME = Duration.ofSeconds(3);
+
+    private static final Duration MAX_RETRY_TIMEOUT = Duration.ofMinutes(3);
+
     public ArgoCdClient(TaskParams in) throws Exception {
         this.client = createClient(in);
     }
@@ -208,14 +212,52 @@ public class ArgoCdClient {
                 .orElse(false);
     }
 
-    public V1alpha1Application waitForSync(String appName, String resourceVersion,
+    @SuppressWarnings("BusyWait")
+    public V1alpha1Application waitForSyncWithPolling(String appName, String resourceVersion, Duration waitTimeout, WaitWatchParams waitParams) {
+        log.info("Waiting for application to sync using polling");
+        OffsetDateTime startTime = OffsetDateTime.now();
+        int pollCount = 0;
+        while (OffsetDateTime.now().minus(waitTimeout).isBefore(startTime)) {
+            V1alpha1Application application = new CallRetry<>(() -> getApp(appName, true),
+                    null,
+                    Set.of()).attemptWithRetry(RETRY_LIMIT, MAX_RETRY_TIMEOUT);
+            boolean isReady = checkResourceStatus(waitParams,
+                    healthStatus(application),
+                    syncStatus(application),
+                    application.getOperation());
+            if (isReady) {
+                log.info("Application is ready within {} seconds",
+                        Duration.between(startTime, OffsetDateTime.now()).toSeconds());
+                return application;
+            }
+            pollCount++;
+            var pollWait = Duration.ofMillis(Math.min(pollCount * POLL_WAIT_TIME.toMillis(), 30_000L));
+            log.info("Application is not ready. Waiting {} seconds before next try", pollWait.toSeconds());
+            try {
+                Thread.sleep(pollWait.toMillis());
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        throw new RuntimeException("Application is not ready within " + waitTimeout.getSeconds() + " seconds.");
+    }
+
+    public V1alpha1Application waitForSync(String appName, String resourceVersion, Duration waitTimeout, WaitWatchParams waitParams) {
+        waitTimeout = (waitTimeout == null) ? Duration.ofMinutes(15) : waitTimeout;
+        if (waitParams.useStreamApi()) {
+            return waitForSyncWithStreamApi(appName, resourceVersion, waitTimeout, waitParams);
+        } else {
+            return waitForSyncWithPolling(appName, resourceVersion, waitTimeout, waitParams);
+        }
+    }
+
+    private V1alpha1Application waitForSyncWithStreamApi(String appName, String resourceVersion,
                                            Duration waitTimeout, WaitWatchParams waitParams) {
         log.info("Waiting for application to sync.");
 
         var paramString = toParameterString(Map.of("name", appName, "resourceVersion", resourceVersion));
         var uri = URI.create(client.getBaseUri() + "/api/v1/stream/applications?" + paramString);
 
-        waitTimeout = (waitTimeout == null) ? Duration.ofMinutes(15) : waitTimeout;
         log.info("Using wait timeout {}", waitTimeout);
         var req = HttpRequest.newBuilder(uri)
                 .GET()

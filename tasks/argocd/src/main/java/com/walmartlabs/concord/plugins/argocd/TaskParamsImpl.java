@@ -429,6 +429,7 @@ public class TaskParamsImpl implements TaskParams {
         private static final String UPSERT_KEY = "upsert";
         private static final String WAIT_FOR_SYNC_KEY = "waitForSync";
         private static final String WATCH_HEALTH_KEY = "watchHealth";
+        protected static final String USE_STREAM_API_KEY = "useStreamApi";
 
         protected CreateParamsImpl(Variables variables) {
             super(variables);
@@ -452,6 +453,11 @@ public class TaskParamsImpl implements TaskParams {
         @Override
         public boolean waitForSync() {
             return variables.getBoolean(WAIT_FOR_SYNC_KEY, CreateUpdateParams.super.waitForSync());
+        }
+
+        @Override
+        public boolean useStreamApi() {
+            return variables.getBoolean(USE_STREAM_API_KEY, CreateUpdateParams.super.useStreamApi());
         }
 
         @Override
@@ -772,6 +778,7 @@ public class TaskParamsImpl implements TaskParams {
         private static final String APP_KEY = "app";
         private static final String SPEC_KEY = "spec";
         private static final String WAIT_FOR_SYNC_KEY = "waitForSync";
+        private static final String USE_STREAM_API_KEY = "useStreamApi";
         private static final String WATCH_HEALTH_KEY = "watchHealth";
         private static final String SYNC_TIMEOUT_KEY = "syncTimeout";
 
@@ -793,6 +800,11 @@ public class TaskParamsImpl implements TaskParams {
         @Override
         public boolean waitForSync() {
             return variables.getBoolean(WAIT_FOR_SYNC_KEY, UpdateSpecParams.super.waitForSync());
+        }
+
+        @Override
+        public boolean useStreamApi() {
+            return variables.getBoolean(USE_STREAM_API_KEY, UpdateSpecParams.super.useStreamApi());
         }
 
         @Override
@@ -933,6 +945,7 @@ public class TaskParamsImpl implements TaskParams {
         private static final String SYNC_TIMEOUT_KEY = "syncTimeout";
         private static final String RESOURCES_KEY = "resources";
         private static final String WATCH_HEALTH_KEY = "watchHealth";
+        private static final String USE_STREAM_API_KEY = "useStreamApi";
 
         protected SyncParamsImpl(Variables variables) {
             super(variables);
@@ -982,6 +995,10 @@ public class TaskParamsImpl implements TaskParams {
             }
 
             return Duration.parse(value);
+        }
+        @Override
+        public boolean useStreamApi() {
+            return variables.getBoolean(USE_STREAM_API_KEY, SyncParams.super.useStreamApi());
         }
 
         @Override
