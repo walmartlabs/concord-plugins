@@ -1,6 +1,6 @@
 # Change Log
 
-## [2.12.2] - TBD
+## [2.13.0] - 2026-08-20
 
 ### Changed
 
@@ -14,7 +14,13 @@
 - project: update concord-targetplatform to 2.42.0 and JDK25 compat
 ([#243](https://github.com/walmartlabs/concord-plugins/pull/243));
 - terraform-task: init action
-([#245](https://github.com/walmartlabs/concord-plugins/pull/245)).
+([#245](https://github.com/walmartlabs/concord-plugins/pull/245));
+- ldap: escape parameters used in ldap queries
+([#247](https://github.com/walmartlabs/concord-plugins/pull/247));
+- ldap: add test coverage for common actions, support AD (`name`) and standard
+LDAP (`cn`) group schemas for getGroup action
+([#248](https://github.com/walmartlabs/concord-plugins/pull/248)).
+
 
 ## [2.12.1] - 2026-04-09
 
