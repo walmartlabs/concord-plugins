@@ -143,8 +143,8 @@ public class LdapTaskCommon {
 
     private SearchResult getGroup(LdapConnectionCfg cfg, String searchBase, String group, List<String> securityGroupTypes, boolean securityEnabled) {
         try {
-            // create custom filter for group
-            String searchFilter = "(name=" + group + ")";
+            // Support both AD-style 'name' and standard LDAP 'cn' attributes
+            String searchFilter = "(|(name=" + group + ")(cn=" + group + "))";
 
             // use private method search
             NamingEnumeration<SearchResult> results = withRetry(MAX_RETRIES, RETRY_DELAY, () -> search(cfg, searchBase, searchFilter));
@@ -159,6 +159,13 @@ public class LdapTaskCommon {
 
                 String groupType = getAttrValue(result, "groupType");
                 if (groupType != null && securityGroupTypes.stream().anyMatch(groupType::equals) == securityEnabled) {
+                    return result;
+                }
+
+                // Standard LDAP servers (non-AD) don't expose distinguishedName or groupType
+                // as attributes; treat any matching group as a result when security filtering
+                // is not requested
+                if (dn == null && groupType == null && !securityEnabled) {
                     return result;
                 }
             }
