@@ -21,6 +21,7 @@ package com.walmartlabs.concord.plugins.terraform;
  */
 
 public enum Action {
+    INIT,
     APPLY,
     PLAN,
     OUTPUT,
