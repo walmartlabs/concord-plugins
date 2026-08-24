@@ -25,6 +25,7 @@ public class Constants {
     public static final int DEFAULT_CONNECT_TIMEOUT = 30_000;
     public static final int DEFAULT_SO_TIMEOUT = 30_000;
     public static final int DEFAULT_RETRY_COUNT = 5;
+    public static final int DEFAULT_MAX_RETRY_WAIT = 30_000;
 
     public static final String DEFAULT_THEME_COLOR = "11B00A";
     public static final String VAR_ACCESS_TOKEN = "access_token";
