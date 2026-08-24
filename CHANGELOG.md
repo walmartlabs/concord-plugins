@@ -1,5 +1,15 @@
 # Change Log
 
+## [2.14.0] - 2026-08-24
+
+### Changed
+
+- terraform: add git module support for http authentication
+([#249](https://github.com/walmartlabs/concord-plugins/pull/249));
+- msteams: maxRetryWait param to control waiting after 429 responses
+([#235](https://github.com/walmartlabs/concord-plugins/pull/235)).
+
+
 ## [2.13.0] - 2026-08-20
 
 ### Changed
