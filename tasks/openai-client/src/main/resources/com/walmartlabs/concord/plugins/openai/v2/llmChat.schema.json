@@ -1,0 +1,82 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "in": {
+        "type": "object",
+        "required": ["auth", "model", "messages"],
+        "properties": {
+            "auth": {
+                "type": "object",
+                "required": ["type", "secretRef"],
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "enum": ["bearer"]
+                    },
+                    "secretRef": {
+                        "type": "object",
+                        "required": ["orgName", "secretName"],
+                        "properties": {
+                            "orgName": {
+                                "type": "string"
+                            },
+                            "secretName": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "model": {
+                "type": "string",
+                "minLength": 1
+            },
+            "messages": {
+                "type": "array",
+                "minItems": 1
+            },
+            "baseUrl": {
+                "type": "string"
+            },
+            "tools": {
+                "type": "array"
+            },
+            "maxTokens": {
+                "type": "integer",
+                "minimum": 1
+            },
+            "temperature": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 2
+            },
+            "toolChoice": {}
+        }
+    },
+    "out": {
+        "type": "object",
+        "required": ["ok"],
+        "properties": {
+            "ok": {
+                "type": "boolean"
+            },
+            "error": {
+                "type": "string"
+            },
+            "content": {
+                "type": "string"
+            },
+            "finishReason": {
+                "type": "string"
+            },
+            "model": {
+                "type": "string"
+            },
+            "usage": {
+                "type": "object"
+            },
+            "toolCalls": {
+                "type": "array"
+            }
+        }
+    }
+}
