@@ -221,6 +221,9 @@ public interface TaskParams {
         default boolean waitForSync() { return true; }
 
         @Value.Default
+        default boolean useStreamApi() { return true; }
+
+        @Value.Default
         default boolean watchHealth() { return false; }
 
         interface GitRepo {
@@ -275,6 +278,9 @@ public interface TaskParams {
 
         @Value.Default
         default boolean waitForSync() { return false; }
+
+        @Value.Default
+        default boolean useStreamApi() { return true; }
 
         @Value.Default
         default boolean watchHealth() { return false; }
@@ -375,6 +381,11 @@ public interface TaskParams {
 
         @Nullable
         Duration syncTimeout();
+
+        @Value.Default
+        default boolean useStreamApi() {
+            return true;
+        }
     }
 
     interface DeleteAppParams extends TaskParams {
