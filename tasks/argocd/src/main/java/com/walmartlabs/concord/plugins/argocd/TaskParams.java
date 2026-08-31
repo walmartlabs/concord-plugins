@@ -388,6 +388,10 @@ public interface TaskParams {
 
         @Nullable
         String propagationPolicy();
+
+        String forceRefresh();
+
+        String appProject();
     }
 
     enum Action {
