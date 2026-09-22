@@ -14,7 +14,7 @@
     <packaging>jar</packaging>
 
     <properties>
-        <aws.sdk.version>2.44.3</aws.sdk.version>
+        <aws.sdk.version>2.55.2</aws.sdk.version>
     </properties>
 
     <dependencyManagement>
@@ -33,6 +33,14 @@
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>ecr</artifactId>
+            <exclusions>
+                <!-- only EcrClient (sync) is used, which runs on apache5-client;
+                     the async Netty transport is dead weight in the agent image -->
+                <exclusion>
+                    <groupId>software.amazon.awssdk</groupId>
+                    <artifactId>netty-nio-client</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>software.amazon.awssdk</groupId>

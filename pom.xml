@@ -56,7 +56,8 @@
     </modules>
 
     <properties>
-        <maven.compiler.release>17</maven.compiler.release>
+        <!-- Concord artifacts ship Java 21 bytecode since 2.46.1, so plugins cannot claim 17 -->
+        <maven.compiler.release>21</maven.compiler.release>
         <maven.compiler.source>${maven.compiler.release}</maven.compiler.source>
         <maven.compiler.target>${maven.compiler.release}</maven.compiler.target>
 
@@ -65,7 +66,7 @@
 
         <scm.connection>scm:git:https://github.com/walmartlabs/concord-plugins.git</scm.connection>
 
-        <concord.version>2.42.0</concord.version>
+        <concord.version>2.46.1-SNAPSHOT</concord.version>
         <gson.version>2.10</gson.version>
         <okhttp3.version>3.14.9</okhttp3.version>
         <wiremock.version>3.13.0</wiremock.version>
