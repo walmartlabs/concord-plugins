@@ -45,19 +45,11 @@ public class TeamsV2TaskCommon {
 
         log.info("Starting '{}' action....", in.action());
 
-        switch (in.action()) {
-            case CREATECONVERSATION: {
-                return createConversation((CreateConversationParams)in);
-            }
-            case REPLYTOCONVERSATION: {
-                return replyToConversation((ReplayToConversationParams)in);
-            }
-            case UPDATEACTIVITY: {
-                return updateActivity((UpdateActivityParams)in);
-            }
-            default:
-                throw new IllegalArgumentException("Unsupported action type: " + in.action());
-        }
+        return switch (in.action()) {
+            case CREATECONVERSATION -> createConversation((CreateConversationParams) in);
+            case REPLYTOCONVERSATION -> replyToConversation((ReplayToConversationParams) in);
+            case UPDATEACTIVITY -> updateActivity((UpdateActivityParams) in);
+        };
     }
 
     Result createConversation(CreateConversationParams in) {

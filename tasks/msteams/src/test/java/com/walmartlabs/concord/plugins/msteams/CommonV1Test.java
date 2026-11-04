@@ -40,10 +40,12 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -71,6 +73,7 @@ class CommonV1Test {
 
         doAnswer(invocation -> {
             client = spy(new TeamsClient(invocation.getArgument(0)));
+            doNothing().when(client).sleep(anyLong());
             return client;
         }).when(common).getClient(any(TeamsTaskParams.class));
 
@@ -109,6 +112,23 @@ class CommonV1Test {
         verify(common, times(1)).getClient(any(TeamsTaskParams.class));
         verify(client, times(1)).exec(any(), any());
         verify(client, times(2)).sleep(anyLong());
+    }
+
+    @Test
+    void testTooManyMessagesGiveUp() throws Exception {
+        stubForTooManyRequests();
+
+        var input = new HashMap<>(defaultParams());
+        input.put("maxRetryWait", 1);
+
+        var ex = assertThrows(RuntimeException.class,
+                () -> common.execute(TeamsTaskParams.of(new MapBackedVariables(input), Map.of())));
+
+        assertTrue(ex.getMessage().contains("Too many requests. Cannot wait long enough to retry."));
+
+        verify(common, times(1)).getClient(any(TeamsTaskParams.class));
+        verify(client, times(1)).exec(any(), any());
+        verify(client, times(0)).sleep(anyLong());
     }
 
     @Test
@@ -162,6 +182,7 @@ class CommonV1Test {
                 .willReturn(aResponse()
                         .withStatus(429)
                         .withHeader("Content-Type", "text/plain; charset=utf-8")
+                        .withHeader("Retry-After", "30")
                         .withBody("too many requests")));
 
     }

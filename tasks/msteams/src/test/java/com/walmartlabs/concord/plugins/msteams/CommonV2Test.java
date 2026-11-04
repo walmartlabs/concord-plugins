@@ -50,6 +50,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -82,6 +83,7 @@ class CommonV2Test {
 
         doAnswer(invocation -> {
             client = spy(new TeamsClientV2(invocation.getArgument(0)));
+            doNothing().when(client).sleep(anyLong());
             return client;
         }).when(common).getClient(any(TeamsV2TaskParams.class));
     }
@@ -194,11 +196,29 @@ class CommonV2Test {
         Result r = common.execute(TeamsV2TaskParams.of(new MapBackedVariables(defaultParams()), Map.of()));
 
         assertFalse(r.isOk());
-        assertTrue(r.getError().contains("too many requests"));
+        assertTrue(r.getError().contains("retry attempts exhausted"));
 
         verify(common, times(1)).getClient(any(TeamsV2TaskParams.class));
         verify(client, times(1)).exec(any(), any());
         verify(client, times(2)).sleep(anyLong());
+    }
+
+    @Test
+    void testTooManyMessagesGiveUp() throws Exception {
+        stubForAuth();
+        stubForTooManyRequests();
+
+        var input = new HashMap<>(defaultParams());
+        input.put("maxRetryWait", 1);
+
+        var ex = assertThrows(RuntimeException.class,
+                () -> common.execute(TeamsV2TaskParams.of(new MapBackedVariables(input), Map.of())));
+
+        assertTrue(ex.getMessage().contains("Too many requests. Cannot wait long enough to retry."));
+
+        verify(common, times(1)).getClient(any(TeamsV2TaskParams.class));
+        verify(client, times(1)).exec(any(), any());
+        verify(client, times(0)).sleep(anyLong());
     }
 
     @Test
@@ -278,14 +298,6 @@ class CommonV2Test {
     }
 
     void stubForReply() throws Exception {
-//        Map<String, Object> expectedRequestActivity = new LinkedHashMap<>();
-//        expectedRequestActivity.put("type", "message");
-//        expectedRequestActivity.put("text", "mock message text");
-//        Map<String, Object> expectedRequestBody = new LinkedHashMap<>();
-//        expectedRequestBody.put("tenantId", MOCK_TENANT_ID);
-//        expectedRequestBody.put("activity", expectedRequestActivity);
-//        expectedRequestBody.put("channelData", Map.of("channel", Map.of("id", MOCK_CHANNEL_ID)));
-
         rule.stubFor(post(urlEqualTo("/amer/v3/conversations/" + MOCK_CONVERSATION_ID + "/activities"))
                 .withRequestBody(equalToJson(Utils.mapper().writeValueAsString(Map.of(
                         "type", "message",
@@ -319,6 +331,7 @@ class CommonV2Test {
                 .willReturn(aResponse()
                         .withStatus(429)
                         .withHeader("Content-Type", "application/json; charset=utf-8")
+                        .withHeader("Retry-After", "30")
                         .withBody("too many requests")));
     }
 

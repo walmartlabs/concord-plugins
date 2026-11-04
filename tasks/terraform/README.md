@@ -10,6 +10,32 @@ The task supports `init`, `plan`, `apply`, `output`, and `destroy`.
 `init` initializes the configured backend and runs `terraform init` without running
 plan/apply/destroy.
 
+## Git module authentication
+
+`gitAuth` can be used for both SSH key auth and HTTP(S) username/password auth when Terraform
+downloads git modules.
+
+```yaml
+- task: terraform
+  in:
+    action: plan
+    gitAuth:
+      # existing SSH support
+      privateKeys:
+      - "/path/to/id_rsa"
+      secrets:
+      - org: "Default"
+        secretName: "my-ssh-key"
+        password: "optional"
+
+      # or HTTP(S) auth support
+      http:
+        password: "${myGitPasswordOrToken}"
+        username: "x-access-token" # optional, defaults to x-access-token
+```
+
+`gitSsh` is still accepted for backward compatibility, but it is deprecated and will log a warning.
+
 ## Testing
 
 ### TerraformTaskIT

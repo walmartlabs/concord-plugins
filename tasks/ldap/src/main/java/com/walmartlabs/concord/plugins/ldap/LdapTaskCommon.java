@@ -102,7 +102,7 @@ public class LdapTaskCommon {
     private SearchResult searchByDn(LdapConnectionCfg cfg, String searchBase, String dn) {
         try {
             // create custom filter for dn
-            String searchFilter = "(distinguishedName=" + dn + ")";
+            String searchFilter = "(distinguishedName=" + escapeLdapFilterValue(dn) + ")";
 
             // use private method search
             NamingEnumeration<SearchResult> results = withRetry(MAX_RETRIES, RETRY_DELAY, () -> search(cfg, searchBase, searchFilter));
@@ -120,12 +120,13 @@ public class LdapTaskCommon {
     private SearchResult getUser(LdapConnectionCfg cfg, String searchBase, String user) {
         try {
             // create custom filter for user
+            String escapedUser = escapeLdapFilterValue(user);
             String searchFilter = "(|"
-                    + "(userPrincipalName=" + user + ")"
-                    + "(sAMAccountName=" + user + ")"
-                    + "(mailNickname=" + user + ")"
-                    + "(proxyAddresses=smtp:" + user + ")"
-                    + "(mail=" + user + ")"
+                    + "(userPrincipalName=" + escapedUser + ")"
+                    + "(sAMAccountName=" + escapedUser + ")"
+                    + "(mailNickname=" + escapedUser + ")"
+                    + "(proxyAddresses=smtp:" + escapedUser + ")"
+                    + "(mail=" + escapedUser + ")"
                     + ")";
 
             // use private method search
@@ -143,9 +144,7 @@ public class LdapTaskCommon {
 
     private SearchResult getGroup(LdapConnectionCfg cfg, String searchBase, String group, List<String> securityGroupTypes, boolean securityEnabled) {
         try {
-            // create custom filter for group
-            String searchFilter = "(name=" + group + ")";
-
+            String searchFilter = "(|(name=" + escapeLdapFilterValue(group) + ")(cn=" + escapeLdapFilterValue(group) + "))";
             // use private method search
             NamingEnumeration<SearchResult> results = withRetry(MAX_RETRIES, RETRY_DELAY, () -> search(cfg, searchBase, searchFilter));
 
@@ -159,6 +158,13 @@ public class LdapTaskCommon {
 
                 String groupType = getAttrValue(result, "groupType");
                 if (groupType != null && securityGroupTypes.stream().anyMatch(groupType::equals) == securityEnabled) {
+                    return result;
+                }
+
+                // Standard LDAP servers (non-AD) don't expose distinguishedName or groupType
+                // as attributes; treat any matching group as a result when security filtering
+                // is not requested
+                if (dn == null && groupType == null && !securityEnabled) {
                     return result;
                 }
             }
@@ -403,6 +409,28 @@ public class LdapTaskCommon {
         result.put("success", searchResult != null);
         result.put("result", searchResultToMap(searchResult));
         return result;
+    }
+
+    /**
+     * Escapes special characters in an LDAP filter value per RFC 2254 to prevent LDAP injection.
+     * Characters escaped: NUL (\00), '(' (\28), ')' (\29), '*' (\2a), '\' (\5c)
+     */
+    private static String escapeLdapFilterValue(String input) {
+        if (input == null) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder(input.length());
+        for (char c : input.toCharArray()) {
+            switch (c) {
+                case '\0': sb.append("\\00"); break;
+                case '(':  sb.append("\\28"); break;
+                case ')':  sb.append("\\29"); break;
+                case '*':  sb.append("\\2a"); break;
+                case '\\': sb.append("\\5c"); break;
+                default:   sb.append(c);
+            }
+        }
+        return sb.toString();
     }
 
     private static void sleep(long t) {

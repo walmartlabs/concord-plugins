@@ -33,6 +33,11 @@ public interface TeamsConfiguration {
     int proxyPort();
     int connectTimeout();
     int soTimeout();
-
     int retryCount();
+
+    /**
+     * Max duration to wait, in milliseconds, for retrying calls which failed due to
+     * <code>429</code> response codes.
+     */
+    int maxRetryWait();
 }
