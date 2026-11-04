@@ -177,6 +177,38 @@ class CommonV2Test {
     }
 
     @Test
+    void testUpdateActivityEncodesPathSegments() throws Exception {
+        stubForAuth();
+
+        var conversationId = "19:abc@thread.tacv2;messageid=1";
+        var activityId = "1234/5 6?x";
+        var encodedPath = "/amer/v3/conversations/19%3Aabc%40thread.tacv2%3Bmessageid%3D1/activities/1234%2F5%206%3Fx";
+
+        rule.stubFor(put(urlEqualTo(encodedPath))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json; charset=utf-8")
+                        .withJsonBody(Utils.mapper().valueToTree(Map.of("id", activityId)))));
+
+        var input = new HashMap<>(defaultParams());
+        input.put("action", "updateActivity");
+        input.put("conversationId", conversationId);
+        input.put("activityId", activityId);
+        input.put("activity", Map.of(
+                "type", "message",
+                "text", "mock updated text"
+        ));
+
+        Result r = common.execute(TeamsV2TaskParams.of(new MapBackedVariables(input), Map.of()));
+
+        assertTrue(r.isOk());
+
+        var messageEvent = rule.getAllServeEvents().get(0);
+        assertEquals(RequestMethod.PUT, messageEvent.getRequest().getMethod());
+        assertEquals(encodedPath, messageEvent.getRequest().getUrl());
+    }
+
+    @Test
     void testUpdateActivityMissingActivityId() {
         var input = new HashMap<>(defaultParams());
         input.put("action", "updateActivity");

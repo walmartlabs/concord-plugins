@@ -84,8 +84,16 @@ public class TeamsClientV2 implements AutoCloseable {
     }
 
     public Result updateActivity(Map<String, Object> activity, String rootApi, String conversationId, String activityId) throws IOException {
-        rootApi = rootApi + "/" + conversationId + "/activities/" + activityId;
+        rootApi = rootApi + "/" + encodePathSegment(conversationId) + "/activities/" + encodePathSegment(activityId);
         return exec(activity, rootApi, "PUT");
+    }
+
+    /**
+     * Percent-encodes a single URI path segment. {@link URLEncoder} targets form encoding,
+     * so spaces come out as '+' and must be converted to '%20' for use in a path.
+     */
+    static String encodePathSegment(String segment) {
+        return URLEncoder.encode(segment, StandardCharsets.UTF_8).replace("+", "%20");
     }
 
     private HttpRequest.Builder buildRequest() {
