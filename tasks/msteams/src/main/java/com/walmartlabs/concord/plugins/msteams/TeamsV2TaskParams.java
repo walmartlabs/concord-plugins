@@ -34,6 +34,7 @@ public class TeamsV2TaskParams implements TeamsV2Configuration {
         return switch (action) {
             case CREATECONVERSATION -> new CreateConversationParams(variables);
             case REPLYTOCONVERSATION -> new ReplayToConversationParams(variables);
+            case UPDATEACTIVITY -> new UpdateActivityParams(variables);
         };
     }
 
@@ -167,8 +168,22 @@ public class TeamsV2TaskParams implements TeamsV2Configuration {
         }
     }
 
+    public static class UpdateActivityParams extends ReplayToConversationParams {
+
+        private static final String VAR_ACTIVITY_ID = "activityId";
+
+        public UpdateActivityParams(Variables variables) {
+            super(variables);
+        }
+
+        public String activityId() {
+            return variables.assertString(VAR_ACTIVITY_ID);
+        }
+    }
+
     public enum Action {
         CREATECONVERSATION,
-        REPLYTOCONVERSATION
+        REPLYTOCONVERSATION,
+        UPDATEACTIVITY
     }
 }

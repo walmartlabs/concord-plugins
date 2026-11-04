@@ -27,6 +27,7 @@ import java.util.Map;
 
 import static com.walmartlabs.concord.plugins.msteams.TeamsV2TaskParams.CreateConversationParams;
 import static com.walmartlabs.concord.plugins.msteams.TeamsV2TaskParams.ReplayToConversationParams;
+import static com.walmartlabs.concord.plugins.msteams.TeamsV2TaskParams.UpdateActivityParams;
 
 public class TeamsV2TaskCommon {
 
@@ -47,6 +48,7 @@ public class TeamsV2TaskCommon {
         return switch (in.action()) {
             case CREATECONVERSATION -> createConversation((CreateConversationParams) in);
             case REPLYTOCONVERSATION -> replyToConversation((ReplayToConversationParams) in);
+            case UPDATEACTIVITY -> updateActivity((UpdateActivityParams) in);
         };
     }
 
@@ -91,6 +93,30 @@ public class TeamsV2TaskCommon {
                 return Result.error(e.getMessage());
             } else {
                 throw new RuntimeException("'msteams' task error: " + e.getMessage());
+            }
+        }
+    }
+
+    Result updateActivity(UpdateActivityParams in) {
+        String conversationId = in.conversationId();
+        String activityId = in.activityId();
+
+        try (TeamsClientV2 client = getClient(in)) {
+            Result r = client.updateActivity(in.activity(), in.rootApi(), conversationId, activityId);
+
+            if (!r.isOk()) {
+                log.warn("Error updating activity: {}", r.getError());
+            } else {
+                log.info("Activity updated.");
+            }
+            return r;
+        } catch (Exception e) {
+            if (in.ignoreErrors()) {
+                log.warn("Finished with generic error (networking or internal 'msteams' error). " +
+                        "For details check for the 'ERROR': {}", e.getMessage());
+                return Result.error(e.getMessage());
+            } else {
+                throw new RuntimeException("'msteams' task error while updating activity: " + e.getMessage());
             }
         }
     }
