@@ -185,6 +185,11 @@ class CommonV2Test {
         var encodedPath = "/amer/v3/conversations/19%3Aabc%40thread.tacv2%3Bmessageid%3D1/activities/1234%2F5%206%3Fx";
 
         rule.stubFor(put(urlEqualTo(encodedPath))
+                .withRequestBody(equalToJson(Utils.mapper().writeValueAsString(Map.of(
+                        "id", activityId,
+                        "type", "message",
+                        "text", "mock updated text"
+                )), true, false))
                 .willReturn(aResponse()
                         .withStatus(200)
                         .withHeader("Content-Type", "application/json; charset=utf-8")
@@ -206,6 +211,27 @@ class CommonV2Test {
         var messageEvent = rule.getAllServeEvents().get(0);
         assertEquals(RequestMethod.PUT, messageEvent.getRequest().getMethod());
         assertEquals(encodedPath, messageEvent.getRequest().getUrl());
+    }
+
+    @Test
+    void testUpdateActivityMismatchedId() throws Exception {
+        stubForAuth();
+
+        var input = new HashMap<>(defaultParams());
+        input.put("action", "updateActivity");
+        input.put("conversationId", MOCK_CONVERSATION_ID);
+        input.put("activityId", MOCK_ACTIVITY_ID);
+        input.put("activity", Map.of(
+                "id", "some-other-id",
+                "type", "message",
+                "text", "mock updated text"
+        ));
+
+        var params = TeamsV2TaskParams.of(new MapBackedVariables(input), Map.of());
+
+        var expected = assertThrows(RuntimeException.class, () -> common.execute(params));
+        assertTrue(expected.getMessage().contains("does not match activityId"));
+        verify(client, times(0)).exec(any(), any(), any());
     }
 
     @Test
@@ -347,6 +373,7 @@ class CommonV2Test {
     void stubForUpdateActivity() throws Exception {
         rule.stubFor(put(urlEqualTo("/amer/v3/conversations/" + MOCK_CONVERSATION_ID + "/activities/" + MOCK_ACTIVITY_ID))
                 .withRequestBody(equalToJson(Utils.mapper().writeValueAsString(Map.of(
+                        "id", MOCK_ACTIVITY_ID,
                         "type", "message",
                         "text", "mock updated text"
                 )), true, false))

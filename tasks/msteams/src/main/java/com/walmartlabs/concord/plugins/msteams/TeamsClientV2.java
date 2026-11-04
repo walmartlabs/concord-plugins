@@ -84,8 +84,17 @@ public class TeamsClientV2 implements AutoCloseable {
     }
 
     public Result updateActivity(Map<String, Object> activity, String rootApi, String conversationId, String activityId) throws IOException {
+        // Bot Framework expects the activity's 'id' to match the activityId path segment
+        Object existingId = activity.get("id");
+        if (existingId != null && !activityId.equals(existingId.toString())) {
+            throw new IllegalArgumentException("activity.id '" + existingId + "' does not match activityId '" + activityId + "'");
+        }
+
+        Map<String, Object> body = new LinkedHashMap<>(activity);
+        body.put("id", activityId);
+
         rootApi = rootApi + "/" + encodePathSegment(conversationId) + "/activities/" + encodePathSegment(activityId);
-        return exec(activity, rootApi, "PUT");
+        return exec(body, rootApi, "PUT");
     }
 
     /**
