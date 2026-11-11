@@ -5,7 +5,9 @@
 ### Changed
 
 - project: switch to Java 25
-([#244](https://github.com/walmartlabs/concord-plugins/pull/244)).
+([#244](https://github.com/walmartlabs/concord-plugins/pull/244));
+- project: versions up
+([#252](https://github.com/walmartlabs/concord-plugins/pull/252)).
 
 
 ## [2.14.0] - 2026-08-24
